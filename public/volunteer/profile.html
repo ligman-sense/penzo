@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Profile — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/volunteer/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--teal">Volunteer</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Volunteer Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/volunteer/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/volunteer/examinations.html" class="sidebar-link">Browse Examinations</a></li>
+        <li><a href="/volunteer/interests.html" class="sidebar-link">My Interests</a></li>
+        <li><a href="/volunteer/commitments.html" class="sidebar-link">Commitments</a></li>
+        <li><a href="/volunteer/profile.html" class="sidebar-link active" aria-current="page">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Volunteer</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content" style="max-width: 800px;">
+      <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Volunteer Profile</h1>
+          <p>Maintain your qualification, languages, and service preferences for matching.</p>
+        </div>
+        <div>
+          <span id="verify-badge" class="badge badge--gray">Checking status...</span>
+        </div>
+      </div>
+
+      <!-- Completion Indicator -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body" style="padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong id="profile-completion-label" style="font-size: 0.9rem;">Profile Completion</strong>
+          </div>
+          <div style="background-color: var(--color-surface-2); height: 8px; border-radius: 4px; overflow: hidden;">
+            <div id="profile-completion-bar" style="background-color: var(--color-secondary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Form -->
+      <div class="card">
+        <div class="card-body">
+          <form id="profile-form">
+            <h3 style="margin-bottom: 1.25rem;">Personal Information</h3>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="first-name" class="form-label">First Name *</label>
+                <input type="text" id="first-name" name="firstName" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label for="last-name" class="form-label">Last Name *</label>
+                <input type="text" id="last-name" name="lastName" class="form-input" required>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="mobile-display" class="form-label">Verified Mobile</label>
+                <input type="text" id="mobile-display" class="form-input" disabled>
+              </div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1.25rem;">Education &amp; Scribe Qualifications</h3>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="qualification" class="form-label">Highest Qualification *</label>
+                <input type="text" id="qualification" name="qualification" class="form-input" placeholder="e.g. Bachelor of Science" required>
+              </div>
+
+              <div class="form-group">
+                <label for="institution" class="form-label">Institution / College</label>
+                <input type="text" id="institution" name="institution" class="form-input" placeholder="e.g. University of Madras">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="preferred-languages" class="form-label">Languages Known (comma separated) *</label>
+              <input type="text" id="preferred-languages" name="preferredLanguages" class="form-input" placeholder="English, Hindi, Tamil" required>
+            </div>
+
+            <h3 style="margin: 2rem 0 1.25rem;">Location &amp; Availability</h3>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="city" class="form-label">Primary City *</label>
+                <input type="text" id="city" name="city" class="form-input" placeholder="e.g. Coimbatore" required>
+              </div>
+
+              <div class="form-group">
+                <label for="available-regions" class="form-label">Service Regions / Suburbs</label>
+                <input type="text" id="available-regions" name="availableRegions" class="form-input" placeholder="Gandhipuram, Peelamedu">
+              </div>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+              <label style="display: flex; gap: 0.5rem; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="has-experience" name="hasPreviousExperience">
+                <span>I have previous experience acting as an examination scribe</span>
+              </label>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn--secondary">Save Profile</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/volunteer/profile.js"></script>
+</body>
+</html>

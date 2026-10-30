@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — Candidate Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/candidate/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--blue">Candidate</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Candidate Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/candidate/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/candidate/examinations.html" class="sidebar-link">Examinations</a></li>
+        <li><a href="/candidate/requests.html" class="sidebar-link">My Scribe Requests</a></li>
+        <li><a href="/candidate/profile.html" class="sidebar-link active" aria-current="page">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Candidate</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content" style="max-width: 800px;">
+      <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h1>Candidate Profile</h1>
+          <p>Update your details to ensure quick and accurate scribe matching.</p>
+        </div>
+        <div>
+          <span id="verify-badge" class="badge badge--gray">Checking status...</span>
+        </div>
+      </div>
+
+      <!-- Completion Indicator -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body" style="padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong id="profile-completion-label" style="font-size: 0.9rem;">Profile Completion</strong>
+          </div>
+          <div style="background-color: var(--color-surface-2); height: 8px; border-radius: 4px; overflow: hidden;">
+            <div id="profile-completion-bar" style="background-color: var(--color-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Form -->
+      <div class="card">
+        <div class="card-body">
+          <form id="profile-form">
+            <h3 style="margin-bottom: 1.25rem;">Personal Information</h3>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="first-name" class="form-label">First Name *</label>
+                <input type="text" id="first-name" name="firstName" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label for="last-name" class="form-label">Last Name *</label>
+                <input type="text" id="last-name" name="lastName" class="form-input" required>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="mobile-display" class="form-label">Verified Mobile</label>
+                <input type="text" id="mobile-display" class="form-input" disabled>
+                <span class="form-hint">Mobile number cannot be changed directly.</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="date-of-birth" class="form-label">Date of Birth</label>
+                <input type="date" id="date-of-birth" name="dateOfBirth" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="gender" class="form-label">Gender</label>
+                <select id="gender" name="gender" class="form-select">
+                  <option value="">Select Gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                  <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1.25rem;">Location &amp; Assistance</h3>
+
+            <div class="grid grid-cols-3" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="city" class="form-label">City *</label>
+                <input type="text" id="city" name="city" class="form-input" placeholder="e.g. Chennai" required>
+              </div>
+
+              <div class="form-group">
+                <label for="state" class="form-label">State</label>
+                <input type="text" id="state" name="state" class="form-input" placeholder="e.g. Tamil Nadu">
+              </div>
+
+              <div class="form-group">
+                <label for="pincode" class="form-label">Pincode</label>
+                <input type="text" id="pincode" name="pincode" class="form-input" placeholder="600001">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="disability-type" class="form-label">Assistance / Scribe Requirements</label>
+              <textarea id="disability-type" name="disabilityType" class="form-textarea" rows="3" placeholder="Describe assistance needs (e.g. Visual impairment, locomotor disability, preferred languages for dictation)..."></textarea>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn--primary">Save Profile</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/candidate/profile.js"></script>
+</body>
+</html>

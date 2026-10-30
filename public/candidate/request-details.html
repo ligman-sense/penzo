@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Details — Candidate Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/candidate/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--blue">Candidate</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Candidate Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/candidate/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/candidate/examinations.html" class="sidebar-link">Examinations</a></li>
+        <li><a href="/candidate/requests.html" class="sidebar-link active" aria-current="page">My Scribe Requests</a></li>
+        <li><a href="/candidate/profile.html" class="sidebar-link">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Candidate</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 1.5rem;">
+        <a href="/candidate/requests.html" class="btn btn--ghost btn--sm" style="margin-bottom: 0.5rem;">&larr; Back to Requests</a>
+      </div>
+
+      <div id="loading-indicator" hidden>
+        <p>Loading request details...</p>
+      </div>
+
+      <div id="request-detail"></div>
+    </main>
+  </div>
+
+  <!-- Cancel Modal -->
+  <div id="cancel-modal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Cancel Scribe Request</h3>
+        <button id="cancel-modal-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="cancel-form">
+        <div class="modal-body">
+          <p style="margin-bottom: 1rem; color: var(--color-text-secondary);">
+            Are you sure you want to cancel this request? This action cannot be undone.
+          </p>
+          <div class="form-group">
+            <label for="cancel-reason" class="form-label">Reason for cancellation (optional)</label>
+            <textarea id="cancel-reason" class="form-textarea" rows="3" placeholder="Explain why you are cancelling this request..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn--outline btn--sm" onclick="document.getElementById('cancel-modal').hidden=true;document.body.style.overflow=''">Keep Request</button>
+          <button type="submit" class="btn btn--danger btn--sm">Yes, Cancel Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="/js/candidate/request-details.js"></script>
+</body>
+</html>

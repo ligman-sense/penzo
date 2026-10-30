@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examinations — Volunteer Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/volunteer/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--teal">Volunteer</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Volunteer Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/volunteer/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/volunteer/examinations.html" class="sidebar-link active" aria-current="page">Browse Examinations</a></li>
+        <li><a href="/volunteer/interests.html" class="sidebar-link">My Interests</a></li>
+        <li><a href="/volunteer/commitments.html" class="sidebar-link">Commitments</a></li>
+        <li><a href="/volunteer/profile.html" class="sidebar-link">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Volunteer</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 2rem;">
+        <h1>Browse Examinations</h1>
+        <p>Explore upcoming examinations and express your interest in assisting as a scribe.</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body">
+          <div class="grid grid-cols-4" style="gap: 1rem;">
+            <div>
+              <label for="exam-search" class="form-label">Search</label>
+              <input type="text" id="exam-search" class="form-input" placeholder="Search exam name or body...">
+            </div>
+            <div>
+              <label for="filter-authority" class="form-label">Authority</label>
+              <input type="text" id="filter-authority" class="form-input" placeholder="e.g. UPSC, SSC...">
+            </div>
+            <div>
+              <label for="filter-region" class="form-label">Location</label>
+              <input type="text" id="filter-region" class="form-input" placeholder="City or region...">
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button id="clear-filters" class="btn btn--outline" style="width: 100%;">Clear Filters</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="loading-indicator" hidden style="text-align: center; padding: 2rem;">
+        <p>Loading examinations...</p>
+      </div>
+
+      <div id="exams-grid" class="grid grid-cols-3" style="gap: 1.5rem;">
+        <p>Loading examinations...</p>
+      </div>
+
+      <div id="pagination" style="margin-top: 2rem;"></div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/volunteer/examinations.js"></script>
+</body>
+</html>

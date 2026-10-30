@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Requests &amp; Matches — Admin Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/admin/dashboard.html" class="brand-logo"><span>PENZO</span> <span class="badge badge--purple" style="font-size: 0.7rem; margin-left: 0.5rem;">Super Admin</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="admin-logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Admin Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/admin/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/admin/examinations.html" class="sidebar-link">Examinations</a></li>
+        <li><a href="/admin/users.html" class="sidebar-link">User Management</a></li>
+        <li><a href="/admin/verification.html" class="sidebar-link">Verifications</a></li>
+        <li><a href="/admin/requests.html" class="sidebar-link active" aria-current="page">Requests &amp; Matches</a></li>
+        <li><a href="/admin/reports.html" class="sidebar-link">Reports &amp; Metrics</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="admin-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Administrator</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 2rem;">
+        <h1>Scribe Requests &amp; Matching</h1>
+        <p>Manage candidate requests through their assignment lifecycle and valid status transitions.</p>
+      </div>
+
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body">
+          <div style="max-width: 300px;">
+            <label for="status-filter" class="form-label">Filter by Status</label>
+            <select id="status-filter" class="form-select">
+              <option value="">All Statuses</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="PENDING_REVIEW">Pending Review</option>
+              <option value="AWAITING_VOLUNTEER">Awaiting Volunteer</option>
+              <option value="MATCH_PROPOSED">Match Proposed</option>
+              <option value="VOLUNTEER_ACCEPTED">Volunteer Accepted</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Candidate</th>
+              <th>Examination</th>
+              <th>City</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="requests-table-body">
+            <tr><td colspan="6" class="text-center">Loading requests...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="pagination-container" style="margin-top: 2rem;"></div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/admin/requests.js"></script>
+</body>
+</html>

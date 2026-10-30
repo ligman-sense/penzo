@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Register — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="brand-logo" aria-label="PENZO Home">
+        <span>PENZO</span>
+      </a>
+
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <a href="/" class="btn btn--ghost btn--sm">Back to Home</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" class="auth-wrapper">
+    <div class="card auth-card">
+      <div class="card-body">
+        <!-- Step 1: Phone Form -->
+        <div id="step-phone">
+          <div class="auth-header">
+            <h1>Sign In or Register</h1>
+            <p>Enter your mobile number to receive a one-time verification code.</p>
+          </div>
+
+          <form id="phone-form">
+            <div class="form-group">
+              <label for="phone-number" class="form-label">Mobile Number</label>
+              <div class="phone-input-group">
+                <select id="country-code" class="form-select phone-prefix" aria-label="Country Code">
+                  <option value="91">+91 (IN)</option>
+                  <option value="1">+1 (US)</option>
+                  <option value="44">+44 (UK)</option>
+                  <option value="000">+000 (DEMO)</option>
+                </select>
+                <input
+                  type="tel"
+                  id="phone-number"
+                  name="phoneNumber"
+                  class="form-input"
+                  placeholder="98765 43210"
+                  required
+                  autocomplete="tel"
+                >
+              </div>
+              <span class="form-hint">We'll send a 6-digit code to this number.</span>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full" style="margin-top: 1rem;">
+              Send Verification Code
+            </button>
+          </form>
+
+          <div class="demo-box" style="margin-top: 1.5rem; padding: 1rem; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface-2);">
+            <p style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--color-text-secondary);">
+              ⚡ Quick Demo Access (1-Click Login):
+            </p>
+            <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+              <button type="button" id="demo-candidate-btn" class="btn btn--secondary btn--sm" style="text-align: left; justify-content: flex-start;">
+                👤 Log in as Demo Candidate (+00012345001)
+              </button>
+              <button type="button" id="demo-volunteer-btn" class="btn btn--secondary btn--sm" style="text-align: left; justify-content: flex-start;">
+                ✍️ Log in as Demo Volunteer / Scribe (+00012345002)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: OTP Form -->
+        <div id="step-otp" hidden>
+          <div class="auth-header">
+            <h1>Enter Verification Code</h1>
+            <p>Code sent to <strong id="mobile-display"></strong></p>
+            <button type="button" id="edit-phone" class="btn btn--ghost btn--sm" style="margin-top: 0.25rem;">
+              Change phone number
+            </button>
+          </div>
+
+          <form id="otp-form">
+            <div class="form-group">
+              <label for="otp-code" class="form-label">6-Digit Code</label>
+              <input
+                type="text"
+                id="otp-code"
+                name="otp"
+                class="form-input"
+                placeholder="123456"
+                maxlength="6"
+                required
+                autocomplete="one-time-code"
+                style="text-align: center; letter-spacing: 4px; font-size: 1.25rem; font-weight: 700;"
+              >
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0;">
+              <button type="button" id="resend-otp" class="btn btn--ghost btn--sm">Resend code</button>
+              <span id="resend-countdown" class="form-hint" hidden></span>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full">
+              Verify &amp; Continue
+            </button>
+          </form>
+        </div>
+
+        <!-- Step 3: Role Form -->
+        <div id="step-role" hidden>
+          <div class="auth-header">
+            <h1>Select Your Account Type</h1>
+            <p>Welcome! Tell us how you plan to use PENZO.</p>
+          </div>
+
+          <form id="role-form">
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+              <label class="card card--hover" style="padding: 1rem; cursor: pointer; display: flex; gap: 1rem; align-items: flex-start;">
+                <input type="radio" name="role" value="CANDIDATE" required style="margin-top: 0.25rem;">
+                <div>
+                  <strong style="display: block; color: var(--color-text);">I am a Candidate</strong>
+                  <span style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                    I need a volunteer scribe to assist me with upcoming examination(s).
+                  </span>
+                </div>
+              </label>
+
+              <label class="card card--hover" style="padding: 1rem; cursor: pointer; display: flex; gap: 1rem; align-items: flex-start;">
+                <input type="radio" name="role" value="VOLUNTEER" required style="margin-top: 0.25rem;">
+                <div>
+                  <strong style="display: block; color: var(--color-text);">I am a Volunteer Scribe</strong>
+                  <span style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                    I would like to volunteer as a scribe and assist examination candidates.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full">
+              Complete Setup
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      <div class="card-footer" style="justify-content: center; font-size: 0.85rem; color: var(--color-text-muted);">
+        <span>Looking for administrator sign in? <a href="/admin/login.html">Admin Portal</a></span>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/login.js"></script>
+</body>
+</html>

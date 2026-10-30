@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports &amp; Statistics — Admin Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/admin/dashboard.html" class="brand-logo"><span>PENZO</span> <span class="badge badge--purple" style="font-size: 0.7rem; margin-left: 0.5rem;">Super Admin</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="admin-logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Admin Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/admin/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/admin/examinations.html" class="sidebar-link">Examinations</a></li>
+        <li><a href="/admin/users.html" class="sidebar-link">User Management</a></li>
+        <li><a href="/admin/verification.html" class="sidebar-link">Verifications</a></li>
+        <li><a href="/admin/requests.html" class="sidebar-link">Requests &amp; Matches</a></li>
+        <li><a href="/admin/reports.html" class="sidebar-link active" aria-current="page">Reports &amp; Metrics</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="admin-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Administrator</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 2rem;">
+        <h1>Platform Reports &amp; Aggregations</h1>
+        <p>Live metrics aggregated directly from MongoDB collections.</p>
+      </div>
+
+      <div class="grid grid-cols-2" style="gap: 2rem;">
+        <div class="card">
+          <div class="card-header">
+            <h3>Requests by Lifecycle Status</h3>
+          </div>
+          <div id="requests-report" class="card-body">
+            <p>Loading breakdown...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Examinations by Publication Status</h3>
+          </div>
+          <div id="exams-report" class="card-body">
+            <p>Loading breakdown...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Registered Users by Role</h3>
+          </div>
+          <div id="users-report" class="card-body">
+            <p>Loading breakdown...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Verifications by Decision Status</h3>
+          </div>
+          <div id="verifications-report" class="card-body">
+            <p>Loading breakdown...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/admin/reports.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Environment variables — NEVER commit real credentials
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build output (old stack)
+dist/
+build/
+
+# MongoDB local data
+data/
+
+# Uploaded files (private documents)
+storage/
+uploads/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/

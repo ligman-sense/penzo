@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Form — Admin Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/admin/dashboard.html" class="brand-logo"><span>PENZO</span> <span class="badge badge--purple" style="font-size: 0.7rem; margin-left: 0.5rem;">Super Admin</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <a href="/admin/examinations.html" class="btn btn--outline btn--sm">Back to List</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Admin Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/admin/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/admin/examinations.html" class="sidebar-link active" aria-current="page">Examinations</a></li>
+        <li><a href="/admin/users.html" class="sidebar-link">User Management</a></li>
+        <li><a href="/admin/verification.html" class="sidebar-link">Verifications</a></li>
+        <li><a href="/admin/requests.html" class="sidebar-link">Requests &amp; Matches</a></li>
+        <li><a href="/admin/reports.html" class="sidebar-link">Reports &amp; Metrics</a></li>
+      </ul>
+    </nav>
+
+    <main id="main-content" class="main-content" style="max-width: 900px;">
+      <div style="margin-bottom: 2rem;">
+        <h1 id="form-page-title">Create Examination</h1>
+        <p>Enter official examination details, session schedules, and documented scribe instructions.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form id="examination-form">
+            <h3 style="margin-bottom: 1.25rem;">Core Details</h3>
+
+            <div class="form-group">
+              <label for="name" class="form-label">Examination Name *</label>
+              <input type="text" id="name" name="name" class="form-input" placeholder="e.g. Civil Services Preliminary Examination 2026" required>
+            </div>
+
+            <div class="form-group">
+              <label for="authority" class="form-label">Conducting Authority *</label>
+              <input type="text" id="authority" name="authority" class="form-input" placeholder="e.g. Union Public Service Commission" required>
+            </div>
+
+            <div class="form-group">
+              <label for="description" class="form-label">Description</label>
+              <textarea id="description" name="description" class="form-textarea" rows="3" placeholder="Overview of the examination, cadre, eligibility summary..."></textarea>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="officialUrl" class="form-label">Official Website URL</label>
+                <input type="url" id="officialUrl" name="officialUrl" class="form-input" placeholder="https://example.gov.in">
+              </div>
+
+              <div class="form-group">
+                <label for="notificationUrl" class="form-label">Official Notification Link</label>
+                <input type="url" id="notificationUrl" name="notificationUrl" class="form-input" placeholder="https://example.gov.in/notice.pdf">
+              </div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1.25rem;">Dates &amp; Schedule</h3>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="startsOn" class="form-label">Examination Date *</label>
+                <input type="date" id="startsOn" name="startsOn" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="endsOn" class="form-label">End Date (if multi-day)</label>
+                <input type="date" id="endsOn" name="endsOn" class="form-input">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="registrationOpensAt" class="form-label">Registration Opens</label>
+                <input type="date" id="registrationOpensAt" name="registrationOpensAt" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label for="registrationDeadline" class="form-label">Registration Deadline</label>
+                <input type="date" id="registrationDeadline" name="registrationDeadline" class="form-input">
+              </div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1.25rem;">Documented Scribe Rules &amp; Instructions</h3>
+
+            <div class="form-group">
+              <label for="scribeEligibilityInfo" class="form-label">Scribe Eligibility Criteria</label>
+              <textarea id="scribeEligibilityInfo" name="scribeEligibilityInfo" class="form-textarea" rows="2" placeholder="Documented rules regarding who may avail scribe services..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="qualificationConditions" class="form-label">Volunteer Qualification Conditions</label>
+              <textarea id="qualificationConditions" name="qualificationConditions" class="form-textarea" rows="2" placeholder="e.g. Scribe must have one academic qualification below the candidate..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="requiredDocuments" class="form-label">Required Documents / Undertakings</label>
+              <textarea id="requiredDocuments" name="requiredDocuments" class="form-textarea" rows="2" placeholder="Disability certificate, Scribe declaration form..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="accommodationInfo" class="form-label">Accommodation &amp; Compensatory Time</label>
+              <textarea id="accommodationInfo" name="accommodationInfo" class="form-textarea" rows="2" placeholder="e.g. 20 minutes compensatory time per hour of examination..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="scribeRequestInstructions" class="form-label">Specific Request Instructions</label>
+              <textarea id="scribeRequestInstructions" name="scribeRequestInstructions" class="form-textarea" rows="2" placeholder="Centre reporting deadlines, hall ticket endorsement procedures..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="adminNotes" class="form-label">Internal Administrator Notes</label>
+              <textarea id="adminNotes" name="adminNotes" class="form-textarea" rows="2" placeholder="Internal notes, source verification notes..."></textarea>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+              <label style="display: flex; gap: 0.5rem; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="isFeatured" name="isFeatured">
+                <span>Feature this examination prominently on user dashboards</span>
+              </label>
+            </div>
+
+            <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+              <a href="/admin/examinations.html" class="btn btn--outline">Cancel</a>
+              <button type="submit" id="submit-btn" class="btn btn--primary">Save Examination</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/admin/examination-form.js"></script>
+</body>
+</html>

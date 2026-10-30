@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal Login — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="brand-logo"><span>PENZO</span> <span class="badge badge--purple" style="font-size: 0.7rem; margin-left: 0.5rem;">Admin</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <a href="/" class="btn btn--ghost btn--sm">Public Site</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="auth-wrapper">
+    <div class="card auth-card">
+      <div class="card-body">
+        <div class="auth-header">
+          <h1>Admin Sign In</h1>
+          <p>Restricted access portal for authorized administrators.</p>
+        </div>
+
+        <form id="admin-login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">Admin Email</label>
+            <input type="email" id="email" class="form-input" placeholder="admin@example.invalid" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn btn--primary btn--full" style="margin-top: 1rem;">
+            Sign In to Dashboard
+          </button>
+        </form>
+      </div>
+
+      <div class="card-footer" style="justify-content: center; font-size: 0.85rem; color: var(--color-text-muted);">
+        <span>PENZO Administration Infrastructure</span>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/admin/login.js"></script>
+</body>
+</html>

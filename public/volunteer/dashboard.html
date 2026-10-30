@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Dashboard — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/volunteer/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--teal">Volunteer</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Volunteer Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/volunteer/dashboard.html" class="sidebar-link active" aria-current="page">Dashboard</a></li>
+        <li><a href="/volunteer/examinations.html" class="sidebar-link">Browse Examinations</a></li>
+        <li><a href="/volunteer/interests.html" class="sidebar-link">My Interests</a></li>
+        <li><a href="/volunteer/commitments.html" class="sidebar-link">Commitments</a></li>
+        <li><a href="/volunteer/profile.html" class="sidebar-link">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Volunteer</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 2rem;">
+        <h1>Volunteer Dashboard</h1>
+        <p>Thank you for contributing your time and skill to empower examination candidates.</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div id="stats-container" class="grid grid-cols-4" style="margin-bottom: 2.5rem;">
+        <div class="stat-card"><span class="stat-card__label">Loading...</span></div>
+      </div>
+
+      <!-- Two-column section: Registered Interests & Confirmed Commitments -->
+      <div class="grid grid-cols-2" style="gap: 2rem;">
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Expressed Interests</h3>
+            <a href="/volunteer/interests.html" class="btn btn--ghost btn--sm">View all</a>
+          </div>
+          <div id="interests-container" class="card-body">
+            <p>Loading registered interests...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Upcoming Commitments</h3>
+            <a href="/volunteer/commitments.html" class="btn btn--ghost btn--sm">View all</a>
+          </div>
+          <div id="commitments-container" class="card-body">
+            <p>Loading confirmed commitments...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/volunteer/dashboard.js"></script>
+</body>
+</html>

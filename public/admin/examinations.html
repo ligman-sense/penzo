@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examinations — Admin Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/admin/dashboard.html" class="brand-logo"><span>PENZO</span> <span class="badge badge--purple" style="font-size: 0.7rem; margin-left: 0.5rem;">Super Admin</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="admin-logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Admin Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/admin/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/admin/examinations.html" class="sidebar-link active" aria-current="page">Examinations</a></li>
+        <li><a href="/admin/users.html" class="sidebar-link">User Management</a></li>
+        <li><a href="/admin/verification.html" class="sidebar-link">Verifications</a></li>
+        <li><a href="/admin/requests.html" class="sidebar-link">Requests &amp; Matches</a></li>
+        <li><a href="/admin/reports.html" class="sidebar-link">Reports &amp; Metrics</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="admin-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Administrator</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+          <h1>Examination Management</h1>
+          <p>Create, update, publish, or archive examination listings.</p>
+        </div>
+        <a href="/admin/examination-form.html" class="btn btn--primary">+ Add Examination</a>
+      </div>
+
+      <!-- Filters -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body">
+          <div class="grid grid-cols-2" style="gap: 1rem;">
+            <div>
+              <label for="search-input" class="form-label">Search</label>
+              <input type="text" id="search-input" class="form-input" placeholder="Search by name or authority...">
+            </div>
+            <div>
+              <label for="status-filter" class="form-label">Publication Status</label>
+              <select id="status-filter" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+                <option value="UNPUBLISHED">Unpublished</option>
+                <option value="ARCHIVED">Archived</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exams Table -->
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Examination Name</th>
+              <th>Authority</th>
+              <th>Status</th>
+              <th>Starts On</th>
+              <th>Sessions</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="exams-table-body">
+            <tr><td colspan="6" class="text-center">Loading examinations...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="pagination-container" style="margin-top: 2rem;"></div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/theme.js"></script>
+  <script type="module" src="/js/admin/examinations.js"></script>
+</body>
+</html>

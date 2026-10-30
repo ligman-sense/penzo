@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examinations — Candidate Portal — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/candidate/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--blue">Candidate</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Candidate Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/candidate/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/candidate/examinations.html" class="sidebar-link active" aria-current="page">Examinations</a></li>
+        <li><a href="/candidate/requests.html" class="sidebar-link">My Scribe Requests</a></li>
+        <li><a href="/candidate/profile.html" class="sidebar-link">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Candidate</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content">
+      <div style="margin-bottom: 2rem;">
+        <h1>Browse Examinations</h1>
+        <p>Explore upcoming examinations and request volunteer scribe support.</p>
+      </div>
+
+      <!-- Filters Row -->
+      <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body">
+          <div class="grid grid-cols-4" style="gap: 1rem;">
+            <div>
+              <label for="exam-search" class="form-label">Search</label>
+              <input type="text" id="exam-search" class="form-input" placeholder="Search examination or authority...">
+            </div>
+            <div>
+              <label for="filter-authority" class="form-label">Authority</label>
+              <input type="text" id="filter-authority" class="form-input" placeholder="e.g. UPSC, SSC...">
+            </div>
+            <div>
+              <label for="filter-region" class="form-label">Location / City</label>
+              <input type="text" id="filter-region" class="form-input" placeholder="e.g. Delhi, Chennai...">
+            </div>
+            <div style="display: flex; align-items: flex-end; gap: 0.5rem;">
+              <button id="clear-filters" class="btn btn--outline" style="width: 100%;">Clear Filters</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading Indicator -->
+      <div id="loading-indicator" hidden style="text-align: center; padding: 2rem;">
+        <p>Loading examinations...</p>
+      </div>
+
+      <!-- Exams Grid -->
+      <div id="exams-grid" class="grid grid-cols-3" style="gap: 1.5rem;">
+        <p>Loading examinations...</p>
+      </div>
+
+      <!-- Pagination -->
+      <div id="pagination" style="margin-top: 2rem;"></div>
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="exam-modal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Examination Details</h3>
+        <button id="modal-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="exam-modal-content" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/candidate/examinations.js"></script>
+</body>
+</html>
