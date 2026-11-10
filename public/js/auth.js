@@ -5,16 +5,19 @@ let _currentUser = null;
 let _sessionChecked = false;
 
 export async function checkSession() {
-  if (_sessionChecked) return _currentUser;
   try {
     const { data } = await api.get('/auth/session');
     if (data.authenticated) {
       _currentUser = data.user;
       setCsrfToken(data.csrfToken);
+      _sessionChecked = true;
+      return _currentUser;
     }
+    _currentUser = null;
     _sessionChecked = true;
-    return _currentUser;
+    return null;
   } catch {
+    _currentUser = null;
     _sessionChecked = true;
     return null;
   }

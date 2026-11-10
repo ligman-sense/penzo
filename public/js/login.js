@@ -248,7 +248,7 @@ function startResendCooldown() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function redirectByRole(role) {
-  if (role === 'CANDIDATE') window.location.href = '/candidate/dashboard.html';
-  else if (role === 'VOLUNTEER') window.location.href = '/volunteer/dashboard.html';
-  else window.location.href = '/';
+  if (role === 'CANDIDATE') window.location.replace('/candidate/dashboard.html');
+  else if (role === 'VOLUNTEER') window.location.replace('/volunteer/dashboard.html');
+  else window.location.replace('/');
 }
