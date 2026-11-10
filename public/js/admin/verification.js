@@ -165,7 +165,8 @@ async function loadVerifications() {
 // ─── Modal Management ─────────────────────────────────────────────────────────
 function setupVerificationModal() {
   registerModal('verification-modal', {
-    onReset: () => resetModalContent(),
+    onClose: () => resetModalContent(true),
+    onReset: () => resetModalContent(false),
   });
 
   const closeBtn = document.getElementById('modal-close-btn');
@@ -174,13 +175,27 @@ function setupVerificationModal() {
   closeBtn?.addEventListener('click', () => closeModal('verification-modal'));
   cancelBtn?.addEventListener('click', () => closeModal('verification-modal'));
 
-  document.getElementById('btn-approve')?.addEventListener('click', () => submitDecision('VERIFIED'));
-  document.getElementById('btn-correction')?.addEventListener('click', () => submitDecision('REQUIRES_CORRECTION'));
-  document.getElementById('btn-reject')?.addEventListener('click', () => submitDecision('REJECTED'));
+  document.getElementById('btn-approve')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    submitDecision('VERIFIED');
+  });
+  document.getElementById('btn-correction')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    submitDecision('REQUIRES_CORRECTION');
+  });
+  document.getElementById('btn-reject')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    submitDecision('REJECTED');
+  });
 }
 
-function resetModalContent() {
-  activeRecordId = null;
+function resetModalContent(clearRecord = false) {
+  if (clearRecord) {
+    activeRecordId = null;
+    const modal = document.getElementById('verification-modal');
+    if (modal) modal.dataset.recordId = '';
+  }
+
   const nameEl = document.getElementById('modal-user-name');
   if (nameEl) nameEl.textContent = 'Review Profile';
 
@@ -208,20 +223,22 @@ function resetModalContent() {
 async function openReviewModal(recordId, triggerBtn = null) {
   if (!recordId) return;
 
+  resetModalContent(false);
   activeRecordId = recordId;
-  resetModalContent();
+  const modal = document.getElementById('verification-modal');
+  if (modal) modal.dataset.recordId = recordId;
 
   // Explicitly open modal via modal management system
   openModal('verification-modal', triggerBtn);
 
   try {
     const { data } = await api.get(`/admin/verifications/${recordId}`);
-    if (activeRecordId === recordId) {
+    if (activeRecordId === recordId || modal?.dataset?.recordId === recordId) {
       renderModalContent(data);
     }
   } catch (err) {
     const bodyContent = document.getElementById('modal-body-content');
-    if (bodyContent && activeRecordId === recordId) {
+    if (bodyContent && (activeRecordId === recordId || modal?.dataset?.recordId === recordId)) {
       bodyContent.innerHTML = `<p class="text-error">Failed to load profile details: ${escapeHtml(err.message)}</p>`;
     }
   }
@@ -327,7 +344,12 @@ async function quickApprove(recordId) {
 }
 
 async function submitDecision(decision) {
-  if (!activeRecordId) return;
+  const modal = document.getElementById('verification-modal');
+  const recordId = activeRecordId || modal?.dataset?.recordId;
+  if (!recordId) {
+    showError('No active verification record selected.');
+    return;
+  }
 
   const reasonEl = document.getElementById('decision-reason');
   const reason = reasonEl?.value.trim() || '';
@@ -339,10 +361,28 @@ async function submitDecision(decision) {
   }
 
   const approveBtn = document.getElementById('btn-approve');
-  setLoading(approveBtn, true, 'Updating...');
+  const correctionBtn = document.getElementById('btn-correction');
+  const rejectBtn = document.getElementById('btn-reject');
+  const cancelBtn = document.getElementById('btn-modal-cancel');
+
+  let activeBtn = approveBtn;
+  let loadingText = 'Approving...';
+  if (decision === 'REQUIRES_CORRECTION') {
+    activeBtn = correctionBtn;
+    loadingText = 'Requesting...';
+  } else if (decision === 'REJECTED') {
+    activeBtn = rejectBtn;
+    loadingText = 'Rejecting...';
+  }
+
+  // Disable all decision buttons during submit
+  [approveBtn, correctionBtn, rejectBtn, cancelBtn].forEach((b) => {
+    if (b) b.disabled = true;
+  });
+  setLoading(activeBtn, true, loadingText);
 
   try {
-    await api.post(`/admin/verifications/${activeRecordId}/decide`, { status: decision, reason });
+    await api.post(`/admin/verifications/${recordId}/decide`, { status: decision, reason });
     showSuccess(`Verification marked as ${decision}. Candidate/Volunteer notified.`);
 
     // Close modal via shared system
@@ -353,6 +393,9 @@ async function submitDecision(decision) {
   } catch (err) {
     showError(err.message || 'Failed to submit verification decision.');
   } finally {
-    setLoading(approveBtn, false);
+    setLoading(activeBtn, false);
+    [approveBtn, correctionBtn, rejectBtn, cancelBtn].forEach((b) => {
+      if (b) b.disabled = false;
+    });
   }
 }

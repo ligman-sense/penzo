@@ -20,6 +20,8 @@ const matchProposalSchema = new Schema({
   hasBlockingFailure: { type: Boolean, default: false },
   blockingReason: { type: String, default: null },
   needsReview: { type: Boolean, default: false },
+  isOverride: { type: Boolean, default: false },
+  overrideJustification: { type: String, default: null },
   adminNote: { type: String, default: null },
   declineReason: { type: String, default: null },
   candidateDeclineReason: { type: String, default: null },

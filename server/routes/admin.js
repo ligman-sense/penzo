@@ -232,8 +232,8 @@ adminRouter.get(
 adminRouter.post(
   '/requests/:id/propose-match',
   asyncHandler(async (req, res) => {
-    const { volunteerId, note } = req.body;
-    created(res, await proposeMatch(req.params.id, volunteerId, note, { adminId: req.auth.admin._id, ip: req.ip }));
+    const { volunteerId, note, isOverride, overrideJustification } = req.body;
+    created(res, await proposeMatch(req.params.id, volunteerId, note, { adminId: req.auth.admin._id, ip: req.ip, isOverride, overrideJustification }));
   })
 );
 

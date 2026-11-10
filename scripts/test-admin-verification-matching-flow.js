@@ -88,10 +88,12 @@ async function run() {
   const CANDIDATE_MOBILE = '+919911223344';
   const VOLUNTEER_X_MOBILE = '+919922334455';
   const VOLUNTEER_Y_MOBILE = '+919933445566';
+  const VOLUNTEER_Z_MOBILE = '+919944556677';
+  const CANDIDATE_B_MOBILE = '+919955667788';
 
   // ─── 0. Clean Up Any Prior Test Data ─────────────────────────────────────────
   console.log('0. Cleaning up previous test data...');
-  const testMobiles = [CANDIDATE_MOBILE, VOLUNTEER_X_MOBILE, VOLUNTEER_Y_MOBILE];
+  const testMobiles = [CANDIDATE_MOBILE, VOLUNTEER_X_MOBILE, VOLUNTEER_Y_MOBILE, VOLUNTEER_Z_MOBILE, CANDIDATE_B_MOBILE];
   const oldUsers = await User.find({ mobileE164: { $in: testMobiles } });
   const oldUserIds = oldUsers.map((u) => u._id);
 
@@ -231,8 +233,69 @@ async function run() {
   assert(metricsRes.data.data.totalPending >= 3, 'Must have at least 3 pending verification records');
   console.log('   Metrics:', metricsRes.data.data);
 
-  console.log('   Approving Candidate A verification records...');
-  for (const v of candVerifs) {
+  // ─── 4A. Test Verification Modal Decision Validation ──────────────────────────
+  console.log('\n4A. Testing Verification Modal Decision validations (Correction & Rejection)...');
+  const sampleVerif = candVerifs[0];
+
+  // Attempt REQUIRES_CORRECTION without reason -> MUST FAIL (400)
+  const noReasonCorrectionRes = await makeRequest(
+    'POST',
+    `/api/admin/verifications/${sampleVerif._id}/decide`,
+    { status: 'REQUIRES_CORRECTION', reason: '' },
+    adminCookie
+  );
+  assert.strictEqual(noReasonCorrectionRes.status, 400, 'Correction without reason must be rejected with 400');
+  console.log('   ✓ REQUIRES_CORRECTION without reason correctly blocked (400)');
+
+  // Attempt REJECTED without reason -> MUST FAIL (400)
+  const noReasonRejectRes = await makeRequest(
+    'POST',
+    `/api/admin/verifications/${sampleVerif._id}/decide`,
+    { status: 'REJECTED', reason: '   ' },
+    adminCookie
+  );
+  assert.strictEqual(noReasonRejectRes.status, 400, 'Rejection without reason must be rejected with 400');
+  console.log('   ✓ REJECTED without reason correctly blocked (400)');
+
+  // Submit REQUIRES_CORRECTION with valid reason -> SUCCEEDS (200)
+  const correctionRes = await makeRequest(
+    'POST',
+    `/api/admin/verifications/${sampleVerif._id}/decide`,
+    { status: 'REQUIRES_CORRECTION', reason: 'Identity document image is blurry. Please upload clear photo.' },
+    adminCookie
+  );
+  assert.strictEqual(correctionRes.status, 200);
+  const recAfterCorrection = await VerificationRecord.findById(sampleVerif._id);
+  assert.strictEqual(recAfterCorrection.status, 'REQUIRES_CORRECTION');
+  assert.strictEqual(recAfterCorrection.history.length >= 1, true, 'History entry recorded for correction');
+  console.log('   ✓ REQUIRES_CORRECTION with reason succeeded, record updated and history saved');
+
+  // Candidate resubmits profile to re-trigger review
+  await makeRequest(
+    'PUT',
+    '/api/profile',
+    {
+      fullName: 'Aarav Sharma Updated',
+      dateOfBirth: '2001-05-15',
+      gender: 'MALE',
+      addressLine1: '12 Anna Salai, Block B',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600002',
+      languages: ['English', 'Tamil'],
+      education: 'Bachelor of Arts',
+      assistanceNeeds: 'Visual impairment assistance',
+      disabilityCategory: 'VISUAL_IMPAIRMENT',
+      disabilityPercentage: 80,
+      assistanceRequired: ['SCRIBE', 'EXTRA_TIME'],
+      specialNeedsDescription: 'Requires scribe fluent in English',
+    },
+    candAuth.cookie
+  );
+
+  console.log('\n4B. Approving Candidate A verification records...');
+  const refreshedCandVerifs = await VerificationRecord.find({ userId: candUser._id });
+  for (const v of refreshedCandVerifs) {
     const decideRes = await makeRequest(
       'POST',
       `/api/admin/verifications/${v._id}/decide`,
@@ -336,10 +399,79 @@ async function run() {
     !matchYInEligible && !matchYInReview,
     'Volunteer Y MUST NOT appear in matches because Volunteer Y is interested in Exam 2, NOT Exam 1!'
   );
-  console.log('   VERIFIED: Volunteer Y (Exam 2) was strictly excluded from Exam 1 matches.');
+  console.log('   ✓ VERIFIED: Volunteer Y (Exam 2) was strictly excluded from Exam 1 matches.');
 
-  // ─── 7. Admin Proposes Match ──────────────────────────────────────────────────
-  console.log('\n7. Admin proposing match with Volunteer X...');
+  // ─── 6B. Test "Propose Anyway" (Override) & Unverified Volunteer Handling ──────
+  console.log('\n6B. Testing "Propose Anyway" override workflow & validations...');
+  await User.deleteMany({ mobileE164: VOLUNTEER_Z_MOBILE });
+
+  const volZAuth = await loginUserViaOtp(VOLUNTEER_Z_MOBILE, 'VOLUNTEER');
+  await makeRequest(
+    'PUT',
+    '/api/profile',
+    {
+      fullName: 'Rahul Unverified',
+      dateOfBirth: '2000-01-01',
+      gender: 'MALE',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600001',
+      languages: ['English'],
+      subjects: ['General'],
+      hasPriorExperience: false,
+    },
+    volZAuth.cookie
+  );
+
+  // Volunteer Z expresses interest in Exam 1 while UNVERIFIED
+  await makeRequest('PUT', `/api/interests/${exam1._id}`, { notes: 'Unverified volunteer interest' }, volZAuth.cookie);
+
+  // Re-fetch matches: Volunteer Z must be in requiresReview
+  const matchesWithZRes = await makeRequest('GET', `/api/admin/requests/${createdReq.id}/matches`, null, adminCookie);
+  const zReview = matchesWithZRes.data.data.requiresReview.find((v) => v.volunteerId === volZAuth.user.id);
+  assert(zReview, 'Unverified Volunteer Z MUST appear in requiresReview section!');
+  assert.strictEqual(zReview.isVerified, false);
+  console.log('   ✓ Unverified volunteer correctly placed in requiresReview');
+
+  // Attempt standard Propose Match for Unverified Volunteer Z without override -> MUST FAIL (400)
+  const failProposeZRes = await makeRequest(
+    'POST',
+    `/api/admin/requests/${createdReq.id}/propose-match`,
+    { volunteerId: volZAuth.user.id, isOverride: false },
+    adminCookie
+  );
+  assert.strictEqual(failProposeZRes.status, 400, 'Proposing unverified volunteer without override must fail (400)');
+  console.log('   ✓ Propose Match without override correctly blocked for unverified volunteer (400)');
+
+  // Attempt Propose Anyway with override: true but NO justification -> MUST FAIL (400)
+  const failJustificationRes = await makeRequest(
+    'POST',
+    `/api/admin/requests/${createdReq.id}/propose-match`,
+    { volunteerId: volZAuth.user.id, isOverride: true, overrideJustification: '' },
+    adminCookie
+  );
+  assert.strictEqual(failJustificationRes.status, 400, 'Propose Anyway without justification must fail (400)');
+  console.log('   ✓ Propose Anyway without justification correctly blocked (400)');
+
+  // Attempt Propose Anyway with override: true AND justification -> SUCCEEDS (201)
+  const successOverrideRes = await makeRequest(
+    'POST',
+    `/api/admin/requests/${createdReq.id}/propose-match`,
+    {
+      volunteerId: volZAuth.user.id,
+      isOverride: true,
+      overrideJustification: 'Approved emergency exception by chief administrator for pilot testing.',
+    },
+    adminCookie
+  );
+  assert([200, 201].includes(successOverrideRes.status), `Propose Anyway with justification should succeed, got ${successOverrideRes.status}`);
+  const overrideProposal = successOverrideRes.data.data;
+  assert.strictEqual(overrideProposal.isOverride, true);
+  assert(overrideProposal.overrideJustification.includes('Approved emergency exception'));
+  console.log('   ✓ Propose Anyway with valid justification succeeded and recorded override fields');
+
+  // ─── 7. Admin Proposes Match with Verified Volunteer X ────────────────────────
+  console.log('\n7. Admin proposing match with Verified Volunteer X (withdraws prior pending)...');
   const proposeRes = await makeRequest(
     'POST',
     `/api/admin/requests/${createdReq.id}/propose-match`,
@@ -433,7 +565,7 @@ async function run() {
   const volAssignmentsRes = await makeRequest('GET', '/api/assignments', null, volXAuth.cookie);
   assert.strictEqual(volAssignmentsRes.status, 200);
   assert(volAssignmentsRes.data.data.length >= 1, 'Volunteer must have confirmed commitment');
-  assert.strictEqual(volAssignmentsRes.data.data[0].candidateName, 'Aarav Sharma');
+  assert.strictEqual(volAssignmentsRes.data.data[0].candidateName, 'Aarav Sharma Updated');
 
   const candDashRes = await makeRequest('GET', '/api/dashboard', null, candAuth.cookie);
   assert.strictEqual(candDashRes.status, 200);
@@ -442,6 +574,82 @@ async function run() {
   const volDashRes = await makeRequest('GET', '/api/dashboard', null, volXAuth.cookie);
   assert.strictEqual(volDashRes.status, 200);
   assert.strictEqual(volDashRes.data.data.stats.confirmedCommitments, 1);
+  console.log('   ✓ Dashboard stats match: 1 confirmed arrangement / commitment');
+
+  // ─── 11. Overlapping Assignment Hard-Block Enforcement ───────────────────────
+  console.log('\n11. Testing Overlapping Assignment Block (Cannot override double-booking)...');
+  await User.deleteMany({ mobileE164: CANDIDATE_B_MOBILE });
+
+  const candBAuth = await loginUserViaOtp(CANDIDATE_B_MOBILE, 'CANDIDATE');
+  const candBProfileRes = await makeRequest(
+    'PUT',
+    '/api/profile',
+    {
+      fullName: 'Meera Patel',
+      dateOfBirth: '2002-04-10',
+      gender: 'FEMALE',
+      addressLine1: '45 Gandhi Road',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      pincode: '600005',
+      languages: ['English'],
+      education: 'Undergraduate',
+      assistanceNeeds: 'Visual impairment assistance',
+      disabilityCategory: 'VISUAL_IMPAIRMENT',
+      disabilityPercentage: 70,
+      assistanceRequired: ['SCRIBE'],
+      specialNeedsDescription: 'Needs English scribe',
+    },
+    candBAuth.cookie
+  );
+  assert.strictEqual(candBProfileRes.data.data.completion.isComplete, true, 'Candidate B profile must be complete');
+
+  // Candidate B creates request for the SAME Exam 1
+  const reqBRes = await makeRequest(
+    'POST',
+    '/api/requests',
+    {
+      examinationId: exam1._id.toString(),
+      language: 'English',
+      city: 'Chennai',
+      requirements: 'Needs English scribe',
+    },
+    candBAuth.cookie
+  );
+  assert.strictEqual(reqBRes.status, 201);
+  const candBReqId = reqBRes.data.data.id;
+
+  // Fetch matches for Candidate B
+  const matchesBRes = await makeRequest('GET', `/api/admin/requests/${candBReqId}/matches`, null, adminCookie);
+  const volXInBReview = matchesBRes.data.data.requiresReview.find((v) => v.volunteerId === volXAuth.user.id);
+  assert(volXInBReview, 'Volunteer X MUST appear in requiresReview due to overlapping assignment!');
+  assert.strictEqual(volXInBReview.hasBlockingFailure, true);
+  console.log(`   ✓ Volunteer X identified as having blocking failure: "${volXInBReview.blockingReason}"`);
+
+  // Attempt to propose Volunteer X with override anyway -> MUST BE REJECTED (400)
+  const overlapProposeRes = await makeRequest(
+    'POST',
+    `/api/admin/requests/${candBReqId}/propose-match`,
+    {
+      volunteerId: volXAuth.user.id,
+      isOverride: true,
+      overrideJustification: 'Attempting to override double-booking',
+    },
+    adminCookie
+  );
+  assert.strictEqual(overlapProposeRes.status, 400, 'Overlapping assignment must be strictly blocked (400)');
+  const overlapErrorMsg = overlapProposeRes.data?.error?.message || overlapProposeRes.data?.message || '';
+  assert(overlapErrorMsg.includes('Overlapping confirmed examination assignments cannot be overridden'));
+  console.log('   ✓ Overlapping assignment hard block enforced: double booking blocked even with override');
+
+  // ─── 12. Non-Admin Security / Access Control ───────────────────────────────────
+  console.log('\n12. Testing Security & Access Control for Admin Endpoints...');
+  const unauthRes = await makeRequest('GET', '/api/admin/requests');
+  assert([401, 403].includes(unauthRes.status), 'Unauthenticated access to admin endpoints must be blocked (401/403)');
+
+  const candTamperRes = await makeRequest('GET', '/api/admin/verifications', null, candAuth.cookie);
+  assert([401, 403].includes(candTamperRes.status), 'Candidate access to admin endpoints must be blocked (401/403)');
+  console.log('   ✓ Security verified: unauthenticated users and non-admins strictly barred from admin APIs');
 
   console.log('\n===============================================================');
   console.log(' ALL VERIFICATION & MATCHING WORKFLOW TESTS PASSED 100%! ');

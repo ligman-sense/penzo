@@ -362,9 +362,16 @@ async function loadMatches() {
 function setupModals() {
   // Register all 4 modals to ensure they start closed and wire their close triggers
   registerModal('matching-modal', {
+    onClose: () => {
+      // Only clear if not transitioning to propose modal
+      const proposeModal = document.getElementById('propose-confirm-modal');
+      const isProposeOpen = proposeModal && !proposeModal.hidden && proposeModal.classList.contains('is-open');
+      if (!isProposeOpen) {
+        activeRequestId = null;
+        activeMatchesData = null;
+      }
+    },
     onReset: () => {
-      activeRequestId = null;
-      activeMatchesData = null;
       const refHeader = document.getElementById('modal-req-ref');
       if (refHeader) refHeader.textContent = '';
       const summary = document.getElementById('matching-req-summary');
@@ -377,12 +384,23 @@ function setupModals() {
   });
 
   registerModal('propose-confirm-modal', {
-    onReset: () => {
+    onClose: () => {
       selectedVolunteer = null;
+      const proposeModal = document.getElementById('propose-confirm-modal');
+      if (proposeModal) {
+        proposeModal.dataset.volunteerId = '';
+        proposeModal.dataset.isOverride = 'false';
+      }
+    },
+    onReset: () => {
       const body = document.getElementById('propose-confirm-body');
       if (body) body.innerHTML = '<p class="loading-text">Preparing match details...</p>';
       const note = document.getElementById('propose-note');
       if (note) note.value = '';
+      const overrideInput = document.getElementById('propose-override-justification');
+      if (overrideInput) overrideInput.value = '';
+      const overrideGroup = document.getElementById('propose-override-group');
+      if (overrideGroup) overrideGroup.style.display = 'none';
     },
   });
 
@@ -414,13 +432,18 @@ function setupModals() {
 
   document.getElementById('propose-cancel-btn')?.addEventListener('click', () => {
     // If admin cancels proposal confirmation, close proposal modal and return to matching modal
+    const proposeModal = document.getElementById('propose-confirm-modal');
+    const reqId = activeRequestId || proposeModal?.dataset?.requestId;
     closeModal('propose-confirm-modal', { restoreFocus: false });
-    if (activeRequestId) {
-      openModal('matching-modal');
+    if (reqId) {
+      openMatchingModal(reqId);
     }
   });
 
-  document.getElementById('propose-submit-btn')?.addEventListener('click', submitProposeMatch);
+  document.getElementById('propose-submit-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    submitProposeMatch();
+  });
 
   document.getElementById('request-detail-modal-close')?.addEventListener('click', () => closeModal('request-detail-modal'));
   document.getElementById('request-detail-modal-cancel')?.addEventListener('click', () => closeModal('request-detail-modal'));
@@ -436,6 +459,11 @@ async function openMatchingModal(requestId, triggerBtn = null) {
   activeRequestId = requestId;
   activeMatchesData = null;
   selectedVolunteer = null;
+
+  const matchingModal = document.getElementById('matching-modal');
+  if (matchingModal) matchingModal.dataset.requestId = requestId;
+  const proposeModal = document.getElementById('propose-confirm-modal');
+  if (proposeModal) proposeModal.dataset.requestId = requestId;
 
   // Open modal strictly upon explicit user interaction
   openModal('matching-modal', triggerBtn);
@@ -454,7 +482,7 @@ async function openMatchingModal(requestId, triggerBtn = null) {
 
   try {
     const { data } = await api.get(`/admin/requests/${requestId}/matches`);
-    if (activeRequestId !== requestId) return; // Stale request guard
+    if (activeRequestId !== requestId && matchingModal?.dataset?.requestId !== requestId) return; // Stale request guard
     activeMatchesData = data;
 
     const r = data.request;
@@ -507,7 +535,7 @@ async function openMatchingModal(requestId, triggerBtn = null) {
         eligibleContainer.querySelectorAll('.propose-btn').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
-            confirmPropose(btn.dataset.volId, btn);
+            confirmPropose(btn.dataset.volId, false, btn);
           });
         });
       }
@@ -523,7 +551,7 @@ async function openMatchingModal(requestId, triggerBtn = null) {
       reviewContainer.querySelectorAll('.propose-btn').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.preventDefault();
-          confirmPropose(btn.dataset.volId, btn);
+          confirmPropose(btn.dataset.volId, true, btn);
         });
       });
     }
@@ -570,7 +598,7 @@ function renderVolunteerMatchCard(v, req) {
       </div>
 
       <div style="display: flex; justify-content: flex-end;">
-        <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}">
+        <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="false">
           Propose Match
         </button>
       </div>
@@ -594,7 +622,7 @@ function renderVolunteerReviewCard(v, req) {
         </div>
         <div style="text-align: right;">
           <span style="font-weight: 700; color: var(--color-text); margin-right: 1rem;">${v.score}%</span>
-          <button type="button" class="btn btn--outline btn--sm propose-btn" data-vol-id="${v.volunteerId}" ${v.hasBlockingFailure ? 'disabled title="Overlapping assignment exists"' : ''}>
+          <button type="button" class="btn btn--outline btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="true" ${v.hasBlockingFailure ? 'disabled title="Overlapping assignment exists"' : ''}>
             Propose Anyway
           </button>
         </div>
@@ -603,17 +631,31 @@ function renderVolunteerReviewCard(v, req) {
 }
 
 // ─── ACTION 2: Propose Match Confirmation Modal ───────────────────────────────
-function confirmPropose(volunteerId, triggerBtn = null) {
+function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
   if (!activeMatchesData) return;
   const allVolunteers = [...(activeMatchesData.eligible || []), ...(activeMatchesData.requiresReview || [])];
   selectedVolunteer = allVolunteers.find((v) => v.volunteerId === volunteerId);
   if (!selectedVolunteer) return;
 
+  const proposeModal = document.getElementById('propose-confirm-modal');
+  if (proposeModal) {
+    proposeModal.dataset.requestId = activeRequestId || '';
+    proposeModal.dataset.volunteerId = volunteerId;
+    proposeModal.dataset.isOverride = isOverride ? 'true' : 'false';
+  }
+
   const confirmBody = document.getElementById('propose-confirm-body');
   if (!confirmBody) return;
 
   const r = activeMatchesData.request;
+  const overrideAlertHtml = isOverride
+    ? `<div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid var(--color-error, #ef4444); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; color: var(--color-error, #b91c1c);">
+        <strong>⚠️ Administrative Override Required:</strong> This volunteer requires review (${escapeHtml(selectedVolunteer.blockingReason || selectedVolunteer.verificationStatus || 'Pending verification')}). An administrative justification is mandatory below to send this proposal.
+      </div>`
+    : '';
+
   confirmBody.innerHTML = `
+    ${overrideAlertHtml}
     <div style="background-color: var(--color-surface-2); padding: 1rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 1rem;">
       <h4 style="margin: 0 0 0.5rem; color: var(--color-primary);">${escapeHtml(r.examination.name)}</h4>
       <div class="grid grid-cols-2" style="gap: 0.5rem; font-size: 0.85rem;">
@@ -630,9 +672,10 @@ function confirmPropose(volunteerId, triggerBtn = null) {
         <div>
           <strong>${escapeHtml(selectedVolunteer.volunteerName)}</strong>
           <div style="font-size: 0.85rem; color: var(--color-text-muted);">${escapeHtml(selectedVolunteer.volunteerCity)} | ${escapeHtml(selectedVolunteer.languages.join(', '))}</div>
+          ${selectedVolunteer.blockingReason ? `<div style="color: var(--color-error); font-size: 0.8rem; margin-top: 0.2rem;">⚠️ ${escapeHtml(selectedVolunteer.blockingReason)}</div>` : ''}
         </div>
         <div style="text-align: right;">
-          <span class="badge badge--green">Score: ${selectedVolunteer.score}%</span>
+          <span class="badge ${isOverride ? 'badge--yellow' : 'badge--green'}">Score: ${selectedVolunteer.score}%</span>
         </div>
       </div>
     </div>
@@ -642,27 +685,54 @@ function confirmPropose(volunteerId, triggerBtn = null) {
     </p>
   `;
 
+  const overrideGroup = document.getElementById('propose-override-group');
+  const overrideInput = document.getElementById('propose-override-justification');
+  if (overrideGroup) overrideGroup.style.display = isOverride ? 'block' : 'none';
+  if (overrideInput) overrideInput.value = '';
+
   // Close matching modal and open confirmation modal (NO dual popups)
   closeModal('matching-modal', { restoreFocus: false });
   openModal('propose-confirm-modal', triggerBtn);
 }
 
 async function submitProposeMatch() {
-  if (!activeRequestId || !selectedVolunteer) return;
+  const proposeModal = document.getElementById('propose-confirm-modal');
+  const reqId = activeRequestId || proposeModal?.dataset?.requestId;
+  const volId = selectedVolunteer?.volunteerId || proposeModal?.dataset?.volunteerId;
+  const isOverride = proposeModal?.dataset?.isOverride === 'true';
+
+  if (!reqId || !volId) {
+    showError('Missing request or volunteer information to propose match.');
+    return;
+  }
 
   const submitBtn = document.getElementById('propose-submit-btn');
+  const cancelBtn = document.getElementById('propose-cancel-btn');
   const noteEl = document.getElementById('propose-note');
   const note = noteEl?.value.trim() || '';
 
+  const overrideEl = document.getElementById('propose-override-justification');
+  const overrideJustification = overrideEl?.value.trim() || '';
+
+  if (isOverride && !overrideJustification) {
+    showError('An override justification is required when proposing a volunteer requiring review.');
+    overrideEl?.focus();
+    return;
+  }
+
+  [submitBtn, cancelBtn].forEach((b) => { if (b) b.disabled = true; });
   setLoading(submitBtn, true, 'Proposing Match…');
 
   try {
-    await api.post(`/admin/requests/${activeRequestId}/propose-match`, {
-      volunteerId: selectedVolunteer.volunteerId,
+    await api.post(`/admin/requests/${reqId}/propose-match`, {
+      volunteerId: volId,
       note,
+      isOverride,
+      overrideJustification,
     });
 
-    showSuccess(`Match proposed successfully! Invitation sent to ${selectedVolunteer.volunteerName}.`);
+    const volName = selectedVolunteer?.volunteerName || 'Volunteer';
+    showSuccess(`Match proposed successfully! Invitation sent to ${volName}.`);
 
     // Cleanly close all modals and clear selection state
     closeAllModals();
@@ -674,6 +744,7 @@ async function submitProposeMatch() {
     showError(err.message || 'Failed to propose match.');
   } finally {
     setLoading(submitBtn, false);
+    [submitBtn, cancelBtn].forEach((b) => { if (b) b.disabled = false; });
   }
 }
 

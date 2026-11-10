@@ -62,14 +62,16 @@ function scoreVolunteer(request, exam, session, volunteer, profile, availability
   let needsReview = false;
 
   // 1. Mandatory check: Overlapping confirmed assignments
-  if (session && session.startsAt && session.endsAt) {
-    const sStart = new Date(session.startsAt);
-    const sEnd = new Date(session.endsAt);
+  const reqStart = (session && session.startsAt) ? new Date(session.startsAt) : (exam && exam.startsOn ? new Date(exam.startsOn) : null);
+  const reqEnd = (session && session.endsAt) ? new Date(session.endsAt) : (exam && exam.endsOn ? new Date(exam.endsOn) : (reqStart ? new Date(reqStart.getTime() + 4 * 60 * 60 * 1000) : null));
+
+  if (reqStart && reqEnd) {
     const hasOverlap = assignments.some((a) => {
       if (a.status !== 'CONFIRMED') return false;
-      const aStart = new Date(a.startsAt);
-      const aEnd = new Date(a.endsAt);
-      return aStart < sEnd && aEnd > sStart;
+      const aStart = a.startsAt ? new Date(a.startsAt) : (a.confirmedAt ? new Date(a.confirmedAt) : null);
+      const aEnd = a.endsAt ? new Date(a.endsAt) : (aStart ? new Date(aStart.getTime() + 4 * 60 * 60 * 1000) : null);
+      if (!aStart || !aEnd) return false;
+      return aStart < reqEnd && aEnd > reqStart;
     });
 
     if (hasOverlap) {
@@ -303,7 +305,7 @@ async function findPotentialMatches(requestId) {
 /**
  * Administrator proposes a match between candidate request and interested volunteer.
  */
-async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip } = {}) {
+async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, isOverride, overrideJustification } = {}) {
   const request = await ScribeRequest.findById(requestId).populate('examinationId');
   if (!request) throw HttpError.notFound('Scribe request not found.');
 
@@ -357,6 +359,7 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip } =
     ConfirmedAssignment.find({ volunteerId }),
   ]);
 
+  const isVerified = volunteer.verificationStatus === 'VERIFIED';
   const scored = scoreVolunteer(
     request,
     exam,
@@ -365,8 +368,26 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip } =
     volProfile,
     availability,
     assignments,
-    volunteer.verificationStatus === 'VERIFIED'
+    isVerified
   );
+
+  // Validate eligibility & override requirements
+  if (!isOverride) {
+    if (scored.hasBlockingFailure) {
+      throw HttpError.badRequest(`Cannot propose match: ${scored.blockingReason || 'Volunteer does not meet match criteria.'}`);
+    }
+    if (!isVerified) {
+      throw HttpError.badRequest('Selected volunteer is pending verification. Use "Propose Anyway" with justification if required.');
+    }
+  } else {
+    // Propose Anyway (Override) validations
+    if (scored.hasBlockingFailure && scored.blockingReason && scored.blockingReason.toLowerCase().includes('overlap')) {
+      throw HttpError.badRequest('Cannot propose match: Overlapping confirmed examination assignments cannot be overridden.');
+    }
+    if (!overrideJustification || !overrideJustification.trim()) {
+      throw HttpError.badRequest('An override justification is required when proposing a volunteer requiring review.');
+    }
+  }
 
   const matchRef = await generateMatchReference();
 
@@ -380,6 +401,11 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip } =
     score: scored.score,
     scoreBreakdown: scored.scoreBreakdown,
     compatibility: scored.compatibility,
+    hasBlockingFailure: scored.hasBlockingFailure,
+    blockingReason: scored.blockingReason,
+    needsReview: scored.needsReview,
+    isOverride: Boolean(isOverride),
+    overrideJustification: overrideJustification?.trim() || null,
     adminNote: adminNote || null,
     status: 'PROPOSED',
     reviewedById: adminId,
@@ -396,7 +422,7 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip } =
     toStatus: 'MATCH_PROPOSED',
     actorType: 'ADMIN',
     actorAdminId: adminId,
-    reason: `Match proposed with volunteer ${volProfile.fullName || 'Volunteer'} (${matchRef}). ${adminNote || ''}`.trim(),
+    reason: `Match proposed with volunteer ${volProfile.fullName || 'Volunteer'} (${matchRef})${isOverride ? ' [OVERRIDE]' : ''}. ${adminNote || ''}`.trim(),
   });
 
   // Notify Volunteer
