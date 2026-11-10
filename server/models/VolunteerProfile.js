@@ -6,6 +6,8 @@ const volunteerProfileSchema = new Schema({
   fullName: { type: String, default: null },
   firstName: { type: String, default: null },
   lastName: { type: String, default: null },
+  // Deprecated: Volunteer qualification fields removed as per policy.
+  // Kept for backward schema compatibility but no longer exposed or required.
   educationLevel: { type: String, default: null },
   highestEducation: { type: String, default: null },
   institution: { type: String, default: null },

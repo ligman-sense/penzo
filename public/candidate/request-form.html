@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request a Scribe — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+  <link rel="stylesheet" href="/css/pages.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="/candidate/dashboard.html" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <span class="badge badge--blue">Candidate</span>
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <button id="logout-btn" class="btn btn--outline btn--sm">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Candidate Navigation">
+      <ul class="sidebar-nav">
+        <li><a href="/candidate/dashboard.html" class="sidebar-link">Dashboard</a></li>
+        <li><a href="/candidate/examinations.html" class="sidebar-link active">Examinations</a></li>
+        <li><a href="/candidate/requests.html" class="sidebar-link">My Scribe Requests</a></li>
+        <li><a href="/candidate/profile.html" class="sidebar-link">My Profile</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="user-name" style="font-size: 0.85rem; font-weight: 600; color: var(--color-text);">Candidate</span>
+      </div>
+    </nav>
+
+    <main id="main-content" class="main-content" style="max-width: 800px;">
+      <div style="margin-bottom: 2rem;">
+        <a href="/candidate/examinations.html" class="link" style="font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem;">
+          ← Back to Examinations
+        </a>
+        <h1>Request Examination Scribe</h1>
+        <p>Submit your request for a verified volunteer scribe for your upcoming exam.</p>
+      </div>
+
+      <!-- Incomplete Profile Alert -->
+      <div id="profile-warning" class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--color-accent, #f59e0b); display: none;">
+        <div class="card-body" style="padding: 1.25rem;">
+          <h3 style="color: var(--color-accent, #f59e0b); margin-bottom: 0.5rem;">Profile Completion Required</h3>
+          <p style="margin-bottom: 1rem;">
+            Your candidate profile is incomplete. You must provide all mandatory profile details before you can submit a scribe request.
+          </p>
+          <a href="/candidate/profile.html" class="btn btn--primary btn--sm">Complete Profile Now</a>
+        </div>
+      </div>
+
+      <!-- Selected Exam Summary Card -->
+      <div id="exam-summary-card" class="card" style="margin-bottom: 2rem;">
+        <div class="card-body" id="exam-summary-content" style="padding: 1.5rem;">
+          <p class="loading-text">Loading examination details...</p>
+        </div>
+      </div>
+
+      <!-- Request Form Card -->
+      <div class="card" id="request-card">
+        <div class="card-body" style="padding: 1.75rem;">
+          <form id="scribe-request-form">
+            <h3 style="margin-bottom: 1.25rem;">Request Details</h3>
+
+            <div class="form-group">
+              <label for="examination-select" class="form-label">Examination *</label>
+              <select id="examination-select" name="examinationId" class="form-select" required>
+                <option value="">Select an examination</option>
+              </select>
+            </div>
+
+            <div class="form-group" id="session-group">
+              <label for="session-select" class="form-label">Exam Session / Date</label>
+              <select id="session-select" name="sessionId" class="form-select">
+                <option value="">Select session</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2" style="gap: 1rem;">
+              <div class="form-group">
+                <label for="city" class="form-label">Exam Centre City *</label>
+                <input type="text" id="city" name="city" class="form-input" placeholder="e.g. Chennai, Coimbatore" required>
+              </div>
+
+              <div class="form-group">
+                <label for="language" class="form-label">Preferred Scribe Language *</label>
+                <input type="text" id="language" name="language" class="form-input" placeholder="e.g. English, Tamil, Hindi" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="requirements" class="form-label">Specific Assistance / Accommodations</label>
+              <textarea id="requirements" name="requirements" class="form-textarea" rows="3" placeholder="Describe specific needs: e.g. Dictation for mathematics formula, extra time assistance, visual assistance..."></textarea>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+              <label style="display: flex; gap: 0.5rem; align-items: flex-start; cursor: pointer;">
+                <input type="checkbox" id="consent-check" required style="margin-top: 0.25rem;">
+                <span style="font-size: 0.9rem; color: var(--color-text);">
+                  I confirm that I require scribe assistance for this examination and that the information provided is accurate according to the examination authority's guidelines.
+                </span>
+              </label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+              <a href="/candidate/examinations.html" class="btn btn--ghost">Cancel</a>
+              <button type="submit" id="submit-request-btn" class="btn btn--primary">Submit Scribe Request</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/candidate/request-form.js"></script>
+</body>
+</html>

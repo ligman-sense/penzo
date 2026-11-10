@@ -46,7 +46,7 @@
       <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
           <h1>Volunteer Profile</h1>
-          <p>Maintain your qualification, languages, and service preferences for matching.</p>
+          <p>Maintain your languages, service areas, and availability for matching.</p>
         </div>
         <div>
           <span id="verify-badge" class="badge badge--gray">Checking status...</span>
@@ -55,13 +55,7 @@
 
       <!-- Completion Indicator -->
       <div class="card" style="margin-bottom: 2rem;">
-        <div class="card-body" style="padding: 1.25rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-            <strong id="profile-completion-label" style="font-size: 0.9rem;">Profile Completion</strong>
-          </div>
-          <div style="background-color: var(--color-surface-2); height: 8px; border-radius: 4px; overflow: hidden;">
-            <div id="profile-completion-bar" style="background-color: var(--color-secondary); height: 100%; width: 0%; transition: width 0.3s;"></div>
-          </div>
+        <div class="card-body" id="profile-completion-container" style="padding: 1.25rem;">
         </div>
       </div>
 
@@ -95,23 +89,14 @@
               </div>
             </div>
 
-            <h3 style="margin: 2rem 0 1.25rem;">Education &amp; Scribe Qualifications</h3>
-
-            <div class="grid grid-cols-2" style="gap: 1rem;">
-              <div class="form-group">
-                <label for="qualification" class="form-label">Highest Qualification *</label>
-                <input type="text" id="qualification" name="qualification" class="form-input" placeholder="e.g. Bachelor of Science" required>
-              </div>
-
-              <div class="form-group">
-                <label for="institution" class="form-label">Institution / College</label>
-                <input type="text" id="institution" name="institution" class="form-input" placeholder="e.g. University of Madras">
-              </div>
-            </div>
-
             <div class="form-group">
               <label for="preferred-languages" class="form-label">Languages Known (comma separated) *</label>
               <input type="text" id="preferred-languages" name="preferredLanguages" class="form-input" placeholder="English, Hindi, Tamil" required>
+            </div>
+
+            <div class="form-group">
+              <label for="subjects" class="form-label">Subjects Comfortable Scribing (comma separated) *</label>
+              <input type="text" id="subjects" name="subjects" class="form-input" placeholder="English, Mathematics, Science, General" required>
             </div>
 
             <h3 style="margin: 2rem 0 1.25rem;">Location &amp; Availability</h3>

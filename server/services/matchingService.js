@@ -38,7 +38,7 @@ function scoreVolunteer(request, exam, session, volunteer, profile, availability
     }
   }
 
-  // 2. Date/Time Availability (30%)
+  // 2. Date/Time Availability (35%)
   let dateTimeScore = 0;
   if (session && session.startsAt && session.endsAt) {
     const sStart = new Date(session.startsAt);
@@ -51,14 +51,14 @@ function scoreVolunteer(request, exam, session, volunteer, profile, availability
     });
 
     if (isAvail) {
-      dateTimeScore = 30;
+      dateTimeScore = 35;
       reasons.push('Available during the exact examination session.');
     } else {
-      dateTimeScore = 10;
+      dateTimeScore = 15;
       reasons.push('General availability requires confirmation.');
     }
   } else {
-    dateTimeScore = 15;
+    dateTimeScore = 20;
   }
   breakdown.dateTime = dateTimeScore;
   score += dateTimeScore;
@@ -81,33 +81,25 @@ function scoreVolunteer(request, exam, session, volunteer, profile, availability
   breakdown.location = locationScore;
   score += locationScore;
 
-  // 4. Language compatibility (20%)
+  // 4. Language compatibility (25%)
   let langScore = 0;
   const reqLang = (request.language || '').toLowerCase().trim();
   const volLangs = (profile.languages || []).map((l) => l.toLowerCase().trim());
 
   if (reqLang && volLangs.includes(reqLang)) {
-    langScore = 20;
+    langScore = 25;
     reasons.push(`Fluent in requested language: ${request.language}.`);
   } else if (volLangs.length > 0) {
-    langScore = 5;
+    langScore = 10;
     reasons.push(`Languages spoken: ${profile.languages.join(', ')}.`);
   }
   breakdown.language = langScore;
   score += langScore;
 
-  // 5. Qualification/Rules (15%)
-  let qualScore = 15;
-  if (profile.educationLevel) {
-    reasons.push(`Education level: ${profile.educationLevel}.`);
-  }
-  breakdown.qualification = qualScore;
-  score += qualScore;
-
-  // 6. Relevant Experience (10%)
+  // 5. Relevant Experience (15%)
   let expScore = 0;
   if (profile.hasPriorExperience || profile.hasScribeExperience) {
-    expScore = 10;
+    expScore = 15;
     reasons.push('Has prior scribe examination experience.');
   } else {
     expScore = 5;

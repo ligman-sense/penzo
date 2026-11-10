@@ -48,9 +48,6 @@ async function getProfile(userId) {
       fullName: vp.fullName || (vp.firstName ? `${vp.firstName} ${vp.lastName || ''}`.trim() : ''),
       firstName: vp.firstName || (vp.fullName ? vp.fullName.split(' ')[0] : ''),
       lastName: vp.lastName || (vp.fullName ? vp.fullName.split(' ').slice(1).join(' ') : ''),
-      educationLevel: vp.educationLevel || vp.highestEducation || '',
-      qualification: vp.educationLevel || vp.highestEducation || '',
-      institution: vp.institution || '',
       languages: vp.languages || [],
       preferredLanguages: vp.languages || [],
       subjects: vp.subjects || [],
@@ -68,6 +65,11 @@ async function getProfile(userId) {
         pincode: vp.pincode || '',
       },
     };
+  }
+
+  if (profileData) {
+    profileData.completionPct = completion.percentage;
+    profileData.completionPercentage = completion.percentage;
   }
 
   return {
@@ -155,13 +157,6 @@ async function saveProfile(userId, { role, data }) {
     } else if (data.firstName || data.lastName) {
       cpOrVp.fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
     }
-
-    if (data.educationLevel !== undefined || data.qualification !== undefined) {
-      const q = data.qualification || data.educationLevel;
-      cpOrVp.educationLevel = q;
-      cpOrVp.highestEducation = q;
-    }
-    if (data.institution !== undefined) cpOrVp.institution = data.institution;
 
     const langs = data.languages || data.preferredLanguages;
     if (langs !== undefined) {

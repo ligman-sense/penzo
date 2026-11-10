@@ -413,3 +413,29 @@
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
+
+/* Accessible Progress Bar */
+.progress-bar-track {
+  background-color: var(--color-surface-2, #e2e8f0);
+  height: 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar-fill,
+  .btn,
+  .form-input,
+  .skeleton,
+  .toast {
+    transition: none !important;
+    animation: none !important;
+  }
+}

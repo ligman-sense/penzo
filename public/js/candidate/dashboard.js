@@ -5,6 +5,7 @@ import { initTheme } from '../theme.js';
 import { initNavigation } from '../navigation.js';
 import { updateUnreadCount, showError } from '../notifications.js';
 import { formatDate, renderStatusBadge, renderExamCard, escapeHtml, timeAgo } from '../utils.js';
+import { renderCompletionWidget, computeCandidateCompletion } from '../profileCompletion.js';
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async () => {
@@ -19,12 +20,43 @@ import { formatDate, renderStatusBadge, renderExamCard, escapeHtml, timeAgo } fr
   if (nameEl) nameEl.textContent = user.name || user.mobile || 'Candidate';
 
   await Promise.all([
+    checkProfileCompletion(),
     loadDashboardStats(),
     loadUpcomingExams(),
     loadRecentRequests(),
     updateUnreadCount(),
   ]);
 })();
+
+async function checkProfileCompletion() {
+  const container = document.getElementById('dashboard-profile-completion');
+  if (!container) return;
+  try {
+    const { data } = await api.get('/profile');
+    const completion = data.completion || computeCandidateCompletion(data.profile);
+    if (!completion.isComplete) {
+      container.hidden = false;
+      container.className = 'card';
+      container.style.padding = '1.25rem';
+      container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem;">Complete Your Candidate Profile</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+              A complete profile is required to request examination scribes.
+            </p>
+          </div>
+          <a href="/candidate/profile.html" class="btn btn--primary btn--sm" style="white-space: nowrap;">Complete Profile</a>
+        </div>
+        <div id="dashboard-progress-widget"></div>
+      `;
+      const widgetBox = container.querySelector('#dashboard-progress-widget');
+      renderCompletionWidget(widgetBox, completion, { roleColor: 'var(--color-primary)' });
+    }
+  } catch (e) {
+    // ignore
+  }
+}
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 async function loadDashboardStats() {

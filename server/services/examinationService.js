@@ -1,5 +1,6 @@
 'use strict';
 
+const mongoose = require('mongoose');
 const Examination = require('../models/Examination');
 const { HttpError } = require('../utils/httpError');
 
@@ -56,8 +57,13 @@ async function getPublicFilterOptions() {
   };
 }
 
-async function getPublicExamination(slug) {
-  const exam = await Examination.findOne({ slug, status: 'PUBLISHED' });
+async function getPublicExamination(slugOrId) {
+  const isObjectId = mongoose.isValidObjectId(slugOrId);
+  const filter = isObjectId
+    ? { $or: [{ slug: slugOrId }, { _id: slugOrId }], status: 'PUBLISHED' }
+    : { slug: slugOrId, status: 'PUBLISHED' };
+
+  const exam = await Examination.findOne(filter);
   if (!exam) throw HttpError.notFound('Examination not found.');
 
   return {

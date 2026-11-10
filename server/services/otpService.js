@@ -9,22 +9,24 @@ const env = require('../config/env');
  * Returns the challenge document.
  */
 async function sendOtp(mobileE164, { ipAddress } = {}) {
-  // Check resend cooldown: look for recent challenge
-  const cooldownCutoff = new Date(Date.now() - env.OTP_RESEND_COOLDOWN_SECONDS * 1000);
-  const recent = await OtpChallenge.findOne({
-    mobileE164,
-    sentAt: { $gt: cooldownCutoff },
-    consumedAt: null,
-  }).sort({ sentAt: -1 });
+  // Check resend cooldown in production: look for recent challenge
+  if (env.NODE_ENV === 'production') {
+    const cooldownCutoff = new Date(Date.now() - env.OTP_RESEND_COOLDOWN_SECONDS * 1000);
+    const recent = await OtpChallenge.findOne({
+      mobileE164,
+      sentAt: { $gt: cooldownCutoff },
+      consumedAt: null,
+    }).sort({ sentAt: -1 });
 
-  if (recent) {
-    const waitSeconds = Math.ceil(
-      (recent.sentAt.getTime() + env.OTP_RESEND_COOLDOWN_SECONDS * 1000 - Date.now()) / 1000
-    );
-    throw HttpError.tooMany(
-      `Please wait ${waitSeconds} second(s) before requesting a new code.`,
-      { waitSeconds }
-    );
+    if (recent) {
+      const waitSeconds = Math.ceil(
+        (recent.sentAt.getTime() + env.OTP_RESEND_COOLDOWN_SECONDS * 1000 - Date.now()) / 1000
+      );
+      throw HttpError.tooMany(
+        `Please wait ${waitSeconds} second(s) before requesting a new code.`,
+        { waitSeconds }
+      );
+    }
   }
 
   const code = generateOtp();

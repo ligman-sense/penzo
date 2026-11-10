@@ -6,12 +6,14 @@ import { initNavigation } from '../navigation.js';
 import { updateUnreadCount, showError, showSuccess } from '../notifications.js';
 import { validateEmail, validateRequired, showFieldError, clearAllErrors } from '../validation.js';
 import { escapeHtml, setLoading } from '../utils.js';
+import { computeVolunteerCompletion, renderCompletionWidget } from '../profileCompletion.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
-const form            = document.getElementById('profile-form');
-const completionBar   = document.getElementById('profile-completion-bar');
-const completionLabel = document.getElementById('profile-completion-label');
-const verifyBadge     = document.getElementById('verify-badge');
+const form                = document.getElementById('profile-form');
+const completionContainer = document.getElementById('profile-completion-container');
+const verifyBadge         = document.getElementById('verify-badge');
+
+let _hasUnsavedChanges = false;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async () => {
@@ -27,6 +29,13 @@ const verifyBadge     = document.getElementById('verify-badge');
   initNavigation();
   updateUnreadCount();
   await loadProfile();
+
+  window.addEventListener('beforeunload', (e) => {
+    if (_hasUnsavedChanges) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 })();
 
 // ─── Load Profile ─────────────────────────────────────────────────────────────
@@ -35,8 +44,15 @@ async function loadProfile() {
     const { data } = await api.get('/profile');
     const profile = data.profile || data;
     fillForm(profile);
-    renderCompletion(profile.completionPct || 0);
-    renderVerificationStatus(profile.verificationStatus);
+
+    const completion = data.completion || computeVolunteerCompletion(collectFormData());
+    _hasUnsavedChanges = false;
+    renderCompletionWidget(completionContainer, completion, {
+      hasUnsavedChanges: false,
+      roleColor: 'var(--color-secondary, #0d9488)',
+    });
+
+    renderVerificationStatus(profile.verificationStatus || data.verifications?.[0]?.status);
   } catch (err) {
     showError(err.message || 'Failed to load profile.');
   }
@@ -52,36 +68,45 @@ function fillForm(profile) {
   };
 
   // Common fields
-  set('first-name',    profile.firstName);
-  set('last-name',     profile.lastName);
+  set('first-name',    profile.firstName || (profile.fullName ? profile.fullName.split(' ')[0] : ''));
+  set('last-name',     profile.lastName || (profile.fullName ? profile.fullName.split(' ').slice(1).join(' ') : ''));
   set('email',         profile.email);
   set('date-of-birth', profile.dateOfBirth?.substring(0, 10));
   set('gender',        profile.gender);
   set('mobile-display', profile.mobile);
 
   // Address fields
-  set('address-line1', profile.address?.line1);
-  set('address-line2', profile.address?.line2);
-  set('city',          profile.address?.city);
-  set('state',         profile.address?.state);
-  set('pincode',       profile.address?.pincode);
-
-  // ID proof
-  set('id-type',       profile.idProof?.type);
-  set('id-number',     profile.idProof?.number);
+  set('city',          profile.city || profile.address?.city);
+  set('available-regions', profile.availableRegions?.join(', ') || (Array.isArray(profile.serviceLocations) ? profile.serviceLocations.join(', ') : ''));
 
   // Volunteer-specific fields
-  set('qualification',       profile.qualification);
-  set('institution',         profile.institution);
-  set('year-of-study',       profile.yearOfStudy);
-  set('preferred-languages', profile.preferredLanguages?.join(', ') || '');
-  set('available-regions',   profile.availableRegions?.join(', ') || '');
+  set('preferred-languages', profile.preferredLanguages?.join(', ') || (Array.isArray(profile.languages) ? profile.languages.join(', ') : ''));
+  set('subjects', Array.isArray(profile.subjects) ? profile.subjects.join(', ') : (profile.subjects || ''));
 
   // Checkboxes for experience
   const expEl = form.querySelector('#has-experience');
-  if (expEl) expEl.checked = !!profile.hasPreviousExperience;
+  if (expEl) expEl.checked = !!(profile.hasPreviousExperience || profile.hasPriorExperience || profile.hasScribeExperience);
 
+  setupLiveProgress();
   setupFormSubmit();
+}
+
+// ─── Live Progress ────────────────────────────────────────────────────────────
+function setupLiveProgress() {
+  if (!form) return;
+
+  const onFieldChange = () => {
+    _hasUnsavedChanges = true;
+    const currentData = collectFormData();
+    const liveCompletion = computeVolunteerCompletion(currentData);
+    renderCompletionWidget(completionContainer, liveCompletion, {
+      hasUnsavedChanges: true,
+      roleColor: 'var(--color-secondary, #0d9488)',
+    });
+  };
+
+  form.addEventListener('input', onFieldChange);
+  form.addEventListener('change', onFieldChange);
 }
 
 // ─── Form Submit ──────────────────────────────────────────────────────────────
@@ -101,16 +126,23 @@ function setupFormSubmit() {
     try {
       const { data: updated } = await api.put('/profile', data);
       showSuccess('Profile updated successfully.');
-      renderCompletion(updated.profile?.completionPct || updated.completionPct || 0);
-      renderVerificationStatus(updated.profile?.verificationStatus || updated.verificationStatus);
+      _hasUnsavedChanges = false;
+
+      const completion = updated.completion || computeVolunteerCompletion(updated.profile || data);
+      renderCompletionWidget(completionContainer, completion, {
+        hasUnsavedChanges: false,
+        roleColor: 'var(--color-secondary, #0d9488)',
+      });
+
+      renderVerificationStatus(updated.profile?.verificationStatus || updated.verifications?.[0]?.status);
     } catch (err) {
       if (err.details) {
-        err.details.forEach(d => {
+        err.details.forEach((d) => {
           const fieldEl = form.querySelector(`[name="${d.field}"], #${d.field}`);
           if (fieldEl) showFieldError(fieldEl, d.message);
         });
       }
-      showError(err.message || 'Failed to save profile.');
+      showError(err.message || 'Failed to save profile. Please check the form.');
     } finally {
       setLoading(submitBtn, false);
     }
@@ -120,30 +152,26 @@ function setupFormSubmit() {
 function collectFormData() {
   const g = (id) => form.querySelector(`#${id}`)?.value.trim() || '';
   const langStr   = g('preferred-languages');
+  const subjStr   = g('subjects');
   const regionStr = g('available-regions');
 
   return {
-    firstName:      g('first-name'),
-    lastName:       g('last-name'),
-    email:          g('email'),
-    dateOfBirth:    g('date-of-birth'),
-    gender:         g('gender'),
-    qualification:  g('qualification'),
-    institution:    g('institution'),
-    yearOfStudy:    g('year-of-study'),
+    firstName:          g('first-name'),
+    lastName:           g('last-name'),
+    fullName:           `${g('first-name')} ${g('last-name')}`.trim(),
+    email:              g('email'),
+    dateOfBirth:        g('date-of-birth'),
+    gender:             g('gender'),
     hasPreviousExperience: form.querySelector('#has-experience')?.checked || false,
-    preferredLanguages: langStr ? langStr.split(',').map(s => s.trim()).filter(Boolean) : [],
-    availableRegions:   regionStr ? regionStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+    hasPriorExperience:    form.querySelector('#has-experience')?.checked || false,
+    languages:          langStr ? langStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    preferredLanguages: langStr ? langStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    subjects:           subjStr ? subjStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    serviceLocations:   regionStr ? regionStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    availableRegions:   regionStr ? regionStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    city:               g('city'),
     address: {
-      line1:   g('address-line1'),
-      line2:   g('address-line2'),
-      city:    g('city'),
-      state:   g('state'),
-      pincode: g('pincode'),
-    },
-    idProof: {
-      type:   g('id-type'),
-      number: g('id-number'),
+      city: g('city'),
     },
   };
 }
@@ -162,24 +190,14 @@ function validateFormData(data) {
     showFieldError(lastNameEl, 'Last name is required.');
     valid = false;
   }
-  if (!validateEmail(data.email) && emailEl) {
+  if (data.email && !validateEmail(data.email) && emailEl) {
     showFieldError(emailEl, 'Enter a valid email address.');
     valid = false;
   }
   return valid;
 }
 
-// ─── Completion & Verification ────────────────────────────────────────────────
-function renderCompletion(pct) {
-  if (completionBar) {
-    completionBar.style.width = `${pct}%`;
-    completionBar.setAttribute('aria-valuenow', pct);
-  }
-  if (completionLabel) {
-    completionLabel.textContent = `Profile ${pct}% complete`;
-  }
-}
-
+// ─── Verification Status ──────────────────────────────────────────────────────
 function renderVerificationStatus(status) {
   if (!verifyBadge) return;
   const statusMap = {
@@ -189,7 +207,7 @@ function renderVerificationStatus(status) {
     REJECTED:         { label: 'Verification Rejected',  cls: 'badge--red' },
     NEEDS_CORRECTION: { label: 'Correction Required',    cls: 'badge--orange' },
   };
-  const s = statusMap[status] || { label: status || 'Unknown', cls: 'badge--gray' };
+  const s = statusMap[status] || { label: status || 'Unverified', cls: 'badge--gray' };
   verifyBadge.className = `badge ${s.cls}`;
   verifyBadge.textContent = s.label;
 }
