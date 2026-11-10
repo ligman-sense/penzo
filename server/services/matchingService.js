@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const CandidateProfile = require('../models/CandidateProfile');
 const VolunteerProfile = require('../models/VolunteerProfile');
 const VolunteerInterest = require('../models/VolunteerInterest');
 const VolunteerAvailability = require('../models/VolunteerAvailability');

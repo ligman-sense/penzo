@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { requireAdmin, adminLogout } from '../auth.js';
 import { showError, showSuccess } from '../notifications.js';
 import { formatDate, renderPagination, debounce, escapeHtml, setLoading } from '../utils.js';
+import { registerModal, openModal, closeModal, closeAllModals } from '../modal.js';
 
 let currentPage = 1;
 let currentStatus = 'PENDING';
@@ -12,6 +13,9 @@ let currentSearch = '';
 let activeRecordId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Ensure all modals start closed immediately
+  closeAllModals();
+
   const admin = await requireAdmin();
   if (!admin) return;
 
@@ -23,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   setupFilters();
-  setupModal();
+  setupVerificationModal();
   await Promise.all([loadMetrics(), loadVerifications()]);
 });
 
@@ -123,20 +127,27 @@ async function loadVerifications() {
             <td><span class="badge ${statusClass}">${escapeHtml(v.status)}</span></td>
             <td>
               <div style="display:flex; gap:0.4rem;">
-                <button class="btn btn--outline btn--sm review-btn" data-id="${v.id}">Review Profile</button>
-                ${v.status !== 'VERIFIED' ? `<button class="btn btn--secondary btn--sm quick-approve-btn" data-id="${v.id}">Approve</button>` : ''}
+                <button type="button" class="btn btn--outline btn--sm review-btn" data-id="${v.id}">Review Profile</button>
+                ${v.status !== 'VERIFIED' ? `<button type="button" class="btn btn--secondary btn--sm quick-approve-btn" data-id="${v.id}">Approve</button>` : ''}
               </div>
             </td>
           </tr>`;
       })
       .join('');
 
+    // Attach explicit click handlers to Review Profile buttons
     tableBody.querySelectorAll('.review-btn').forEach((btn) => {
-      btn.addEventListener('click', () => openReviewModal(btn.dataset.id));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openReviewModal(btn.dataset.id, btn);
+      });
     });
 
     tableBody.querySelectorAll('.quick-approve-btn').forEach((btn) => {
-      btn.addEventListener('click', () => quickApprove(btn.dataset.id));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        quickApprove(btn.dataset.id);
+      });
     });
 
     if (paginationContainer && meta) {
@@ -152,45 +163,67 @@ async function loadVerifications() {
 }
 
 // ─── Modal Management ─────────────────────────────────────────────────────────
-function setupModal() {
-  const modal = document.getElementById('verification-modal');
+function setupVerificationModal() {
+  registerModal('verification-modal', {
+    onReset: () => resetModalContent(),
+  });
+
   const closeBtn = document.getElementById('modal-close-btn');
   const cancelBtn = document.getElementById('btn-modal-cancel');
 
-  const closeModal = () => {
-    if (modal) modal.hidden = true;
-    activeRecordId = null;
-    const reasonEl = document.getElementById('decision-reason');
-    if (reasonEl) reasonEl.value = '';
-    document.body.style.overflow = '';
-  };
-
-  closeBtn?.addEventListener('click', closeModal);
-  cancelBtn?.addEventListener('click', closeModal);
-  modal?.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
+  closeBtn?.addEventListener('click', () => closeModal('verification-modal'));
+  cancelBtn?.addEventListener('click', () => closeModal('verification-modal'));
 
   document.getElementById('btn-approve')?.addEventListener('click', () => submitDecision('VERIFIED'));
   document.getElementById('btn-correction')?.addEventListener('click', () => submitDecision('REQUIRES_CORRECTION'));
   document.getElementById('btn-reject')?.addEventListener('click', () => submitDecision('REJECTED'));
 }
 
-async function openReviewModal(recordId) {
-  const modal = document.getElementById('verification-modal');
+function resetModalContent() {
+  activeRecordId = null;
+  const nameEl = document.getElementById('modal-user-name');
+  if (nameEl) nameEl.textContent = 'Review Profile';
+
+  const roleBadge = document.getElementById('modal-role-badge');
+  if (roleBadge) {
+    roleBadge.textContent = '...';
+    roleBadge.className = 'badge badge--gray';
+  }
+
+  const statusBadge = document.getElementById('modal-status-badge');
+  if (statusBadge) {
+    statusBadge.textContent = '...';
+    statusBadge.className = 'badge badge--gray';
+  }
+
   const bodyContent = document.getElementById('modal-body-content');
-  if (!modal || !bodyContent) return;
+  if (bodyContent) {
+    bodyContent.innerHTML = '<p class="loading-text">Loading profile details...</p>';
+  }
+
+  const reasonEl = document.getElementById('decision-reason');
+  if (reasonEl) reasonEl.value = '';
+}
+
+async function openReviewModal(recordId, triggerBtn = null) {
+  if (!recordId) return;
 
   activeRecordId = recordId;
-  modal.hidden = false;
-  document.body.style.overflow = 'hidden';
-  bodyContent.innerHTML = '<p class="loading-text">Loading complete user profile details...</p>';
+  resetModalContent();
+
+  // Explicitly open modal via modal management system
+  openModal('verification-modal', triggerBtn);
 
   try {
     const { data } = await api.get(`/admin/verifications/${recordId}`);
-    renderModalContent(data);
+    if (activeRecordId === recordId) {
+      renderModalContent(data);
+    }
   } catch (err) {
-    bodyContent.innerHTML = `<p class="text-error">Failed to load profile details: ${escapeHtml(err.message)}</p>`;
+    const bodyContent = document.getElementById('modal-body-content');
+    if (bodyContent && activeRecordId === recordId) {
+      bodyContent.innerHTML = `<p class="text-error">Failed to load profile details: ${escapeHtml(err.message)}</p>`;
+    }
   }
 }
 
@@ -312,11 +345,8 @@ async function submitDecision(decision) {
     await api.post(`/admin/verifications/${activeRecordId}/decide`, { status: decision, reason });
     showSuccess(`Verification marked as ${decision}. Candidate/Volunteer notified.`);
 
-    // Close modal
-    const modal = document.getElementById('verification-modal');
-    if (modal) modal.hidden = true;
-    document.body.style.overflow = '';
-    activeRecordId = null;
+    // Close modal via shared system
+    closeModal('verification-modal');
 
     loadMetrics();
     loadVerifications();

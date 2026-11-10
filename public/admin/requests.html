@@ -227,8 +227,9 @@
   <!-- Propose Match Confirmation Modal -->
   <div id="propose-confirm-modal" class="modal-backdrop" hidden>
     <div class="modal" style="max-width: 600px;">
-      <div class="modal-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">Confirm Scribe Match Proposal</h3>
+        <button id="propose-confirm-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
       </div>
       <div class="modal-body" id="propose-confirm-body" style="padding: 1.25rem 0;">
         <p class="loading-text">Preparing match details...</p>
@@ -240,6 +241,44 @@
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
         <button id="propose-cancel-btn" class="btn btn--ghost">Cancel</button>
         <button id="propose-submit-btn" class="btn btn--primary">Confirm &amp; Send Invitation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Request Details Modal -->
+  <div id="request-detail-modal" class="modal-backdrop" hidden>
+    <div class="modal" style="max-width: 750px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;">
+        <div>
+          <h2 id="req-modal-title" style="margin: 0; font-size: 1.35rem;">Scribe Request Details</h2>
+          <span id="req-modal-ref" style="font-family: monospace; font-size: 0.9rem; color: var(--color-primary);"></span>
+        </div>
+        <button id="request-detail-modal-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="request-detail-modal-body" class="modal-body" style="padding: 1.5rem 0;">
+        <p class="loading-text">Loading request details...</p>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+        <button id="request-detail-modal-cancel" class="btn btn--ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volunteer Details Modal -->
+  <div id="volunteer-detail-modal" class="modal-backdrop" hidden>
+    <div class="modal" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;">
+        <div>
+          <h2 id="vol-modal-name" style="margin: 0; font-size: 1.35rem;">Volunteer Profile</h2>
+          <span id="vol-modal-badge" class="badge badge--teal">Volunteer</span>
+        </div>
+        <button id="volunteer-detail-modal-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="volunteer-detail-modal-body" class="modal-body" style="padding: 1.5rem 0;">
+        <p class="loading-text">Loading volunteer details...</p>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+        <button id="volunteer-detail-modal-cancel" class="btn btn--ghost">Close</button>
       </div>
     </div>
   </div>

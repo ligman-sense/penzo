@@ -3,7 +3,8 @@
 import { api } from '../api.js';
 import { requireAdmin, adminLogout } from '../auth.js';
 import { showError, showSuccess } from '../notifications.js';
-import { formatDate, renderPagination, renderStatusBadge, escapeHtml, debounce, setLoading } from '../utils.js';
+import { formatDate, formatDateTime, renderPagination, renderStatusBadge, escapeHtml, debounce, setLoading } from '../utils.js';
+import { registerModal, openModal, closeModal, closeAllModals } from '../modal.js';
 
 let currentTab = 'requests';
 let currentPage = 1;
@@ -15,6 +16,9 @@ let activeMatchesData = null;
 let selectedVolunteer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Ensure all modals start closed immediately on page load
+  closeAllModals();
+
   const admin = await requireAdmin();
   if (!admin) return;
 
@@ -41,6 +45,9 @@ function setupTabs() {
   const secMat = document.getElementById('section-matches');
 
   const switchTab = (tab) => {
+    // When navigating between tabs, any open modal must be closed immediately
+    closeAllModals();
+
     currentTab = tab;
     currentPage = 1;
 
@@ -59,9 +66,18 @@ function setupTabs() {
   tabInt?.addEventListener('click', () => switchTab('interests'));
   tabMat?.addEventListener('click', () => switchTab('matches'));
 
-  document.getElementById('refresh-requests-btn')?.addEventListener('click', loadRequests);
-  document.getElementById('refresh-interests-btn')?.addEventListener('click', loadInterests);
-  document.getElementById('refresh-matches-btn')?.addEventListener('click', loadMatches);
+  document.getElementById('refresh-requests-btn')?.addEventListener('click', () => {
+    closeAllModals();
+    loadRequests();
+  });
+  document.getElementById('refresh-interests-btn')?.addEventListener('click', () => {
+    closeAllModals();
+    loadInterests();
+  });
+  document.getElementById('refresh-matches-btn')?.addEventListener('click', () => {
+    closeAllModals();
+    loadMatches();
+  });
 }
 
 function setupFilters() {
@@ -132,21 +148,36 @@ async function loadRequests() {
             <td>${renderStatusBadge(r.status)}</td>
             <td>
               <div style="display:flex; gap:0.4rem; flex-wrap: wrap;">
-                ${canFindVolunteers ? `<button class="btn btn--secondary btn--sm find-vol-btn" data-id="${r.id}">Find Volunteers</button>` : ''}
-                ${r.status === 'SUBMITTED' ? `<button class="btn btn--outline btn--sm status-btn" data-id="${r.id}" data-to="PENDING_REVIEW">Review</button>` : ''}
-                ${['SUBMITTED', 'PENDING_REVIEW', 'AWAITING_VOLUNTEER'].includes(r.status) ? `<button class="btn btn--danger btn--sm status-btn" data-id="${r.id}" data-to="REJECTED">Reject</button>` : ''}
+                <button type="button" class="btn btn--outline btn--sm view-req-btn" data-id="${r.id}">View Request</button>
+                ${canFindVolunteers ? `<button type="button" class="btn btn--secondary btn--sm find-vol-btn" data-id="${r.id}">Find Volunteers</button>` : ''}
+                ${r.status === 'SUBMITTED' ? `<button type="button" class="btn btn--outline btn--sm status-btn" data-id="${r.id}" data-to="PENDING_REVIEW">Review</button>` : ''}
+                ${['SUBMITTED', 'PENDING_REVIEW', 'AWAITING_VOLUNTEER'].includes(r.status) ? `<button type="button" class="btn btn--danger btn--sm status-btn" data-id="${r.id}" data-to="REJECTED">Reject</button>` : ''}
               </div>
             </td>
           </tr>`;
       })
       .join('');
 
+    // Attach explicit click handlers
+    tableBody.querySelectorAll('.view-req-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openRequestDetailModal(btn.dataset.id, btn);
+      });
+    });
+
     tableBody.querySelectorAll('.find-vol-btn').forEach((btn) => {
-      btn.addEventListener('click', () => openMatchingModal(btn.dataset.id));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openMatchingModal(btn.dataset.id, btn);
+      });
     });
 
     tableBody.querySelectorAll('.status-btn').forEach((btn) => {
-      btn.addEventListener('click', () => updateRequestStatus(btn.dataset.id, btn.dataset.to));
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateRequestStatus(btn.dataset.id, btn.dataset.to);
+      });
     });
 
     if (paginationContainer && meta) {
@@ -186,19 +217,21 @@ async function loadInterests() {
   const paginationContainer = document.getElementById('pagination-container');
   if (!tableBody) return;
 
-  tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading volunteer interests...</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Loading volunteer interests...</td></tr>';
 
   try {
     const { data, meta } = await api.get(`/admin/volunteer-interests?page=${currentPage}&pageSize=20`);
 
     if (!data || data.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 2rem;">No volunteer expressions of interest found.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;">No volunteer expressions of interest found.</td></tr>';
       if (paginationContainer) paginationContainer.innerHTML = '';
       return;
     }
 
     tableBody.innerHTML = data
-      .map((i) => `
+      .map((i) => {
+        const volId = i.volunteer?.id || i.volunteerId || (i.volunteer && i.volunteer._id);
+        return `
         <tr>
           <td>
             <strong>${escapeHtml(i.volunteer?.name || 'Volunteer')}</strong>
@@ -220,8 +253,19 @@ async function loadInterests() {
             <div><strong>Subjects:</strong> ${escapeHtml((i.volunteer?.subjects || []).join(', ') || 'General')}</div>
           </td>
           <td><span class="badge ${i.status === 'ACTIVE' ? 'badge--green' : 'badge--gray'}">${escapeHtml(i.status)}</span></td>
-        </tr>`)
+          <td>
+            ${volId ? `<button type="button" class="btn btn--outline btn--sm view-vol-btn" data-vol-id="${escapeHtml(volId)}">View Volunteer</button>` : '—'}
+          </td>
+        </tr>`;
+      })
       .join('');
+
+    tableBody.querySelectorAll('.view-vol-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openVolunteerDetailModal(btn.dataset.volId, btn);
+      });
+    });
 
     if (paginationContainer && meta) {
       renderPagination(paginationContainer, meta, (newPage) => {
@@ -230,7 +274,7 @@ async function loadInterests() {
       });
     }
   } catch (err) {
-    tableBody.innerHTML = `<tr><td colspan="6" class="text-error text-center">Failed to load volunteer interests.</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" class="text-error text-center">Failed to load volunteer interests.</td></tr>`;
   }
 }
 
@@ -240,13 +284,13 @@ async function loadMatches() {
   const paginationContainer = document.getElementById('pagination-container');
   if (!tableBody) return;
 
-  tableBody.innerHTML = '<tr><td colspan="7" class="text-center">Loading matches...</td></tr>';
+  tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading matches...</td></tr>';
 
   try {
     const { data, meta } = await api.get(`/admin/matches?page=${currentPage}&pageSize=20`);
 
     if (!data || data.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;">No match records or assignments found.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 2rem;">No match records or assignments found.</td></tr>';
       if (paginationContainer) paginationContainer.innerHTML = '';
       return;
     }
@@ -257,6 +301,9 @@ async function loadMatches() {
         if (m.status === 'CONFIRMED' || m.status === 'CANDIDATE_CONFIRMED') statusBadge = 'badge--green';
         if (m.status === 'ACCEPTED') statusBadge = 'badge--teal';
         if (m.status === 'DECLINED' || m.status === 'CANDIDATE_REJECTED') statusBadge = 'badge--red';
+
+        const reqId = m.requestId || m.request?.id;
+        const volId = m.volunteerId || m.volunteer?.id;
 
         return `
           <tr>
@@ -276,9 +323,29 @@ async function loadMatches() {
             <td><strong>${m.score ?? 0}%</strong></td>
             <td><span class="badge ${statusBadge}">${escapeHtml(m.status)}</span></td>
             <td><small>${escapeHtml(m.reviewedBy || 'Admin')}</small></td>
+            <td>
+              <div style="display:flex; gap:0.3rem;">
+                ${reqId ? `<button type="button" class="btn btn--ghost btn--sm view-req-btn" data-id="${escapeHtml(reqId)}">Req</button>` : ''}
+                ${volId ? `<button type="button" class="btn btn--ghost btn--sm view-vol-btn" data-vol-id="${escapeHtml(volId)}">Vol</button>` : ''}
+              </div>
+            </td>
           </tr>`;
       })
       .join('');
+
+    tableBody.querySelectorAll('.view-req-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openRequestDetailModal(btn.dataset.id, btn);
+      });
+    });
+
+    tableBody.querySelectorAll('.view-vol-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openVolunteerDetailModal(btn.dataset.volId, btn);
+      });
+    });
 
     if (paginationContainer && meta) {
       renderPagination(paginationContainer, meta, (newPage) => {
@@ -287,44 +354,92 @@ async function loadMatches() {
       });
     }
   } catch (err) {
-    tableBody.innerHTML = `<tr><td colspan="7" class="text-error text-center">Failed to load matches.</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="8" class="text-error text-center">Failed to load matches.</td></tr>`;
   }
 }
 
-// ─── MATCHING MODAL ───────────────────────────────────────────────────────────
+// ─── MODAL SETUP & MANAGEMENT ─────────────────────────────────────────────────
 function setupModals() {
-  const matchingModal = document.getElementById('matching-modal');
-  const matchingClose = document.getElementById('matching-modal-close');
-  const matchingCancel = document.getElementById('matching-modal-cancel');
-
-  const closeMatching = () => {
-    if (matchingModal) matchingModal.hidden = true;
-    activeRequestId = null;
-    activeMatchesData = null;
-    document.body.style.overflow = '';
-  };
-
-  matchingClose?.addEventListener('click', closeMatching);
-  matchingCancel?.addEventListener('click', closeMatching);
-  matchingModal?.addEventListener('click', (e) => {
-    if (e.target === matchingModal) closeMatching();
+  // Register all 4 modals to ensure they start closed and wire their close triggers
+  registerModal('matching-modal', {
+    onReset: () => {
+      activeRequestId = null;
+      activeMatchesData = null;
+      const refHeader = document.getElementById('modal-req-ref');
+      if (refHeader) refHeader.textContent = '';
+      const summary = document.getElementById('matching-req-summary');
+      if (summary) summary.innerHTML = '<p class="loading-text">Loading request details...</p>';
+      const eligible = document.getElementById('eligible-volunteers-container');
+      if (eligible) eligible.innerHTML = '';
+      const reviewSection = document.getElementById('review-volunteers-section');
+      if (reviewSection) reviewSection.style.display = 'none';
+    },
   });
 
-  // Propose confirm modal
-  const propModal = document.getElementById('propose-confirm-modal');
-  const propCancel = document.getElementById('propose-cancel-btn');
-  const propSubmit = document.getElementById('propose-submit-btn');
-
-  propCancel?.addEventListener('click', () => {
-    if (propModal) propModal.hidden = true;
-    selectedVolunteer = null;
+  registerModal('propose-confirm-modal', {
+    onReset: () => {
+      selectedVolunteer = null;
+      const body = document.getElementById('propose-confirm-body');
+      if (body) body.innerHTML = '<p class="loading-text">Preparing match details...</p>';
+      const note = document.getElementById('propose-note');
+      if (note) note.value = '';
+    },
   });
 
-  propSubmit?.addEventListener('click', submitProposeMatch);
+  registerModal('request-detail-modal', {
+    onReset: () => {
+      const refEl = document.getElementById('req-modal-ref');
+      if (refEl) refEl.textContent = '';
+      const body = document.getElementById('request-detail-modal-body');
+      if (body) body.innerHTML = '<p class="loading-text">Loading request details...</p>';
+    },
+  });
+
+  registerModal('volunteer-detail-modal', {
+    onReset: () => {
+      const nameEl = document.getElementById('vol-modal-name');
+      if (nameEl) nameEl.textContent = 'Volunteer Profile';
+      const body = document.getElementById('volunteer-detail-modal-body');
+      if (body) body.innerHTML = '<p class="loading-text">Loading volunteer details...</p>';
+    },
+  });
+
+  // Explicit close / cancel button bindings
+  document.getElementById('matching-modal-close')?.addEventListener('click', () => closeModal('matching-modal'));
+  document.getElementById('matching-modal-cancel')?.addEventListener('click', () => closeModal('matching-modal'));
+
+  document.getElementById('propose-confirm-close')?.addEventListener('click', () => {
+    closeModal('propose-confirm-modal');
+  });
+
+  document.getElementById('propose-cancel-btn')?.addEventListener('click', () => {
+    // If admin cancels proposal confirmation, close proposal modal and return to matching modal
+    closeModal('propose-confirm-modal', { restoreFocus: false });
+    if (activeRequestId) {
+      openModal('matching-modal');
+    }
+  });
+
+  document.getElementById('propose-submit-btn')?.addEventListener('click', submitProposeMatch);
+
+  document.getElementById('request-detail-modal-close')?.addEventListener('click', () => closeModal('request-detail-modal'));
+  document.getElementById('request-detail-modal-cancel')?.addEventListener('click', () => closeModal('request-detail-modal'));
+
+  document.getElementById('volunteer-detail-modal-close')?.addEventListener('click', () => closeModal('volunteer-detail-modal'));
+  document.getElementById('volunteer-detail-modal-cancel')?.addEventListener('click', () => closeModal('volunteer-detail-modal'));
 }
 
-async function openMatchingModal(requestId) {
-  const modal = document.getElementById('matching-modal');
+// ─── ACTION 1: Find Suitable Volunteers Modal ─────────────────────────────────
+async function openMatchingModal(requestId, triggerBtn = null) {
+  if (!requestId) return;
+
+  activeRequestId = requestId;
+  activeMatchesData = null;
+  selectedVolunteer = null;
+
+  // Open modal strictly upon explicit user interaction
+  openModal('matching-modal', triggerBtn);
+
   const reqSummary = document.getElementById('matching-req-summary');
   const eligibleContainer = document.getElementById('eligible-volunteers-container');
   const reviewContainer = document.getElementById('review-volunteers-container');
@@ -332,17 +447,14 @@ async function openMatchingModal(requestId) {
   const countBadge = document.getElementById('eligible-count-badge');
   const refHeader = document.getElementById('modal-req-ref');
 
-  if (!modal) return;
-  activeRequestId = requestId;
-  modal.hidden = false;
-  document.body.style.overflow = 'hidden';
-
+  if (refHeader) refHeader.textContent = '';
   if (reqSummary) reqSummary.innerHTML = '<p class="loading-text">Loading request details...</p>';
   if (eligibleContainer) eligibleContainer.innerHTML = '<p class="loading-text">Finding volunteers interested in the SAME examination...</p>';
   if (reviewSection) reviewSection.style.display = 'none';
 
   try {
     const { data } = await api.get(`/admin/requests/${requestId}/matches`);
+    if (activeRequestId !== requestId) return; // Stale request guard
     activeMatchesData = data;
 
     const r = data.request;
@@ -393,7 +505,10 @@ async function openMatchingModal(requestId) {
           .join('');
 
         eligibleContainer.querySelectorAll('.propose-btn').forEach((btn) => {
-          btn.addEventListener('click', () => confirmPropose(btn.dataset.volId));
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            confirmPropose(btn.dataset.volId, btn);
+          });
         });
       }
     }
@@ -406,7 +521,10 @@ async function openMatchingModal(requestId) {
         .join('');
 
       reviewContainer.querySelectorAll('.propose-btn').forEach((btn) => {
-        btn.addEventListener('click', () => confirmPropose(btn.dataset.volId));
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          confirmPropose(btn.dataset.volId, btn);
+        });
       });
     }
   } catch (err) {
@@ -452,7 +570,7 @@ function renderVolunteerMatchCard(v, req) {
       </div>
 
       <div style="display: flex; justify-content: flex-end;">
-        <button class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}">
+        <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}">
           Propose Match
         </button>
       </div>
@@ -476,7 +594,7 @@ function renderVolunteerReviewCard(v, req) {
         </div>
         <div style="text-align: right;">
           <span style="font-weight: 700; color: var(--color-text); margin-right: 1rem;">${v.score}%</span>
-          <button class="btn btn--outline btn--sm propose-btn" data-vol-id="${v.volunteerId}" ${v.hasBlockingFailure ? 'disabled title="Overlapping assignment exists"' : ''}>
+          <button type="button" class="btn btn--outline btn--sm propose-btn" data-vol-id="${v.volunteerId}" ${v.hasBlockingFailure ? 'disabled title="Overlapping assignment exists"' : ''}>
             Propose Anyway
           </button>
         </div>
@@ -484,16 +602,15 @@ function renderVolunteerReviewCard(v, req) {
     </div>`;
 }
 
-// ─── PROPOSE MATCH CONFIRMATION ───────────────────────────────────────────────
-function confirmPropose(volunteerId) {
+// ─── ACTION 2: Propose Match Confirmation Modal ───────────────────────────────
+function confirmPropose(volunteerId, triggerBtn = null) {
   if (!activeMatchesData) return;
   const allVolunteers = [...(activeMatchesData.eligible || []), ...(activeMatchesData.requiresReview || [])];
   selectedVolunteer = allVolunteers.find((v) => v.volunteerId === volunteerId);
   if (!selectedVolunteer) return;
 
-  const propModal = document.getElementById('propose-confirm-modal');
   const confirmBody = document.getElementById('propose-confirm-body');
-  if (!propModal || !confirmBody) return;
+  if (!confirmBody) return;
 
   const r = activeMatchesData.request;
   confirmBody.innerHTML = `
@@ -525,7 +642,9 @@ function confirmPropose(volunteerId) {
     </p>
   `;
 
-  propModal.hidden = false;
+  // Close matching modal and open confirmation modal (NO dual popups)
+  closeModal('matching-modal', { restoreFocus: false });
+  openModal('propose-confirm-modal', triggerBtn);
 }
 
 async function submitProposeMatch() {
@@ -545,14 +664,8 @@ async function submitProposeMatch() {
 
     showSuccess(`Match proposed successfully! Invitation sent to ${selectedVolunteer.volunteerName}.`);
 
-    // Close modals
-    const propModal = document.getElementById('propose-confirm-modal');
-    if (propModal) propModal.hidden = true;
-
-    const matchingModal = document.getElementById('matching-modal');
-    if (matchingModal) matchingModal.hidden = true;
-    document.body.style.overflow = '';
-
+    // Cleanly close all modals and clear selection state
+    closeAllModals();
     activeRequestId = null;
     selectedVolunteer = null;
 
@@ -561,5 +674,131 @@ async function submitProposeMatch() {
     showError(err.message || 'Failed to propose match.');
   } finally {
     setLoading(submitBtn, false);
+  }
+}
+
+// ─── ACTION 3: View Request Details Modal ─────────────────────────────────────
+async function openRequestDetailModal(requestId, triggerBtn = null) {
+  if (!requestId) return;
+
+  const refEl = document.getElementById('req-modal-ref');
+  const body = document.getElementById('request-detail-modal-body');
+  if (refEl) refEl.textContent = '';
+  if (body) body.innerHTML = '<p class="loading-text">Loading request details...</p>';
+
+  // Open single modal
+  openModal('request-detail-modal', triggerBtn);
+
+  try {
+    const { data } = await api.get(`/admin/requests/${requestId}`);
+    const req = data;
+    if (refEl) refEl.textContent = req.reference || req.id;
+
+    if (body) {
+      const exam = req.examination || {};
+      const cand = req.candidate || {};
+      const history = req.history || [];
+
+      body.innerHTML = `
+        <div style="margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem;">
+            <div>
+              <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-primary);">${escapeHtml(exam.name || 'Examination')}</h3>
+              <p style="margin: 0.2rem 0; font-size: 0.85rem; color: var(--color-text-muted);">${escapeHtml(exam.authority || '')}</p>
+            </div>
+            ${renderStatusBadge(req.status)}
+          </div>
+        </div>
+
+        <div class="card" style="background: var(--color-surface-2); padding: 1rem; margin-bottom: 1.25rem;">
+          <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Request Specification</h4>
+          <div class="grid grid-cols-2" style="gap: 0.6rem; font-size: 0.85rem;">
+            <div><strong>Candidate:</strong> ${escapeHtml(cand.name || 'Candidate')} (${escapeHtml(cand.mobile || '—')})</div>
+            <div><strong>Exam Date:</strong> ${exam.startsOn ? formatDate(exam.startsOn) : 'TBD'}</div>
+            <div><strong>Exam Centre City:</strong> ${escapeHtml(req.city || '—')}</div>
+            <div><strong>Preferred Language:</strong> ${escapeHtml(req.language || 'Any')}</div>
+            <div><strong>Submitted On:</strong> ${formatDate(req.createdAt)}</div>
+            <div><strong>Session:</strong> ${escapeHtml(req.session?.name || req.session?.label || 'General Session')}</div>
+          </div>
+          ${req.requirements ? `
+            <div style="margin-top: 0.6rem; font-size: 0.85rem;">
+              <strong>Assistance Needs:</strong> <span style="color: var(--color-text-muted);">${escapeHtml(req.requirements)}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${history.length > 0 ? `
+          <div style="margin-top: 1rem;">
+            <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Status History</h4>
+            <ul style="font-size: 0.85rem; padding-left: 1.25rem; color: var(--color-text-muted);">
+              ${history.map(h => `
+                <li style="margin-bottom: 0.25rem;">
+                  <strong>${escapeHtml(h.toStatus || h.status)}</strong> (${formatDate(h.createdAt || h.changedAt)})
+                  ${h.reason ? `— <em>${escapeHtml(h.reason)}</em>` : ''}
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      `;
+    }
+  } catch (err) {
+    if (body) {
+      body.innerHTML = `<p class="text-error">Failed to load request: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+}
+
+// ─── ACTION 4: View Volunteer Profile Modal ───────────────────────────────────
+async function openVolunteerDetailModal(volunteerUserId, triggerBtn = null) {
+  if (!volunteerUserId) return;
+
+  const nameEl = document.getElementById('vol-modal-name');
+  const badgeEl = document.getElementById('vol-modal-badge');
+  const body = document.getElementById('volunteer-detail-modal-body');
+
+  if (nameEl) nameEl.textContent = 'Volunteer Profile';
+  if (body) body.innerHTML = '<p class="loading-text">Loading volunteer details...</p>';
+
+  openModal('volunteer-detail-modal', triggerBtn);
+
+  try {
+    const { data } = await api.get(`/admin/users/${volunteerUserId}`);
+    const u = data;
+    const vp = u.profile || {};
+
+    if (nameEl) nameEl.textContent = vp.fullName || (vp.firstName ? `${vp.firstName} ${vp.lastName || ''}`.trim() : u.name || 'Volunteer');
+    if (badgeEl) {
+      badgeEl.textContent = u.verificationStatus || 'UNVERIFIED';
+      badgeEl.className = `badge ${u.verificationStatus === 'VERIFIED' ? 'badge--green' : 'badge--yellow'}`;
+    }
+
+    if (body) {
+      body.innerHTML = `
+        <div class="card" style="background: var(--color-surface-2); padding: 1rem; margin-bottom: 1.25rem;">
+          <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Personal &amp; Contact</h4>
+          <div class="grid grid-cols-2" style="gap: 0.6rem; font-size: 0.85rem;">
+            <div><strong>Mobile:</strong> ${escapeHtml(u.mobile || u.mobileE164 || '—')}</div>
+            <div><strong>Email:</strong> ${escapeHtml(u.email || '—')}</div>
+            <div><strong>City / Location:</strong> ${escapeHtml([vp.city, vp.state, vp.pincode].filter(Boolean).join(', ') || '—')}</div>
+            <div><strong>Profile Complete:</strong> ${u.profileComplete ? '✓ Yes (100%)' : 'Incomplete'}</div>
+          </div>
+        </div>
+
+        <div class="card" style="border: 1px solid var(--color-border); padding: 1rem; margin-bottom: 1rem;">
+          <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Scribe Capabilities</h4>
+          <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem;">
+            <div><strong>Languages Known:</strong> ${escapeHtml(Array.isArray(vp.languages) ? vp.languages.join(', ') : vp.languages || '—')}</div>
+            <div><strong>Subject Areas:</strong> ${escapeHtml(Array.isArray(vp.subjects) ? vp.subjects.join(', ') : vp.subjects || 'General')}</div>
+            <div><strong>Prior Experience:</strong> ${vp.hasPriorExperience || vp.hasScribeExperience ? '✓ Yes, experienced scribe' : 'New volunteer'}</div>
+            ${vp.scribeExperienceDetails ? `<div><strong style="color: var(--color-text-muted);">Experience Note:</strong> ${escapeHtml(vp.scribeExperienceDetails)}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    if (body) {
+      body.innerHTML = `<p class="text-error">Failed to load volunteer: ${escapeHtml(err.message)}</p>`;
+    }
   }
 }

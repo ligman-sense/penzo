@@ -272,11 +272,21 @@
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: var(--spacing-4);
+}
+
+.modal-backdrop:not([hidden]),
+.modal-backdrop.is-open {
+  display: flex !important;
+}
+
+/* Ensure the hidden attribute always hides modals */
+.modal-backdrop[hidden] {
+  display: none !important;
 }
 
 .modal {
