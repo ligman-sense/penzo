@@ -22,11 +22,23 @@ async function getProfile(userId) {
     completion = candidateCompletion(cp, user);
     profileData = {
       fullName: cp.fullName || (cp.firstName ? `${cp.firstName} ${cp.lastName || ''}`.trim() : ''),
+      firstName: cp.firstName || (cp.fullName ? cp.fullName.split(' ')[0] : ''),
+      lastName: cp.lastName || (cp.fullName ? cp.fullName.split(' ').slice(1).join(' ') : ''),
       languages: cp.languages || [],
       education: cp.education || '',
       city: cp.city || '',
       preferredExamCity: cp.preferredExamCity || '',
+      state: cp.state || '',
+      pincode: cp.pincode || '',
+      dateOfBirth: cp.dateOfBirth || null,
+      gender: cp.gender || '',
+      disabilityType: cp.disabilityType || '',
       assistanceNeeds: cp.assistanceNeeds || '',
+      address: {
+        city: cp.city || '',
+        state: cp.state || '',
+        pincode: cp.pincode || '',
+      },
     };
   } else {
     let vp = await VolunteerProfile.findOne({ userId });
@@ -34,14 +46,27 @@ async function getProfile(userId) {
     completion = volunteerCompletion(vp, user);
     profileData = {
       fullName: vp.fullName || (vp.firstName ? `${vp.firstName} ${vp.lastName || ''}`.trim() : ''),
+      firstName: vp.firstName || (vp.fullName ? vp.fullName.split(' ')[0] : ''),
+      lastName: vp.lastName || (vp.fullName ? vp.fullName.split(' ').slice(1).join(' ') : ''),
       educationLevel: vp.educationLevel || vp.highestEducation || '',
+      qualification: vp.educationLevel || vp.highestEducation || '',
       institution: vp.institution || '',
       languages: vp.languages || [],
+      preferredLanguages: vp.languages || [],
       subjects: vp.subjects || [],
       city: vp.city || '',
+      state: vp.state || '',
+      pincode: vp.pincode || '',
       serviceRadiusKm: vp.serviceRadiusKm || 25,
+      availableRegions: vp.serviceLocations || [],
       serviceLocations: vp.serviceLocations || [],
       hasPriorExperience: vp.hasPriorExperience || vp.hasScribeExperience || false,
+      hasPreviousExperience: vp.hasPriorExperience || vp.hasScribeExperience || false,
+      address: {
+        city: vp.city || '',
+        state: vp.state || '',
+        pincode: vp.pincode || '',
+      },
     };
   }
 
@@ -77,12 +102,43 @@ async function saveProfile(userId, { role, data }) {
     cpOrVp = await CandidateProfile.findOne({ userId });
     if (!cpOrVp) cpOrVp = new CandidateProfile({ userId });
 
-    if (data.fullName !== undefined) cpOrVp.fullName = data.fullName;
-    if (data.languages !== undefined) cpOrVp.languages = data.languages;
+    // Handle names
+    if (data.firstName !== undefined) cpOrVp.firstName = data.firstName;
+    if (data.lastName !== undefined) cpOrVp.lastName = data.lastName;
+    if (data.fullName !== undefined) {
+      cpOrVp.fullName = data.fullName;
+    } else if (data.firstName || data.lastName) {
+      cpOrVp.fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
+    }
+
+    // Handle dates and bio
+    if (data.dateOfBirth !== undefined) cpOrVp.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+    if (data.gender !== undefined) cpOrVp.gender = data.gender || null;
+
+    // Handle languages & education
+    if (data.languages !== undefined) cpOrVp.languages = Array.isArray(data.languages) ? data.languages : [data.languages].filter(Boolean);
+    if (data.preferredLanguages !== undefined) cpOrVp.preferredLanguages = Array.isArray(data.preferredLanguages) ? data.preferredLanguages : [data.preferredLanguages].filter(Boolean);
     if (data.education !== undefined) cpOrVp.education = data.education;
+
+    // Handle address and cities (support both flat fields and nested address object)
     if (data.city !== undefined) cpOrVp.city = data.city;
+    if (data.state !== undefined) cpOrVp.state = data.state;
+    if (data.pincode !== undefined) cpOrVp.pincode = data.pincode;
+    if (data.address && typeof data.address === 'object') {
+      if (data.address.city !== undefined) cpOrVp.city = data.address.city;
+      if (data.address.state !== undefined) cpOrVp.state = data.address.state;
+      if (data.address.pincode !== undefined) cpOrVp.pincode = data.address.pincode;
+    }
     if (data.preferredExamCity !== undefined) cpOrVp.preferredExamCity = data.preferredExamCity;
-    if (data.assistanceNeeds !== undefined) cpOrVp.assistanceNeeds = data.assistanceNeeds;
+
+    // Handle disability & assistance needs
+    if (data.disabilityType !== undefined) cpOrVp.disabilityType = data.disabilityType;
+    if (data.disabilityDescription !== undefined) cpOrVp.disabilityDescription = data.disabilityDescription;
+    if (data.assistanceNeeds !== undefined) {
+      cpOrVp.assistanceNeeds = data.assistanceNeeds;
+    } else if (data.disabilityType) {
+      cpOrVp.assistanceNeeds = data.disabilityType;
+    }
 
     completion = candidateCompletion(cpOrVp, user);
     cpOrVp.completionPercentage = completion.percentage;
@@ -91,20 +147,47 @@ async function saveProfile(userId, { role, data }) {
     cpOrVp = await VolunteerProfile.findOne({ userId });
     if (!cpOrVp) cpOrVp = new VolunteerProfile({ userId });
 
-    if (data.fullName !== undefined) cpOrVp.fullName = data.fullName;
-    if (data.educationLevel !== undefined) {
-      cpOrVp.educationLevel = data.educationLevel;
-      cpOrVp.highestEducation = data.educationLevel;
+    // Handle names
+    if (data.firstName !== undefined) cpOrVp.firstName = data.firstName;
+    if (data.lastName !== undefined) cpOrVp.lastName = data.lastName;
+    if (data.fullName !== undefined) {
+      cpOrVp.fullName = data.fullName;
+    } else if (data.firstName || data.lastName) {
+      cpOrVp.fullName = [data.firstName, data.lastName].filter(Boolean).join(' ');
+    }
+
+    if (data.educationLevel !== undefined || data.qualification !== undefined) {
+      const q = data.qualification || data.educationLevel;
+      cpOrVp.educationLevel = q;
+      cpOrVp.highestEducation = q;
     }
     if (data.institution !== undefined) cpOrVp.institution = data.institution;
-    if (data.languages !== undefined) cpOrVp.languages = data.languages;
-    if (data.subjects !== undefined) cpOrVp.subjects = data.subjects;
+
+    const langs = data.languages || data.preferredLanguages;
+    if (langs !== undefined) {
+      cpOrVp.languages = Array.isArray(langs) ? langs : [langs].filter(Boolean);
+    }
+    if (data.subjects !== undefined) cpOrVp.subjects = Array.isArray(data.subjects) ? data.subjects : [data.subjects].filter(Boolean);
+
+    // Handle address (support flat and nested)
     if (data.city !== undefined) cpOrVp.city = data.city;
+    if (data.state !== undefined) cpOrVp.state = data.state;
+    if (data.pincode !== undefined) cpOrVp.pincode = data.pincode;
+    if (data.address && typeof data.address === 'object') {
+      if (data.address.city !== undefined) cpOrVp.city = data.address.city;
+      if (data.address.state !== undefined) cpOrVp.state = data.address.state;
+      if (data.address.pincode !== undefined) cpOrVp.pincode = data.address.pincode;
+    }
+
     if (data.serviceRadiusKm !== undefined) cpOrVp.serviceRadiusKm = Number(data.serviceRadiusKm);
-    if (data.serviceLocations !== undefined) cpOrVp.serviceLocations = data.serviceLocations;
-    if (data.hasPriorExperience !== undefined) {
-      cpOrVp.hasPriorExperience = Boolean(data.hasPriorExperience);
-      cpOrVp.hasScribeExperience = Boolean(data.hasPriorExperience);
+    const locations = data.serviceLocations || data.availableRegions;
+    if (locations !== undefined) {
+      cpOrVp.serviceLocations = Array.isArray(locations) ? locations : [locations].filter(Boolean);
+    }
+    if (data.hasPriorExperience !== undefined || data.hasPreviousExperience !== undefined) {
+      const exp = Boolean(data.hasPriorExperience || data.hasPreviousExperience);
+      cpOrVp.hasPriorExperience = exp;
+      cpOrVp.hasScribeExperience = exp;
     }
 
     completion = volunteerCompletion(cpOrVp, user);

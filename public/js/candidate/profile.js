@@ -46,24 +46,20 @@ function fillForm(profile) {
     if (el) el.value = val ?? '';
   };
 
-  set('first-name',      profile.firstName);
-  set('last-name',       profile.lastName);
+  set('first-name',      profile.firstName || (profile.fullName ? profile.fullName.split(' ')[0] : ''));
+  set('last-name',       profile.lastName || (profile.fullName ? profile.fullName.split(' ').slice(1).join(' ') : ''));
   set('email',           profile.email);
-  set('date-of-birth',   profile.dateOfBirth ? profile.dateOfBirth.substring(0, 10) : '');
+  set('date-of-birth',   profile.dateOfBirth ? String(profile.dateOfBirth).substring(0, 10) : '');
   set('gender',          profile.gender);
-  set('disability-type', profile.disabilityType);
+  set('education',       profile.education);
+  set('languages',       Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || ''));
+  set('disability-type', profile.disabilityType || profile.assistanceNeeds || '');
   set('mobile-display',  profile.mobile);
 
   // Address fields
-  set('address-line1',   profile.address?.line1);
-  set('address-line2',   profile.address?.line2);
-  set('city',            profile.address?.city);
-  set('state',           profile.address?.state);
-  set('pincode',         profile.address?.pincode);
-
-  // Document fields
-  set('id-type',         profile.idProof?.type);
-  set('id-number',       profile.idProof?.number);
+  set('city',            profile.city || profile.address?.city);
+  set('state',           profile.state || profile.address?.state);
+  set('pincode',         profile.pincode || profile.address?.pincode);
 
   setupFormSubmit(profile);
 }
@@ -104,23 +100,25 @@ function setupFormSubmit(currentProfile) {
 
 function collectFormData() {
   const g = (id) => form.querySelector(`#${id}`)?.value.trim() || '';
+  const langStr = g('languages');
   return {
     firstName:      g('first-name'),
     lastName:       g('last-name'),
+    fullName:       `${g('first-name')} ${g('last-name')}`.trim(),
     email:          g('email'),
     dateOfBirth:    g('date-of-birth'),
     gender:         g('gender'),
+    education:      g('education'),
+    languages:      langStr ? langStr.split(',').map(s => s.trim()).filter(Boolean) : [],
     disabilityType: g('disability-type'),
+    assistanceNeeds: g('disability-type'),
+    city:           g('city'),
+    state:          g('state'),
+    pincode:        g('pincode'),
     address: {
-      line1:   g('address-line1'),
-      line2:   g('address-line2'),
       city:    g('city'),
       state:   g('state'),
       pincode: g('pincode'),
-    },
-    idProof: {
-      type:   g('id-type'),
-      number: g('id-number'),
     },
   };
 }
