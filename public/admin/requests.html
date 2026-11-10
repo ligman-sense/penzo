@@ -44,49 +44,204 @@
 
     <main id="main-content" class="main-content">
       <div style="margin-bottom: 2rem;">
-        <h1>Scribe Requests &amp; Matching</h1>
-        <p>Manage candidate requests through their assignment lifecycle and valid status transitions.</p>
+        <h1>Scribe Requests &amp; Volunteer Matching</h1>
+        <p>Coordinate candidate scribe requests with verified volunteers interested in the same examination.</p>
       </div>
 
-      <div class="card" style="margin-bottom: 2rem;">
-        <div class="card-body">
-          <div style="max-width: 300px;">
-            <label for="status-filter" class="form-label">Filter by Status</label>
-            <select id="status-filter" class="form-select">
-              <option value="">All Statuses</option>
-              <option value="SUBMITTED">Submitted</option>
-              <option value="PENDING_REVIEW">Pending Review</option>
-              <option value="AWAITING_VOLUNTEER">Awaiting Volunteer</option>
-              <option value="MATCH_PROPOSED">Match Proposed</option>
-              <option value="VOLUNTEER_ACCEPTED">Volunteer Accepted</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+      <!-- Navigation Tabs -->
+      <div class="tabs-header" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem;">
+        <button id="tab-requests" class="btn btn--ghost btn--sm tab--active" style="font-weight: 600;">Candidate Requests</button>
+        <button id="tab-interests" class="btn btn--ghost btn--sm">Volunteer Exam Interests</button>
+        <button id="tab-matches" class="btn btn--ghost btn--sm">Proposed &amp; Confirmed Matches</button>
+      </div>
+
+      <!-- SECTION 1: Candidate Requests -->
+      <div id="section-requests">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body" style="padding: 1rem 1.25rem;">
+            <div class="grid grid-cols-3" style="gap: 1rem;">
+              <div>
+                <label for="status-filter" class="form-label">Filter by Status</label>
+                <select id="status-filter" class="form-select">
+                  <option value="">All Statuses</option>
+                  <option value="SUBMITTED">Submitted</option>
+                  <option value="PENDING_REVIEW">Pending Review</option>
+                  <option value="AWAITING_VOLUNTEER">Awaiting Volunteer Match</option>
+                  <option value="MATCH_PROPOSED">Match Proposed</option>
+                  <option value="VOLUNTEER_ACCEPTED">Volunteer Accepted</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="request-search" class="form-label">Search Request</label>
+                <input type="text" id="request-search" class="form-input" placeholder="Search reference number...">
+              </div>
+
+              <div style="display: flex; align-items: flex-end;">
+                <button id="refresh-requests-btn" class="btn btn--outline" style="width: 100%;">Refresh Requests</button>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Candidate</th>
+                <th>Examination</th>
+                <th>Session / Date</th>
+                <th>City &amp; Lang</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="requests-table-body">
+              <tr><td colspan="7" class="text-center">Loading requests...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="table-container">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Reference</th>
-              <th>Candidate</th>
-              <th>Examination</th>
-              <th>City</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="requests-table-body">
-            <tr><td colspan="6" class="text-center">Loading requests...</td></tr>
-          </tbody>
-        </table>
+      <!-- SECTION 2: Volunteer Interests -->
+      <div id="section-interests" hidden>
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body" style="padding: 1rem 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem;">Volunteer Examination Expressions of Interest</h3>
+                <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+                  Volunteers who have proactively expressed interest in upcoming examinations.
+                </p>
+              </div>
+              <button id="refresh-interests-btn" class="btn btn--outline btn--sm">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Volunteer</th>
+                <th>Verification</th>
+                <th>Selected Examination</th>
+                <th>Exam Date</th>
+                <th>Languages &amp; Subjects</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="interests-table-body">
+              <tr><td colspan="6" class="text-center">Loading volunteer interests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Matches & Assignments -->
+      <div id="section-matches" hidden>
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body" style="padding: 1rem 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem;">Proposed &amp; Confirmed Scribe Assignments</h3>
+                <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+                  Review match invitations, volunteer acceptances, and finalized scribe commitments.
+                </p>
+              </div>
+              <button id="refresh-matches-btn" class="btn btn--outline btn--sm">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Match Ref</th>
+                <th>Candidate</th>
+                <th>Volunteer</th>
+                <th>Examination</th>
+                <th>Score</th>
+                <th>Status</th>
+                <th>Proposed By</th>
+              </tr>
+            </thead>
+            <tbody id="matches-table-body">
+              <tr><td colspan="7" class="text-center">Loading matches...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div id="pagination-container" style="margin-top: 2rem;"></div>
     </main>
+  </div>
+
+  <!-- Matching Modal: Find Suitable Volunteers -->
+  <div id="matching-modal" class="modal-backdrop" hidden>
+    <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.35rem;">Find Suitable Volunteers for Request</h2>
+          <span id="modal-req-ref" style="font-family: monospace; font-size: 0.9rem; color: var(--color-primary);"></span>
+        </div>
+        <button id="matching-modal-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem 0;">
+        <!-- Request Summary Card -->
+        <div id="matching-req-summary" style="background-color: var(--color-surface-2); padding: 1rem 1.25rem; border-radius: 6px; margin-bottom: 1.5rem;">
+          <p class="loading-text">Loading request details...</p>
+        </div>
+
+        <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>Eligible Volunteers (Expressed Interest in Same Examination)</span>
+          <span id="eligible-count-badge" class="badge badge--green" style="font-size: 0.8rem;">0 eligible</span>
+        </h3>
+
+        <!-- Eligible Volunteers List -->
+        <div id="eligible-volunteers-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+          <p class="loading-text">Searching compatible volunteers...</p>
+        </div>
+
+        <!-- Volunteers Requiring Review (Unverified or conditional) -->
+        <div id="review-volunteers-section" style="display: none; border-top: 1px solid var(--color-border); padding-top: 1.5rem;">
+          <h4 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--color-text-muted);">
+            Volunteers Interested in Same Examination Requiring Review / Pending Verification
+          </h4>
+          <div id="review-volunteers-container" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+        <button id="matching-modal-cancel" class="btn btn--ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Propose Match Confirmation Modal -->
+  <div id="propose-confirm-modal" class="modal-backdrop" hidden>
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem;">
+        <h3 style="margin: 0;">Confirm Scribe Match Proposal</h3>
+      </div>
+      <div class="modal-body" id="propose-confirm-body" style="padding: 1.25rem 0;">
+        <p class="loading-text">Preparing match details...</p>
+      </div>
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="propose-note" class="form-label">Optional Administrator Note for Volunteer</label>
+        <textarea id="propose-note" class="form-textarea" rows="2" placeholder="e.g. Please bring official ID proof and report 30 minutes early at centre entrance..."></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button id="propose-cancel-btn" class="btn btn--ghost">Cancel</button>
+        <button id="propose-submit-btn" class="btn btn--primary">Confirm &amp; Send Invitation</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/js/theme.js"></script>

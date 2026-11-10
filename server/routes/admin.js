@@ -15,6 +15,7 @@ const {
   listUsers,
   getUser,
   setUserStatus,
+  getVerificationMetrics,
   listVerifications,
   getVerification,
   decideVerification,
@@ -32,7 +33,12 @@ const {
   updateFaq,
   deleteFaq,
 } = require('../services/adminMiscService');
-const { findPotentialMatches } = require('../services/matchingService');
+const {
+  findPotentialMatches,
+  proposeMatch,
+  listAllVolunteerInterests,
+  listAllMatches,
+} = require('../services/matchingService');
 const { getExaminationPreview } = require('../services/examinationService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok, created, pageMeta } = require('../utils/response');
@@ -157,12 +163,19 @@ adminRouter.patch(
 
 // Verifications
 adminRouter.get(
+  '/verifications/metrics',
+  asyncHandler(async (req, res) => {
+    ok(res, await getVerificationMetrics());
+  })
+);
+
+adminRouter.get(
   '/verifications',
   asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page || '1', 10);
     const pageSize = parseInt(req.query.pageSize || '20', 10);
-    const { status, kind } = req.query;
-    const { items, total } = await listVerifications({ page, pageSize, status, kind });
+    const { status, role, kind, search } = req.query;
+    const { items, total } = await listVerifications({ page, pageSize, status, role, kind, search });
     ok(res, items, pageMeta(page, pageSize, total));
   })
 );
@@ -213,6 +226,36 @@ adminRouter.get(
   '/requests/:id/matches',
   asyncHandler(async (req, res) => {
     ok(res, await findPotentialMatches(req.params.id));
+  })
+);
+
+adminRouter.post(
+  '/requests/:id/propose-match',
+  asyncHandler(async (req, res) => {
+    const { volunteerId, note } = req.body;
+    created(res, await proposeMatch(req.params.id, volunteerId, note, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.get(
+  '/matches',
+  asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page || '1', 10);
+    const pageSize = parseInt(req.query.pageSize || '20', 10);
+    const { status } = req.query;
+    const { items, total } = await listAllMatches({ page, pageSize, status });
+    ok(res, items, pageMeta(page, pageSize, total));
+  })
+);
+
+adminRouter.get(
+  '/volunteer-interests',
+  asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page || '1', 10);
+    const pageSize = parseInt(req.query.pageSize || '20', 10);
+    const { examinationId, search } = req.query;
+    const { items, total } = await listAllVolunteerInterests({ page, pageSize, examinationId, search });
+    ok(res, items, pageMeta(page, pageSize, total));
   })
 );
 

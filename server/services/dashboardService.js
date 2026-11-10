@@ -5,6 +5,7 @@ const ScribeRequest = require('../models/ScribeRequest');
 const VolunteerInterest = require('../models/VolunteerInterest');
 const VolunteerAvailability = require('../models/VolunteerAvailability');
 const ConfirmedAssignment = require('../models/ConfirmedAssignment');
+const MatchProposal = require('../models/MatchProposal');
 const Examination = require('../models/Examination');
 const CandidateProfile = require('../models/CandidateProfile');
 const VolunteerProfile = require('../models/VolunteerProfile');
@@ -19,7 +20,7 @@ async function getDashboard(userId, role) {
     const cp = await CandidateProfile.findOne({ userId });
     const completion = candidateCompletion(cp, user);
 
-    const [totalRequests, activeRequests, recentRequests, upcomingExams, assignments] = await Promise.all([
+    const [totalRequests, activeRequests, recentRequests, upcomingExams, assignments, pendingCandidateProposals] = await Promise.all([
       ScribeRequest.countDocuments({ candidateId: userId }),
       ScribeRequest.countDocuments({
         candidateId: userId,
@@ -39,7 +40,38 @@ async function getDashboard(userId, role) {
         })
         .sort({ startsAt: 1 })
         .limit(5),
+      MatchProposal.find({ candidateId: userId, status: 'ACCEPTED' })
+        .populate({
+          path: 'requestId',
+          populate: { path: 'examinationId', select: 'name title authority startsOn' },
+        })
+        .populate('volunteerId', 'mobileE164 verificationStatus')
+        .sort({ createdAt: -1 }),
     ]);
+
+    const proposedMatches = await Promise.all(
+      pendingCandidateProposals.map(async (p) => {
+        const vp = p.volunteerId ? await VolunteerProfile.findOne({ userId: p.volunteerId._id }) : null;
+        return {
+          id: p._id.toString(),
+          requestId: p.requestId?._id.toString(),
+          reference: p.matchReference,
+          status: p.status,
+          examination: p.requestId?.examinationId ? {
+            name: p.requestId.examinationId.name || p.requestId.examinationId.title,
+            authority: p.requestId.examinationId.authority,
+            startsOn: p.requestId.examinationId.startsOn,
+          } : null,
+          volunteer: {
+            name: vp?.fullName || 'Volunteer',
+            languages: vp?.languages || [],
+            city: vp?.city,
+            hasExperience: Boolean(vp?.hasPriorExperience || vp?.hasScribeExperience),
+            verificationStatus: p.volunteerId?.verificationStatus || 'UNVERIFIED',
+          },
+        };
+      })
+    );
 
     return {
       user: {
@@ -82,18 +114,25 @@ async function getDashboard(userId, role) {
           name: a.requestId.examinationId.name || a.requestId.examinationId.title,
         } : null,
       })),
+      proposedMatches,
     };
   } else {
     const vp = await VolunteerProfile.findOne({ userId });
     const completion = volunteerCompletion(vp, user);
 
-    const [activeInterests, availabilityCount, commitments, upcomingExams] = await Promise.all([
+    const [activeInterests, availabilityCount, commitments, upcomingExams, pendingInvitations] = await Promise.all([
       VolunteerInterest.countDocuments({ volunteerId: userId, status: 'ACTIVE' }),
       VolunteerAvailability.countDocuments({ volunteerId: userId, status: 'OPEN' }),
       ConfirmedAssignment.countDocuments({ volunteerId: userId, status: 'CONFIRMED' }),
       Examination.find({ status: 'PUBLISHED' })
         .sort({ isFeatured: -1, startsOn: 1 })
         .limit(4),
+      MatchProposal.find({ volunteerId: userId, status: 'PROPOSED' })
+        .populate({
+          path: 'requestId',
+          populate: { path: 'examinationId', select: 'name title authority startsOn locations' },
+        })
+        .sort({ createdAt: -1 }),
     ]);
 
     const recentInterests = await VolunteerInterest.find({ volunteerId: userId, status: 'ACTIVE' })
@@ -148,6 +187,26 @@ async function getDashboard(userId, role) {
         authority: e.authority,
         startsOn: e.startsOn,
         isFeatured: e.isFeatured,
+      })),
+      invitations: pendingInvitations.map((p) => ({
+        id: p._id.toString(),
+        matchReference: p.matchReference,
+        score: p.score,
+        adminNote: p.adminNote,
+        examination: p.requestId?.examinationId ? {
+          id: p.requestId.examinationId._id?.toString(),
+          name: p.requestId.examinationId.name || p.requestId.examinationId.title,
+          authority: p.requestId.examinationId.authority,
+          startsOn: p.requestId.examinationId.startsOn,
+          locations: p.requestId.examinationId.locations,
+        } : null,
+        request: p.requestId ? {
+          id: p.requestId._id?.toString(),
+          reference: p.requestId.reference,
+          language: p.requestId.language,
+          city: p.requestId.city,
+          requirements: p.requestId.requirements,
+        } : null,
       })),
     };
   }

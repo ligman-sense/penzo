@@ -10,13 +10,21 @@ const verificationRecordSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'VERIFIED', 'REJECTED', 'REQUIRES_CORRECTION'],
+    enum: ['PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'REQUIRES_CORRECTION'],
     default: 'PENDING',
   },
   documentKey: { type: String, default: null },
   reason: { type: String, default: null },
   reviewedById: { type: Schema.Types.ObjectId, ref: 'AdminUser', default: null },
   reviewedAt: { type: Date, default: null },
+  history: [{
+    fromStatus: { type: String, default: null },
+    toStatus: { type: String, required: true },
+    reason: { type: String, default: null },
+    adminId: { type: Schema.Types.ObjectId, ref: 'AdminUser', default: null },
+    adminName: { type: String, default: null },
+    timestamp: { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 verificationRecordSchema.index({ userId: 1, kind: 1 });

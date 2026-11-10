@@ -61,10 +61,35 @@ async function checkProfileCompletion() {
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 async function loadDashboardStats() {
   const container = document.getElementById('stats-container');
+  const banner = document.getElementById('dashboard-matches-banner');
   if (!container) return;
 
   try {
     const { data } = await api.get('/dashboard');
+
+    if (banner && data.proposedMatches && data.proposedMatches.length > 0) {
+      banner.hidden = false;
+      const count = data.proposedMatches.length;
+      banner.className = 'card';
+      banner.style.padding = '1.25rem';
+      banner.style.borderLeft = '4px solid var(--color-primary)';
+      banner.style.backgroundColor = 'var(--color-surface)';
+      banner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span class="badge badge--success">${count} Match Ready For Confirmation</span>
+            </div>
+            <h3 style="margin: 0; font-size: 1.1rem;">A volunteer scribe has accepted your request!</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+              Please review the volunteer details and confirm the match to finalize your scribe arrangement.
+            </p>
+          </div>
+          <a href="/candidate/request-details.html?id=${data.proposedMatches[0].requestId}" class="btn btn--primary btn--sm">View & Confirm Match &rarr;</a>
+        </div>
+      `;
+    }
+
     renderStats(container, data);
   } catch (err) {
     container.innerHTML = `<p class="text-error">Failed to load statistics.</p>`;

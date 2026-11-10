@@ -79,6 +79,31 @@
     </div>
   </div>
 
+  <!-- Decline Match Modal -->
+  <div id="decline-match-modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="decline-match-title">
+      <div class="modal-header">
+        <h3 id="decline-match-title">Decline Scribe Match</h3>
+        <button id="decline-match-close" class="btn btn--ghost btn--sm" aria-label="Close modal">&times;</button>
+      </div>
+      <form id="decline-match-form">
+        <div class="modal-body">
+          <p style="margin-bottom: 1rem; color: var(--color-text-secondary); font-size: 0.9rem;">
+            Are you sure you want to decline this scribe proposal? Your request will return to the matching queue so another volunteer can be assigned.
+          </p>
+          <div class="form-group">
+            <label for="decline-match-reason" class="form-label">Reason for declining (optional)</label>
+            <textarea id="decline-match-reason" class="form-textarea" rows="3" placeholder="e.g., Preference for different language fluency, timing, etc."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="decline-match-cancel" class="btn btn--outline btn--sm">Keep Match</button>
+          <button type="submit" id="decline-match-submit" class="btn btn--danger btn--sm">Decline Match</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="/js/candidate/request-details.js"></script>
 </body>
 </html>

@@ -24,6 +24,11 @@ const volunteerProfileSchema = new Schema({
   previousScribeCount: { type: Number, default: 0 },
   bio: { type: String, default: null },
   completionPercentage: { type: Number, default: 0 },
+  verificationStatus: {
+    type: String,
+    enum: ['UNVERIFIED', 'PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'REQUIRES_CORRECTION'],
+    default: 'UNVERIFIED',
+  },
 }, { timestamps: true });
 
 volunteerProfileSchema.pre('save', function (next) {

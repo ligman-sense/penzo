@@ -66,14 +66,39 @@ async function checkProfileCompletion() {
 // ─── Stats ────────────────────────────────────────────────────────────────────
 async function loadStats() {
   const container = document.getElementById('stats-container');
+  const banner = document.getElementById('dashboard-invitations-banner');
   if (!container) return;
 
   try {
     const { data } = await api.get('/dashboard');
+
+    if (banner && data.invitations && data.invitations.length > 0) {
+      banner.hidden = false;
+      const count = data.invitations.length;
+      banner.className = 'card';
+      banner.style.padding = '1.25rem';
+      banner.style.borderLeft = '4px solid var(--color-primary)';
+      banner.style.backgroundColor = 'var(--color-surface)';
+      banner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span class="badge badge--amber">${count} New Scribe Invitation${count > 1 ? 's' : ''}</span>
+            </div>
+            <h3 style="margin: 0; font-size: 1.1rem;">You have pending examination scribe invitations!</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+              An administrator matched your examination interest with a candidate scribe request.
+            </p>
+          </div>
+          <a href="/volunteer/commitments.html" class="btn btn--primary btn--sm">Review & Respond &rarr;</a>
+        </div>
+      `;
+    }
+
     const stats = [
-      { label: 'Total Interests',    value: data.totalInterests    ?? 0, icon: '⭐' },
-      { label: 'Pending Matches',    value: data.pendingMatches    ?? 0, icon: '⏳' },
-      { label: 'Confirmed Sessions', value: data.confirmedSessions ?? 0, icon: '✅' },
+      { label: 'Active Interests',   value: data.stats?.activeInterests ?? data.totalInterests ?? 0, icon: '⭐' },
+      { label: 'Pending Invitations',value: data.invitations?.length ?? 0, icon: '⏳' },
+      { label: 'Confirmed Sessions', value: data.stats?.confirmedCommitments ?? data.confirmedSessions ?? 0, icon: '✅' },
       { label: 'Completed',          value: data.completedSessions ?? 0, icon: '🎓' },
     ];
 

@@ -8,6 +8,11 @@ const userSchema = new Schema({
   email: { type: String, default: null },
   status: { type: String, enum: ['ACTIVE', 'SUSPENDED'], default: 'ACTIVE' },
   profileComplete: { type: Boolean, default: false },
+  verificationStatus: {
+    type: String,
+    enum: ['UNVERIFIED', 'PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'REQUIRES_CORRECTION'],
+    default: 'UNVERIFIED',
+  },
   termsAcceptedAt: { type: Date, default: null },
   privacyAcceptedAt: { type: Date, default: null },
   lastLoginAt: { type: Date, default: null },

@@ -10,9 +10,28 @@ const { notify } = require('./notificationService');
 
 async function generateReference() {
   const year = new Date().getFullYear();
+  let candidateRef;
+  let exists = true;
+  let attempts = 0;
   const count = await ScribeRequest.countDocuments();
-  const seq = String(count + 1).padStart(5, '0');
-  return `REQ-${year}-${seq}`;
+  let seqNum = count + 1;
+
+  while (exists && attempts < 25) {
+    const seq = String(seqNum).padStart(5, '0');
+    candidateRef = `REQ-${year}-${seq}`;
+    exists = await ScribeRequest.exists({ reference: candidateRef });
+    if (exists) {
+      seqNum++;
+      attempts++;
+    }
+  }
+
+  if (exists) {
+    const crypto = require('crypto');
+    candidateRef = `REQ-${year}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  }
+
+  return candidateRef;
 }
 
 async function listRequests(candidateId, scope = 'all') {

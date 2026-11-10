@@ -21,6 +21,11 @@ const candidateProfileSchema = new Schema({
   emergencyContactName: { type: String, default: null },
   emergencyContactPhone: { type: String, default: null },
   completionPercentage: { type: Number, default: 0 },
+  verificationStatus: {
+    type: String,
+    enum: ['UNVERIFIED', 'PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'REQUIRES_CORRECTION'],
+    default: 'UNVERIFIED',
+  },
 }, { timestamps: true });
 
 candidateProfileSchema.pre('save', function (next) {

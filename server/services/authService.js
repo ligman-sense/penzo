@@ -19,6 +19,7 @@ function toSessionUser(user) {
     mobileMasked: maskMobile(user.mobileE164),
     email: user.email,
     profileComplete: user.profileComplete,
+    verificationStatus: user.verificationStatus || 'UNVERIFIED',
     status: user.status,
   };
 }

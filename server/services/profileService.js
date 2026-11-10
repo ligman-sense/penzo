@@ -70,6 +70,7 @@ async function getProfile(userId) {
   if (profileData) {
     profileData.completionPct = completion.percentage;
     profileData.completionPercentage = completion.percentage;
+    profileData.verificationStatus = user.verificationStatus || 'UNVERIFIED';
   }
 
   return {
@@ -77,6 +78,7 @@ async function getProfile(userId) {
     mobile: user.mobileE164,
     email: user.email,
     profileComplete: user.profileComplete,
+    verificationStatus: user.verificationStatus || 'UNVERIFIED',
     completion,
     profile: profileData,
     verifications: verifications.map((v) => ({
@@ -193,10 +195,75 @@ async function saveProfile(userId, { role, data }) {
   user.profileComplete = completion.isComplete;
   await user.save();
 
+  // If profile is complete, ensure verification queue records exist
+  if (completion.isComplete) {
+    const requiredKinds = user.role === 'CANDIDATE' ? ['IDENTITY', 'ASSISTANCE_NEED'] : ['IDENTITY'];
+    for (const kind of requiredKinds) {
+      let rec = await VerificationRecord.findOne({ userId, kind });
+      if (!rec) {
+        rec = await VerificationRecord.create({
+          userId,
+          kind,
+          status: 'PENDING',
+        });
+      } else if (rec.status === 'REQUIRES_CORRECTION' || rec.status === 'REJECTED') {
+        rec.history = rec.history || [];
+        rec.history.push({
+          fromStatus: rec.status,
+          toStatus: 'PENDING',
+          reason: 'Profile details updated by user and resubmitted for verification.',
+          timestamp: new Date(),
+        });
+        rec.status = 'PENDING';
+        rec.reason = null;
+        await rec.save();
+      }
+    }
+  }
+
+  await syncUserVerification(userId);
+
   return getProfile(userId);
+}
+
+async function syncUserVerification(userId) {
+  const user = await User.findById(userId);
+  if (!user) return 'UNVERIFIED';
+
+  const records = await VerificationRecord.find({ userId });
+  if (!records || records.length === 0) {
+    user.verificationStatus = 'UNVERIFIED';
+    await user.save();
+    return 'UNVERIFIED';
+  }
+
+  let status = 'PENDING';
+  if (records.every((r) => r.status === 'VERIFIED')) {
+    status = 'VERIFIED';
+  } else if (records.some((r) => r.status === 'REJECTED')) {
+    status = 'REJECTED';
+  } else if (records.some((r) => r.status === 'REQUIRES_CORRECTION')) {
+    status = 'REQUIRES_CORRECTION';
+  } else if (records.some((r) => r.status === 'UNDER_REVIEW')) {
+    status = 'UNDER_REVIEW';
+  } else {
+    status = 'PENDING';
+  }
+
+  user.verificationStatus = status;
+  await user.save();
+
+  if (user.role === 'CANDIDATE') {
+    await CandidateProfile.updateOne({ userId }, { verificationStatus: status });
+  } else {
+    await VolunteerProfile.updateOne({ userId }, { verificationStatus: status });
+  }
+
+  return status;
 }
 
 module.exports = {
   getProfile,
   saveProfile,
+  syncUserVerification,
 };
