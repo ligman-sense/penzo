@@ -1,12 +1,14 @@
 'use strict';
 
 const rateLimit = require('express-rate-limit');
+const env = require('../config/env');
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
+const isDev = env.NODE_ENV !== 'production';
 
 const otpSendLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
-  limit: 10,
+  limit: isDev ? 1000 : 10,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
@@ -20,7 +22,7 @@ const otpSendLimiter = rateLimit({
 
 const otpVerifyLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
-  limit: 30,
+  limit: isDev ? 1000 : 30,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
@@ -34,7 +36,7 @@ const otpVerifyLimiter = rateLimit({
 
 const adminLoginLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES,
-  limit: 15,
+  limit: isDev ? 500 : 15,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
