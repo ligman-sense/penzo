@@ -36,11 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       startsOn: document.getElementById('startsOn')?.value || null,
       endsOn: document.getElementById('endsOn')?.value || null,
       isFeatured: document.getElementById('isFeatured')?.checked || false,
-      scribeEligibilityInfo: document.getElementById('scribeEligibilityInfo')?.value.trim(),
-      qualificationConditions: document.getElementById('qualificationConditions')?.value.trim(),
-      requiredDocuments: document.getElementById('requiredDocuments')?.value.trim(),
-      accommodationInfo: document.getElementById('accommodationInfo')?.value.trim(),
-      scribeRequestInstructions: document.getElementById('scribeRequestInstructions')?.value.trim(),
       adminNotes: document.getElementById('adminNotes')?.value.trim(),
     };
 
@@ -69,9 +64,7 @@ async function loadExamination(id) {
     if (!data) return;
 
     const fields = [
-      'name', 'authority', 'description', 'officialUrl', 'notificationUrl',
-      'scribeEligibilityInfo', 'qualificationConditions', 'requiredDocuments',
-      'accommodationInfo', 'scribeRequestInstructions', 'adminNotes',
+      'name', 'authority', 'description', 'officialUrl', 'notificationUrl', 'adminNotes',
     ];
 
     fields.forEach((f) => {
