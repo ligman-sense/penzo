@@ -41,6 +41,15 @@ assignmentsRouter.get(
   })
 );
 
+assignmentsRouter.post(
+  '/:id/cancel',
+  asyncHandler(async (req, res) => {
+    const { cancelAssignment } = require('../services/assignmentService');
+    const { _id, role } = req.auth.user;
+    ok(res, await cancelAssignment(req.params.id, _id, role, req.body));
+  })
+);
+
 const notificationsRouter = Router();
 notificationsRouter.use(...accountGuard);
 

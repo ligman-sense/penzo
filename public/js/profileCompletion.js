@@ -4,7 +4,7 @@ export const CANDIDATE_FIELD_LABELS = {
   fullName: 'Full Name',
   languages: 'Languages Known',
   city: 'City',
-  education: 'Education',
+  education: 'Qualification',
   assistanceNeeds: 'Assistance Needs',
 };
 
@@ -47,7 +47,8 @@ export function computeCandidateCompletion(data) {
   const city = (data.city || data.address?.city || '').trim();
   if (!city) missing.push('city');
 
-  const education = (data.education || '').trim();
+  const hasPursuing = (data.currentlyPursuing || '').trim() && data.currentlyPursuing !== 'Not Currently Pursuing Any Course';
+  const education = (data.qualification || data.education || (hasPursuing ? data.currentlyPursuing : '') || '').trim();
   if (!education) missing.push('education');
 
   const assistance = (data.assistanceNeeds || data.disabilityType || '').trim();

@@ -25,7 +25,9 @@ async function getProfile(userId) {
       firstName: cp.firstName || (cp.fullName ? cp.fullName.split(' ')[0] : ''),
       lastName: cp.lastName || (cp.fullName ? cp.fullName.split(' ').slice(1).join(' ') : ''),
       languages: cp.languages || [],
-      education: cp.education || '',
+      qualification: cp.qualification || cp.education || '',
+      currentlyPursuing: cp.currentlyPursuing || '',
+      education: cp.qualification || cp.education || '',
       city: cp.city || '',
       preferredExamCity: cp.preferredExamCity || '',
       state: cp.state || '',
@@ -119,10 +121,34 @@ async function saveProfile(userId, { role, data }) {
     if (data.dateOfBirth !== undefined) cpOrVp.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
     if (data.gender !== undefined) cpOrVp.gender = data.gender || null;
 
-    // Handle languages & education
+    // Handle languages & education / qualification
     if (data.languages !== undefined) cpOrVp.languages = Array.isArray(data.languages) ? data.languages : [data.languages].filter(Boolean);
     if (data.preferredLanguages !== undefined) cpOrVp.preferredLanguages = Array.isArray(data.preferredLanguages) ? data.preferredLanguages : [data.preferredLanguages].filter(Boolean);
-    if (data.education !== undefined) cpOrVp.education = data.education;
+
+    // Qualification and Currently Pursuing conditional validation
+    const rawQual = data.qualification !== undefined ? data.qualification : (data.education !== undefined ? data.education : undefined);
+    const rawPursuing = data.currentlyPursuing !== undefined ? data.currentlyPursuing : undefined;
+
+    if (rawQual !== undefined || rawPursuing !== undefined) {
+      const isPursuingFilled = Boolean(rawPursuing && rawPursuing.trim() && rawPursuing.trim() !== 'Not Currently Pursuing Any Course');
+      const isQualFilled = Boolean(rawQual && rawQual.trim());
+
+      // If Currently Pursuing is empty / not pursuing, Qualification becomes mandatory
+      if (!isPursuingFilled && !isQualFilled) {
+        throw HttpError.badRequest('Qualification is required when not currently pursuing any course.');
+      }
+
+      if (rawQual !== undefined) {
+        cpOrVp.qualification = rawQual ? rawQual.trim() : null;
+        cpOrVp.education = rawQual ? rawQual.trim() : (isPursuingFilled ? rawPursuing.trim() : null);
+      }
+      if (rawPursuing !== undefined) {
+        cpOrVp.currentlyPursuing = rawPursuing ? rawPursuing.trim() : null;
+      }
+    } else if (data.education !== undefined) {
+      cpOrVp.education = data.education;
+      if (!cpOrVp.qualification) cpOrVp.qualification = data.education;
+    }
 
     // Handle address and cities (support both flat fields and nested address object)
     if (data.city !== undefined) cpOrVp.city = data.city;

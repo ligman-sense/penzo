@@ -15,6 +15,7 @@ const VerificationRecord = require('../models/VerificationRecord');
 const { writeAudit } = require('./auditService');
 const { notify } = require('./notificationService');
 const { assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
+const { checkVolunteerConflict } = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
 
 async function generateMatchReference() {
@@ -282,6 +283,7 @@ async function findPotentialMatches(requestId) {
       status: request.status,
       language: request.language,
       city: request.city,
+      venue: request.venue || null,
       requirements: request.requirements,
       examination: {
         id: exam._id.toString(),
@@ -333,6 +335,11 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
     throw HttpError.badRequest(`Cannot propose match for a request with status ${request.status}.`);
   }
 
+  // Requirement: Examination venue must be confirmed before sending a volunteer invitation
+  if (!request.venue || !request.venue.confirmed) {
+    throw HttpError.badRequest('Cannot propose match: Examination venue must be confirmed before inviting a volunteer.');
+  }
+
   // Check if active match proposal already exists
   const existingActive = await MatchProposal.findOne({
     requestId,
@@ -371,18 +378,27 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
     isVerified
   );
 
+  // Check conflict: double-booking must never be bypassed
+  const conflict = await checkVolunteerConflict(volunteerId, exam, session);
+  if (conflict.hasConflict) {
+    throw HttpError.conflict('Cannot propose match: Overlapping confirmed examination assignments cannot be overridden. You already have a confirmed examination assignment during this time. You cannot accept another overlapping commitment.');
+  }
+
   // Validate eligibility & override requirements
   if (!isOverride) {
     if (scored.hasBlockingFailure) {
+      if (scored.blockingReason && scored.blockingReason.toLowerCase().includes('overlap')) {
+        throw HttpError.conflict('Cannot propose match: Overlapping confirmed examination assignments cannot be overridden. You already have a confirmed examination assignment during this time. You cannot accept another overlapping commitment.');
+      }
       throw HttpError.badRequest(`Cannot propose match: ${scored.blockingReason || 'Volunteer does not meet match criteria.'}`);
     }
     if (!isVerified) {
-      throw HttpError.badRequest('Selected volunteer is pending verification. Use "Propose Anyway" with justification if required.');
+      throw HttpError.badRequest('Selected volunteer is pending verification. Administrative justification is required.');
     }
   } else {
-    // Propose Anyway (Override) validations
+    // Override validations
     if (scored.hasBlockingFailure && scored.blockingReason && scored.blockingReason.toLowerCase().includes('overlap')) {
-      throw HttpError.badRequest('Cannot propose match: Overlapping confirmed examination assignments cannot be overridden.');
+      throw HttpError.conflict('Cannot propose match: Overlapping confirmed examination assignments cannot be overridden. You already have a confirmed examination assignment during this time. You cannot accept another overlapping commitment.');
     }
     if (!overrideJustification || !overrideJustification.trim()) {
       throw HttpError.badRequest('An override justification is required when proposing a volunteer requiring review.');
@@ -459,7 +475,7 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
 /**
  * Volunteer accepts match invitation.
  */
-async function acceptInvitation(proposalId, volunteerId) {
+async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
   const proposal = await MatchProposal.findOne({
     _id: proposalId,
     volunteerId,
@@ -473,7 +489,29 @@ async function acceptInvitation(proposalId, volunteerId) {
   const request = proposal.requestId;
   if (!request) throw HttpError.notFound('Linked scribe request not found.');
 
+  // Validate Volunteer Commitment Agreement acceptance
+  if (!termsData || !termsData.termsAccepted) {
+    throw HttpError.badRequest('You must review and accept the Volunteer Commitment Agreement before accepting this assignment.');
+  }
+
+  // Populate examinationId on request if needed
+  await request.populate('examinationId');
+  const exam = request.examinationId;
+  let session = null;
+  if (exam && exam.sessions && request.sessionId) {
+    session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
+  }
+
+  // Double booking prevention check
+  const conflict = await checkVolunteerConflict(volunteerId, exam, session);
+  if (conflict.hasConflict) {
+    throw HttpError.conflict(conflict.message);
+  }
+
   proposal.status = 'ACCEPTED';
+  proposal.termsAccepted = true;
+  proposal.termsVersion = termsData.termsVersion || '1.0';
+  proposal.termsAcceptedAt = new Date();
   proposal.respondedAt = new Date();
   await proposal.save();
 
@@ -563,16 +601,30 @@ async function confirmMatch(requestId, candidateId) {
   let startsAt = exam.startsOn || null;
   let endsAt = exam.endsOn || null;
 
+  let session = null;
   if (exam.sessions && request.sessionId) {
-    const session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
+    session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
     if (session) {
       startsAt = session.startsAt || session.date || startsAt;
       endsAt = session.endsAt || session.date || endsAt;
     }
   }
 
+  // Final double-booking conflict check
+  const conflict = await checkVolunteerConflict(volunteerId, exam, session);
+  if (conflict.hasConflict) {
+    throw HttpError.conflict(conflict.message);
+  }
+
   proposal.status = 'CANDIDATE_CONFIRMED';
   await proposal.save();
+
+  // Calculate 5-day lock deadline relative to examination start
+  let lockDeadline = null;
+  if (startsAt) {
+    lockDeadline = new Date(new Date(startsAt).getTime() - 5 * 24 * 60 * 60 * 1000);
+  }
+  const isLocked = lockDeadline ? (new Date() >= lockDeadline) : false;
 
   // Create ConfirmedAssignment in MongoDB
   const assignment = await ConfirmedAssignment.create({
@@ -582,6 +634,11 @@ async function confirmMatch(requestId, candidateId) {
     volunteerId,
     startsAt,
     endsAt,
+    lockDeadline,
+    isLocked,
+    termsAccepted: proposal.termsAccepted || true,
+    termsVersion: proposal.termsVersion || '1.0',
+    termsAcceptedAt: proposal.termsAcceptedAt || new Date(),
     status: 'CONFIRMED',
     confirmedAt: new Date(),
   });

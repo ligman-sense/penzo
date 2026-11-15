@@ -311,7 +311,8 @@ function renderModalContent(record) {
     <div class="grid grid-cols-2" style="gap: 0.75rem; font-size: 0.9rem; margin-bottom: 1.25rem;">
       <div><strong>Languages:</strong> ${escapeHtml(Array.isArray(profile.languages) ? profile.languages.join(', ') : profile.languages || '—')}</div>
       ${isCandidate ? `
-        <div><strong>Education / Level:</strong> ${escapeHtml(profile.education || '—')}</div>
+        <div><strong>Completed Qualification:</strong> ${escapeHtml(profile.qualification || profile.education || '—')}</div>
+        <div><strong>Currently Pursuing:</strong> ${escapeHtml(profile.currentlyPursuing || 'Not currently pursuing')}</div>
         <div><strong>Preferred Exam City:</strong> ${escapeHtml(profile.preferredExamCity || profile.city || '—')}</div>
         <div style="grid-column: span 2;">
           <strong>Disability &amp; Assistance Requirements:</strong>

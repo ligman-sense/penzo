@@ -199,22 +199,17 @@
           <p class="loading-text">Loading request details...</p>
         </div>
 
-        <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
-          <span>Eligible Volunteers (Expressed Interest in Same Examination)</span>
-          <span id="eligible-count-badge" class="badge badge--green" style="font-size: 0.8rem;">0 eligible</span>
-        </h3>
+        <!-- Venue Confirmation Notice / Status Banner -->
+        <div id="matching-venue-status" style="margin-bottom: 1rem;"></div>
 
-        <!-- Eligible Volunteers List -->
-        <div id="eligible-volunteers-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-          <p class="loading-text">Searching compatible volunteers...</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="margin: 0; font-size: 1.1rem;">Suitable Volunteers (Expressed Interest in Same Examination)</h3>
+          <span id="unified-volunteers-count" class="badge badge--teal" style="font-size: 0.8rem;">0 volunteers</span>
         </div>
 
-        <!-- Volunteers Requiring Review (Unverified or conditional) -->
-        <div id="review-volunteers-section" style="display: none; border-top: 1px solid var(--color-border); padding-top: 1.5rem;">
-          <h4 style="margin-bottom: 0.75rem; font-size: 1rem; color: var(--color-text-muted);">
-            Volunteers Interested in Same Examination Requiring Review / Pending Verification
-          </h4>
-          <div id="review-volunteers-container" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        <!-- One Unified Volunteer Proposal Container -->
+        <div id="unified-volunteers-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+          <p class="loading-text">Searching compatible volunteers...</p>
         </div>
       </div>
 

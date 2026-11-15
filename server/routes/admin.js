@@ -24,6 +24,8 @@ const {
   listRequests,
   getRequest,
   updateRequestStatus,
+  updateRequestVenue,
+  confirmRequestVenue,
 } = require('../services/adminRequestService');
 const { getDashboardMetrics, getReports } = require('../services/adminReportService');
 const {
@@ -219,6 +221,20 @@ adminRouter.patch(
   asyncHandler(async (req, res) => {
     const { status, reason } = req.body;
     ok(res, await updateRequestStatus(req.params.id, status, reason, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.patch(
+  '/requests/:id/venue',
+  asyncHandler(async (req, res) => {
+    ok(res, await updateRequestVenue(req.params.id, req.body, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.post(
+  '/requests/:id/confirm-venue',
+  asyncHandler(async (req, res) => {
+    ok(res, await confirmRequestVenue(req.params.id, { adminId: req.auth.admin._id, ip: req.ip }));
   })
 );
 

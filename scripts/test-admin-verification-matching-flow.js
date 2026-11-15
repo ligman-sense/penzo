@@ -370,6 +370,19 @@ async function run() {
   const createdReq = reqRes.data.data;
   console.log(`   Scribe request created: ${createdReq.reference} (${createdReq.id}), status: ${createdReq.status}`);
 
+  // Confirm examination venue so volunteer match can be proposed
+  await ScribeRequest.updateOne(
+    { _id: createdReq.id },
+    {
+      venue: {
+        centreName: 'Chennai Model Higher Secondary School',
+        address: '100 Anna Salai',
+        city: 'Chennai',
+        confirmed: true,
+      },
+    }
+  );
+
   // ─── 6. Admin Matching Inspection (CRITICAL SAME-EXAM ENFORCEMENT) ────────────
   console.log('\n6. Admin inspecting matches for Candidate A request (SAME-EXAM MATCHING CHECK)...');
   const matchesRes = await makeRequest(
@@ -501,11 +514,11 @@ async function run() {
   assert(targetInv, 'Volunteer X must find the proposal invitation');
   console.log(`   Invitation found: ${targetInv.matchReference} for ${targetInv.examination?.name}`);
 
-  console.log('   Volunteer X accepting invitation...');
+  console.log('   Volunteer X accepting invitation with Volunteer Commitment Agreement...');
   const acceptRes = await makeRequest(
     'POST',
     `/api/interests/invitations/${proposal._id}/accept`,
-    {},
+    { termsAccepted: true, termsVersion: '1.0' },
     volXAuth.cookie
   );
   assert.strictEqual(acceptRes.status, 200, 'Accepting invitation must succeed');
@@ -618,6 +631,10 @@ async function run() {
   );
   assert.strictEqual(reqBRes.status, 201);
   const candBReqId = reqBRes.data.data.id;
+  await ScribeRequest.updateOne(
+    { _id: candBReqId },
+    { venue: { centreName: 'Chennai Central Exam Hall', city: 'Chennai', confirmed: true } }
+  );
 
   // Fetch matches for Candidate B
   const matchesBRes = await makeRequest('GET', `/api/admin/requests/${candBReqId}/matches`, null, adminCookie);
@@ -637,7 +654,7 @@ async function run() {
     },
     adminCookie
   );
-  assert.strictEqual(overlapProposeRes.status, 400, 'Overlapping assignment must be strictly blocked (400)');
+  assert([400, 409].includes(overlapProposeRes.status), 'Overlapping assignment must be strictly blocked');
   const overlapErrorMsg = overlapProposeRes.data?.error?.message || overlapProposeRes.data?.message || '';
   assert(overlapErrorMsg.includes('Overlapping confirmed examination assignments cannot be overridden'));
   console.log('   ✓ Overlapping assignment hard block enforced: double booking blocked even with override');

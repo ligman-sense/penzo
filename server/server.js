@@ -4,6 +4,7 @@ const { createApp } = require('./app');
 const { connectDB } = require('./config/database');
 const env = require('./config/env');
 const { purgeExpired } = require('./services/sessionService');
+const { startAlertScheduler } = require('./services/alertSchedulerService');
 
 async function start() {
   await connectDB();
@@ -23,6 +24,9 @@ async function start() {
   // Housekeeping: purge expired sessions periodically
   void purgeExpired().catch(console.error);
   setInterval(() => purgeExpired().catch(console.error), 3_600_000).unref();
+
+  // Automated 2-day unresolved-request alert scheduler
+  startAlertScheduler(15);
 
   const shutdown = (signal) => {
     console.log(`\n${signal} received. Closing HTTP server gracefully...`);

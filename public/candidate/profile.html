@@ -128,14 +128,57 @@
 
             <div class="grid grid-cols-2" style="gap: 1rem;">
               <div class="form-group">
-                <label for="education" class="form-label">Education / Qualification</label>
-                <input type="text" id="education" name="education" class="form-input" placeholder="e.g. Higher Secondary / Undergraduate">
+                <label for="qualification" class="form-label">
+                  Completed Qualification <span id="qualification-required-indicator" style="color: var(--color-error, #ef4444);">*</span>
+                </label>
+                <select id="qualification" name="qualification" class="form-select">
+                  <option value="">Select Qualification</option>
+                  <option value="SSLC">SSLC</option>
+                  <option value="HSC">HSC</option>
+                  <option value="Diploma">Diploma</option>
+                  <option value="B.A.">B.A.</option>
+                  <option value="B.Sc.">B.Sc.</option>
+                  <option value="B.Com.">B.Com.</option>
+                  <option value="BCA">BCA</option>
+                  <option value="B.E.">B.E.</option>
+                  <option value="B.Tech.">B.Tech.</option>
+                  <option value="MCA">MCA</option>
+                  <option value="M.Sc.">M.Sc.</option>
+                  <option value="M.A.">M.A.</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div id="qualification-other-group" style="display: none; margin-top: 0.5rem;">
+                  <input type="text" id="qualification-other" name="qualificationOther" class="form-input" placeholder="Enter custom qualification (e.g. M.Com, BBA)">
+                </div>
+                <span id="qualification-help-text" class="form-hint">Mandatory if not currently pursuing any course.</span>
               </div>
 
               <div class="form-group">
-                <label for="languages" class="form-label">Languages Known (comma separated)</label>
-                <input type="text" id="languages" name="languages" class="form-input" placeholder="English, Tamil, Hindi">
+                <label for="currently-pursuing" class="form-label">Currently Pursuing <span style="font-weight: normal; font-size: 0.85rem; color: var(--color-text-muted);">(Optional)</span></label>
+                <select id="currently-pursuing" name="currentlyPursuing" class="form-select">
+                  <option value="">Not Currently Pursuing Any Course</option>
+                  <option value="Currently Pursuing MCA">Currently Pursuing MCA</option>
+                  <option value="Currently Pursuing M.Sc.">Currently Pursuing M.Sc.</option>
+                  <option value="Currently Pursuing B.Tech.">Currently Pursuing B.Tech.</option>
+                  <option value="Currently Pursuing B.E.">Currently Pursuing B.E.</option>
+                  <option value="Currently Pursuing MBA">Currently Pursuing MBA</option>
+                  <option value="Currently Pursuing Diploma">Currently Pursuing Diploma</option>
+                  <option value="Currently Pursuing B.A.">Currently Pursuing B.A.</option>
+                  <option value="Currently Pursuing B.Sc.">Currently Pursuing B.Sc.</option>
+                  <option value="Currently Pursuing B.Com.">Currently Pursuing B.Com.</option>
+                  <option value="Currently Pursuing BCA">Currently Pursuing BCA</option>
+                  <option value="Other">Other Course...</option>
+                </select>
+                <div id="currently-pursuing-other-group" style="display: none; margin-top: 0.5rem;">
+                  <input type="text" id="currently-pursuing-other" name="currentlyPursuingOther" class="form-input" placeholder="e.g. Currently Pursuing Ph.D. in History">
+                </div>
+                <span class="form-hint">If enrolled in a course, Qualification becomes optional.</span>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label for="languages" class="form-label">Languages Known (comma separated) *</label>
+              <input type="text" id="languages" name="languages" class="form-input" placeholder="English, Tamil, Hindi">
             </div>
 
             <div class="form-group">

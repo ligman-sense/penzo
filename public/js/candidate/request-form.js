@@ -20,6 +20,13 @@ const sessionGroup    = document.getElementById('session-group');
 const cityInput       = document.getElementById('city');
 const languageInput   = document.getElementById('language');
 const reqTextarea     = document.getElementById('requirements');
+const venueCentreName = document.getElementById('venue-centre-name');
+const venueAddress    = document.getElementById('venue-address');
+const venueArea       = document.getElementById('venue-area');
+const venueState      = document.getElementById('venue-state');
+const venuePincode    = document.getElementById('venue-pincode');
+const venueLandmark   = document.getElementById('venue-landmark');
+const venueMapLink    = document.getElementById('venue-map-link');
 const summaryContent  = document.getElementById('exam-summary-content');
 const profileWarning  = document.getElementById('profile-warning');
 const submitBtn       = document.getElementById('submit-request-btn');
@@ -236,12 +243,24 @@ function setupEvents() {
       const sessionId = sessionSelect?.value || undefined;
       const requirements = reqTextarea?.value.trim() || undefined;
 
+      const venue = {
+        centreName: venueCentreName?.value.trim() || undefined,
+        address: venueAddress?.value.trim() || undefined,
+        area: venueArea?.value.trim() || undefined,
+        city,
+        state: venueState?.value.trim() || undefined,
+        pincode: venuePincode?.value.trim() || undefined,
+        landmark: venueLandmark?.value.trim() || undefined,
+        mapLink: venueMapLink?.value.trim() || undefined,
+      };
+
       const payload = {
         examinationId: examId,
         sessionId,
         city,
         language,
         requirements,
+        venue,
       };
 
       setLoading(submitBtn, true, 'Submitting Request…');

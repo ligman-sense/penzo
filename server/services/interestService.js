@@ -2,6 +2,7 @@
 
 const VolunteerInterest = require('../models/VolunteerInterest');
 const Examination = require('../models/Examination');
+const { checkVolunteerConflict } = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
 
 async function listInterests(volunteerId) {
@@ -38,6 +39,19 @@ async function setInterest(volunteerId, examinationId, data) {
   const exam = await Examination.findById(examinationId);
   if (!exam || exam.status !== 'PUBLISHED') {
     throw HttpError.notFound('Published examination not found.');
+  }
+
+  // Check for conflicts with existing confirmed assignments
+  let targetSession = null;
+  if (data?.sessionId && exam.sessions) {
+    targetSession = exam.sessions.id(data.sessionId) || exam.sessions.find(s => s._id.toString() === data.sessionId.toString());
+  } else if (exam.sessions && exam.sessions.length === 1) {
+    targetSession = exam.sessions[0];
+  }
+
+  const conflict = await checkVolunteerConflict(volunteerId, exam, targetSession);
+  if (conflict.hasConflict) {
+    throw HttpError.conflict(conflict.message);
   }
 
   const interest = await VolunteerInterest.findOneAndUpdate(
