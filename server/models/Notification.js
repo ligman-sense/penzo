@@ -8,8 +8,12 @@ const notificationSchema = new Schema({
   body: { type: String, default: null },
   linkPath: { type: String, default: null },
   readAt: { type: Date, default: null },
+  idempotencyKey: { type: String, default: null },
+  adminAlert: { type: Boolean, default: false },
+  requestId: { type: Schema.Types.ObjectId, ref: 'ScribeRequest', default: null },
 }, { timestamps: true });
 
 notificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index({ idempotencyKey: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Notification', notificationSchema);

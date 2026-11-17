@@ -19,6 +19,14 @@ const confirmedAssignmentSchema = new Schema({
   replacedById: { type: Schema.Types.ObjectId, ref: 'ConfirmedAssignment', default: null },
   confirmedAt: { type: Date, default: Date.now },
   completedAt: { type: Date, default: null },
+  lockDeadline: { type: Date, default: null },
+  isLocked: { type: Boolean, default: false },
+  isEmergencyCancelled: { type: Boolean, default: false },
+  cancellationReason: { type: String, default: null },
+  cancellationExplanation: { type: String, default: null },
+  termsAccepted: { type: Boolean, default: false },
+  termsVersion: { type: String, default: null },
+  termsAcceptedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 confirmedAssignmentSchema.index({ candidateId: 1, status: 1 });

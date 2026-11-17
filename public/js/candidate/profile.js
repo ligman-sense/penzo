@@ -68,7 +68,44 @@ function fillForm(profile) {
   set('email',           profile.email);
   set('date-of-birth',   profile.dateOfBirth ? String(profile.dateOfBirth).substring(0, 10) : '');
   set('gender',          profile.gender);
-  set('education',       profile.education);
+
+  // Qualification and Currently Pursuing population
+  const qual = profile.qualification || profile.education || '';
+  const qualSelect = form.querySelector('#qualification');
+  const qualOtherGroup = form.querySelector('#qualification-other-group');
+  const qualOtherInput = form.querySelector('#qualification-other');
+
+  if (qualSelect) {
+    const knownQuals = Array.from(qualSelect.options).map(o => o.value);
+    if (knownQuals.includes(qual)) {
+      qualSelect.value = qual;
+      if (qualOtherGroup) qualOtherGroup.style.display = 'none';
+    } else if (qual) {
+      qualSelect.value = 'Other';
+      if (qualOtherGroup) qualOtherGroup.style.display = 'block';
+      if (qualOtherInput) qualOtherInput.value = qual;
+    }
+  }
+
+  const pursuing = profile.currentlyPursuing || '';
+  const pursuingSelect = form.querySelector('#currently-pursuing');
+  const pursuingOtherGroup = form.querySelector('#currently-pursuing-other-group');
+  const pursuingOtherInput = form.querySelector('#currently-pursuing-other');
+
+  if (pursuingSelect) {
+    const knownPursuing = Array.from(pursuingSelect.options).map(o => o.value);
+    if (knownPursuing.includes(pursuing)) {
+      pursuingSelect.value = pursuing;
+      if (pursuingOtherGroup) pursuingOtherGroup.style.display = 'none';
+    } else if (pursuing) {
+      pursuingSelect.value = 'Other';
+      if (pursuingOtherGroup) pursuingOtherGroup.style.display = 'block';
+      if (pursuingOtherInput) pursuingOtherInput.value = pursuing;
+    }
+  }
+
+  updateQualificationRequirement();
+
   set('languages',       Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || ''));
   set('disability-type', profile.disabilityType || profile.assistanceNeeds || '');
   set('mobile-display',  profile.mobile);
@@ -82,12 +119,64 @@ function fillForm(profile) {
   setupFormSubmit();
 }
 
+function updateQualificationRequirement() {
+  const pursuingVal = getEffectiveCurrentlyPursuing();
+  const indicator = document.getElementById('qualification-required-indicator');
+  const helpText = document.getElementById('qualification-help-text');
+  const hasPursuing = Boolean(pursuingVal && pursuingVal !== 'Not Currently Pursuing Any Course');
+
+  if (indicator) {
+    indicator.style.display = hasPursuing ? 'none' : 'inline';
+  }
+  if (helpText) {
+    helpText.textContent = hasPursuing
+      ? 'Currently pursuing is specified; completed qualification is optional.'
+      : 'Mandatory if not currently pursuing any course.';
+  }
+}
+
+function getEffectiveQualification() {
+  const qualSelect = form.querySelector('#qualification');
+  const qualOther = form.querySelector('#qualification-other')?.value.trim() || '';
+  if (qualSelect?.value === 'Other') return qualOther;
+  return qualSelect?.value || '';
+}
+
+function getEffectiveCurrentlyPursuing() {
+  const pursuingSelect = form.querySelector('#currently-pursuing');
+  const pursuingOther = form.querySelector('#currently-pursuing-other')?.value.trim() || '';
+  if (pursuingSelect?.value === 'Other') return pursuingOther;
+  return pursuingSelect?.value || '';
+}
+
 // ─── Live Progress ────────────────────────────────────────────────────────────
 function setupLiveProgress() {
   if (!form) return;
 
+  const qualSelect = form.querySelector('#qualification');
+  const qualOtherGroup = form.querySelector('#qualification-other-group');
+  const pursuingSelect = form.querySelector('#currently-pursuing');
+  const pursuingOtherGroup = form.querySelector('#currently-pursuing-other-group');
+
+  qualSelect?.addEventListener('change', () => {
+    if (qualOtherGroup) {
+      qualOtherGroup.style.display = qualSelect.value === 'Other' ? 'block' : 'none';
+      if (qualSelect.value === 'Other') form.querySelector('#qualification-other')?.focus();
+    }
+    updateQualificationRequirement();
+  });
+
+  pursuingSelect?.addEventListener('change', () => {
+    if (pursuingOtherGroup) {
+      pursuingOtherGroup.style.display = pursuingSelect.value === 'Other' ? 'block' : 'none';
+      if (pursuingSelect.value === 'Other') form.querySelector('#currently-pursuing-other')?.focus();
+    }
+    updateQualificationRequirement();
+  });
+
   const onFieldChange = () => {
     _hasUnsavedChanges = true;
+    updateQualificationRequirement();
     const currentData = collectFormData();
     const liveCompletion = computeCandidateCompletion(currentData);
     renderCompletionWidget(completionContainer, liveCompletion, {
@@ -143,20 +232,25 @@ function setupFormSubmit() {
 function collectFormData() {
   const g = (id) => form.querySelector(`#${id}`)?.value.trim() || '';
   const langStr = g('languages');
+  const qual = getEffectiveQualification();
+  const pursuing = getEffectiveCurrentlyPursuing();
+
   return {
-    firstName:       g('first-name'),
-    lastName:        g('last-name'),
-    fullName:        `${g('first-name')} ${g('last-name')}`.trim(),
-    email:           g('email'),
-    dateOfBirth:     g('date-of-birth'),
-    gender:          g('gender'),
-    education:       g('education'),
-    languages:       langStr ? langStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
-    disabilityType:  g('disability-type'),
-    assistanceNeeds: g('disability-type'),
-    city:            g('city'),
-    state:           g('state'),
-    pincode:         g('pincode'),
+    firstName:         g('first-name'),
+    lastName:          g('last-name'),
+    fullName:          `${g('first-name')} ${g('last-name')}`.trim(),
+    email:             g('email'),
+    dateOfBirth:       g('date-of-birth'),
+    gender:            g('gender'),
+    qualification:     qual,
+    currentlyPursuing: pursuing,
+    education:         qual || (pursuing !== 'Not Currently Pursuing Any Course' ? pursuing : ''),
+    languages:         langStr ? langStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    disabilityType:    g('disability-type'),
+    assistanceNeeds:   g('disability-type'),
+    city:              g('city'),
+    state:             g('state'),
+    pincode:           g('pincode'),
     address: {
       city:    g('city'),
       state:   g('state'),
@@ -170,6 +264,8 @@ function validateFormData(data) {
   const firstNameEl = form.querySelector('#first-name');
   const lastNameEl  = form.querySelector('#last-name');
   const emailEl     = form.querySelector('#email');
+  const qualEl      = form.querySelector('#qualification');
+  const qualOtherEl = form.querySelector('#qualification-other');
 
   if (!validateRequired(data.firstName) && firstNameEl) {
     showFieldError(firstNameEl, 'First name is required.');
@@ -183,6 +279,19 @@ function validateFormData(data) {
     showFieldError(emailEl, 'Enter a valid email address.');
     valid = false;
   }
+
+  // Conditional Qualification / Currently Pursuing validation
+  const hasPursuing = Boolean(data.currentlyPursuing && data.currentlyPursuing !== 'Not Currently Pursuing Any Course');
+  const hasQual = Boolean(data.qualification);
+
+  if (!hasPursuing && !hasQual) {
+    const targetEl = (qualEl?.value === 'Other' && qualOtherEl) ? qualOtherEl : qualEl;
+    if (targetEl) {
+      showFieldError(targetEl, 'Please provide your completed Qualification or specify what course you are Currently Pursuing.');
+    }
+    valid = false;
+  }
+
   return valid;
 }
 

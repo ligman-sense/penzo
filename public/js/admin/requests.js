@@ -376,10 +376,12 @@ function setupModals() {
       if (refHeader) refHeader.textContent = '';
       const summary = document.getElementById('matching-req-summary');
       if (summary) summary.innerHTML = '<p class="loading-text">Loading request details...</p>';
-      const eligible = document.getElementById('eligible-volunteers-container');
-      if (eligible) eligible.innerHTML = '';
-      const reviewSection = document.getElementById('review-volunteers-section');
-      if (reviewSection) reviewSection.style.display = 'none';
+      const unifiedContainer = document.getElementById('unified-volunteers-container');
+      if (unifiedContainer) unifiedContainer.innerHTML = '';
+      const venueStatus = document.getElementById('matching-venue-status');
+      if (venueStatus) venueStatus.innerHTML = '';
+      const countBadge = document.getElementById('unified-volunteers-count');
+      if (countBadge) countBadge.textContent = '0 volunteers';
     },
   });
 
@@ -469,16 +471,15 @@ async function openMatchingModal(requestId, triggerBtn = null) {
   openModal('matching-modal', triggerBtn);
 
   const reqSummary = document.getElementById('matching-req-summary');
-  const eligibleContainer = document.getElementById('eligible-volunteers-container');
-  const reviewContainer = document.getElementById('review-volunteers-container');
-  const reviewSection = document.getElementById('review-volunteers-section');
-  const countBadge = document.getElementById('eligible-count-badge');
+  const venueStatus = document.getElementById('matching-venue-status');
+  const unifiedContainer = document.getElementById('unified-volunteers-container');
+  const countBadge = document.getElementById('unified-volunteers-count');
   const refHeader = document.getElementById('modal-req-ref');
 
   if (refHeader) refHeader.textContent = '';
+  if (venueStatus) venueStatus.innerHTML = '';
   if (reqSummary) reqSummary.innerHTML = '<p class="loading-text">Loading request details...</p>';
-  if (eligibleContainer) eligibleContainer.innerHTML = '<p class="loading-text">Finding volunteers interested in the SAME examination...</p>';
-  if (reviewSection) reviewSection.style.display = 'none';
+  if (unifiedContainer) unifiedContainer.innerHTML = '<p class="loading-text">Finding volunteers interested in the SAME examination...</p>';
 
   try {
     const { data } = await api.get(`/admin/requests/${requestId}/matches`);
@@ -487,6 +488,44 @@ async function openMatchingModal(requestId, triggerBtn = null) {
 
     const r = data.request;
     if (refHeader) refHeader.textContent = `Request Reference: ${r.reference}`;
+
+    const venue = r.venue || {};
+    const venueConfirmed = Boolean(venue.confirmed);
+
+    if (venueStatus) {
+      if (venueConfirmed) {
+        venueStatus.innerHTML = `
+          <div style="background: rgba(22, 163, 74, 0.08); border: 1px solid var(--color-success, #16a34a); padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: var(--color-success, #16a34a);">✓ Examination Venue Confirmed:</strong>
+              <span style="color: var(--color-text); margin-left: 0.25rem;">${escapeHtml(venue.centreName || '')}, ${escapeHtml(venue.city || r.city || '')}</span>
+            </div>
+            <span class="badge badge--green" style="font-size: 0.75rem;">Ready for Volunteer Invitation</span>
+          </div>
+        `;
+      } else {
+        venueStatus.innerHTML = `
+          <div style="background: rgba(217, 119, 6, 0.08); border: 1px solid var(--color-warning, #d97706); padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="color: var(--color-warning, #d97706);">⚠️ Examination Venue Pending Confirmation:</strong>
+              <span style="color: var(--color-text); margin-left: 0.25rem;">${escapeHtml(venue.centreName || 'No centre specified')} (${escapeHtml(venue.city || r.city || 'City pending')})</span>
+            </div>
+            <button type="button" class="btn btn--sm btn--primary confirm-venue-btn" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+              Confirm Venue Now
+            </button>
+          </div>
+        `;
+        venueStatus.querySelector('.confirm-venue-btn')?.addEventListener('click', async () => {
+          try {
+            await api.post(`/admin/requests/${requestId}/confirm-venue`);
+            showSuccess('Examination venue confirmed! You may now propose a volunteer.');
+            openMatchingModal(requestId);
+          } catch (e) {
+            showError(e.message || 'Failed to confirm venue. Please verify centre details in Request Details.');
+          }
+        });
+      }
+    }
 
     if (reqSummary) {
       reqSummary.innerHTML = `
@@ -513,47 +552,38 @@ async function openMatchingModal(requestId, triggerBtn = null) {
       `;
     }
 
-    const eligible = data.eligible || [];
-    if (countBadge) countBadge.textContent = `${eligible.length} eligible`;
+    // Combine eligible and review volunteers into ONE unified proposal list
+    const allVolunteers = [...(data.eligible || []), ...(data.requiresReview || [])];
+    allVolunteers.sort((a, b) => b.score - a.score);
 
-    if (eligible.length === 0) {
-      if (eligibleContainer) {
-        eligibleContainer.innerHTML = `
-          <div class="empty-state" style="padding: 1.5rem; background: var(--color-surface); border: 1px dashed var(--color-border); border-radius: 6px;">
-            <p>No verified volunteers have expressed interest in this examination yet.</p>
+    if (countBadge) {
+      countBadge.textContent = `${allVolunteers.length} volunteer${allVolunteers.length === 1 ? '' : 's'}`;
+    }
+
+    if (allVolunteers.length === 0) {
+      if (unifiedContainer) {
+        unifiedContainer.innerHTML = `
+          <div class="empty-state" style="padding: 1.5rem; background: var(--color-surface); border: 1px dashed var(--color-border); border-radius: 6px; text-align: center;">
+            <p style="font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem;">No suitable volunteers are currently available for this examination.</p>
             <small style="color: var(--color-text-muted);">
-              Volunteers must express interest for this specific examination (${escapeHtml(r.examination.name)}) and hold Verified status to be proposed.
+              Volunteers must express interest for this examination (${escapeHtml(r.examination.name)}) to appear in the matching list.
             </small>
           </div>`;
       }
     } else {
-      if (eligibleContainer) {
-        eligibleContainer.innerHTML = eligible
-          .map((v) => renderVolunteerMatchCard(v, r))
+      if (unifiedContainer) {
+        unifiedContainer.innerHTML = allVolunteers
+          .map((v) => renderUnifiedVolunteerCard(v, r, venueConfirmed))
           .join('');
 
-        eligibleContainer.querySelectorAll('.propose-btn').forEach((btn) => {
+        unifiedContainer.querySelectorAll('.propose-btn').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             e.preventDefault();
-            confirmPropose(btn.dataset.volId, false, btn);
+            const isOverride = btn.dataset.isOverride === 'true';
+            confirmPropose(btn.dataset.volId, isOverride, btn);
           });
         });
       }
-    }
-
-    const review = data.requiresReview || [];
-    if (review.length > 0 && reviewSection && reviewContainer) {
-      reviewSection.style.display = 'block';
-      reviewContainer.innerHTML = review
-        .map((v) => renderVolunteerReviewCard(v, r))
-        .join('');
-
-      reviewContainer.querySelectorAll('.propose-btn').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          confirmPropose(btn.dataset.volId, true, btn);
-        });
-      });
     }
   } catch (err) {
     if (reqSummary) reqSummary.innerHTML = `<p class="text-error">Failed to load matching: ${escapeHtml(err.message)}</p>`;
@@ -561,15 +591,30 @@ async function openMatchingModal(requestId, triggerBtn = null) {
   }
 }
 
-function renderVolunteerMatchCard(v, req) {
+function renderUnifiedVolunteerCard(v, req, venueConfirmed) {
   const m = v.compatibility?.matrix || {};
+  const isOverlapping = v.hasBlockingFailure && v.blockingReason && v.blockingReason.toLowerCase().includes('overlap');
+  const isHardFailure = isOverlapping;
+  const isPendingReview = v.needsReview || !v.isVerified;
+
+  let btnDisabled = false;
+  let btnTitle = '';
+
+  if (!venueConfirmed) {
+    btnDisabled = true;
+    btnTitle = 'Please confirm the examination venue before proposing a volunteer.';
+  } else if (isHardFailure) {
+    btnDisabled = true;
+    btnTitle = v.blockingReason || 'Hard eligibility failure: overlapping confirmed assignment.';
+  }
+
   return `
-    <div class="card" style="border: 1px solid var(--color-border); padding: 1.25rem;">
+    <div class="card" style="border: 1px solid var(--color-border); padding: 1.25rem; background: var(--color-surface);">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
         <div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <h4 style="margin: 0; font-size: 1.1rem;">${escapeHtml(v.volunteerName)}</h4>
-            <span class="badge badge--green">Verified</span>
+            <span class="badge ${v.isVerified ? 'badge--green' : 'badge--yellow'}">${escapeHtml(v.verificationStatus || (v.isVerified ? 'VERIFIED' : 'PENDING'))}</span>
             <span class="badge badge--teal" style="font-size: 0.75rem;">Expressed Interest in Same Exam ✓</span>
           </div>
           <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.25rem;">
@@ -578,7 +623,7 @@ function renderVolunteerMatchCard(v, req) {
         </div>
         <div style="text-align: right;">
           <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-primary);">${v.score}%</div>
-          <small style="color: var(--color-text-muted);">Compatibility Score</small>
+          <small style="color: var(--color-text-muted);">Compatibility</small>
         </div>
       </div>
 
@@ -595,37 +640,15 @@ function renderVolunteerMatchCard(v, req) {
       <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
         <div><strong>Languages:</strong> ${escapeHtml(v.languages.join(', ') || '—')} | <strong>Subjects:</strong> ${escapeHtml(v.subjects.join(', ') || 'General')}</div>
         ${v.hasExperience ? '<div style="color: var(--color-success); margin-top: 0.25rem;">✓ Has prior examination scribe experience</div>' : ''}
+        ${v.blockingReason ? `<div style="color: var(--color-error, #dc2626); font-weight: 600; margin-top: 0.35rem;">⛔ ${escapeHtml(v.blockingReason)}</div>` : ''}
+        ${!v.isVerified ? `<div style="color: #f97316; font-size: 0.85rem; margin-top: 0.25rem;">⚠️ Verification Pending: Admin justification will be required upon proposal</div>` : ''}
       </div>
 
-      <div style="display: flex; justify-content: flex-end;">
-        <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="false">
-          Propose Match
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;">
+        ${!venueConfirmed ? '<span style="font-size: 0.8rem; color: var(--color-error, #dc2626);">Venue must be confirmed to propose</span>' : ''}
+        <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="${isPendingReview ? 'true' : 'false'}" ${btnDisabled ? `disabled title="${escapeHtml(btnTitle)}"` : ''}>
+          Propose
         </button>
-      </div>
-    </div>`;
-}
-
-function renderVolunteerReviewCard(v, req) {
-  return `
-    <div class="card" style="border: 1px solid var(--color-border); padding: 1rem; opacity: 0.9;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <strong>${escapeHtml(v.volunteerName)}</strong>
-            <span class="badge ${v.isVerified ? 'badge--green' : 'badge--yellow'}">${escapeHtml(v.verificationStatus)}</span>
-          </div>
-          <div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.25rem;">
-            ${escapeHtml(v.volunteerCity)} | Langs: ${escapeHtml(v.languages.join(', '))}
-            ${v.blockingReason ? `<div style="color: var(--color-error); font-weight: 500;">⚠️ ${escapeHtml(v.blockingReason)}</div>` : ''}
-            ${v.needsReview ? `<div style="color: #f97316;">⚠️ Verification Pending Review</div>` : ''}
-          </div>
-        </div>
-        <div style="text-align: right;">
-          <span style="font-weight: 700; color: var(--color-text); margin-right: 1rem;">${v.score}%</span>
-          <button type="button" class="btn btn--outline btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="true" ${v.hasBlockingFailure ? 'disabled title="Overlapping assignment exists"' : ''}>
-            Propose Anyway
-          </button>
-        </div>
       </div>
     </div>`;
 }
@@ -785,6 +808,8 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
           <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Request Specification</h4>
           <div class="grid grid-cols-2" style="gap: 0.6rem; font-size: 0.85rem;">
             <div><strong>Candidate:</strong> ${escapeHtml(cand.name || 'Candidate')} (${escapeHtml(cand.mobile || '—')})</div>
+            <div><strong>Completed Qualification:</strong> ${escapeHtml(cand.qualification || cand.education || '—')}</div>
+            <div><strong>Currently Pursuing:</strong> ${escapeHtml(cand.currentlyPursuing || 'None / Not specified')}</div>
             <div><strong>Exam Date:</strong> ${exam.startsOn ? formatDate(exam.startsOn) : 'TBD'}</div>
             <div><strong>Exam Centre City:</strong> ${escapeHtml(req.city || '—')}</div>
             <div><strong>Preferred Language:</strong> ${escapeHtml(req.language || 'Any')}</div>
@@ -796,6 +821,88 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
               <strong>Assistance Needs:</strong> <span style="color: var(--color-text-muted);">${escapeHtml(req.requirements)}</span>
             </div>
           ` : ''}
+        </div>
+
+        <!-- Exact Examination Venue Card -->
+        <div class="card" style="border: 1px solid var(--color-border); padding: 1.25rem; margin-bottom: 1.25rem; background: var(--color-surface);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+            <div>
+              <h4 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>📍</span> Exact Examination Venue
+              </h4>
+              <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--color-text-muted);">
+                Venue must be confirmed by administrator before sending volunteer invitations.
+              </p>
+            </div>
+            <div>
+              ${req.venue?.confirmed 
+                ? '<span class="badge badge--green">✓ Venue Confirmed</span>' 
+                : '<span class="badge badge--yellow">⚠️ Pending Confirmation</span>'
+              }
+            </div>
+          </div>
+
+          <div id="venue-view-box" style="font-size: 0.875rem; background: var(--color-surface-2); padding: 0.85rem; border-radius: 6px;">
+            <p style="margin: 0 0 0.25rem; font-weight: 600;">${escapeHtml(req.venue?.centreName || 'Examination Centre Name Not Provided')}</p>
+            <p style="margin: 0 0 0.25rem; color: var(--color-text-secondary);">
+              ${escapeHtml([req.venue?.address, req.venue?.area, req.venue?.city || req.city, req.venue?.state, req.venue?.pincode].filter(Boolean).join(', ') || 'No address details')}
+            </p>
+            ${req.venue?.landmark ? `<p style="margin: 0 0 0.25rem; font-size: 0.8rem; color: var(--color-text-muted);"><strong>Landmark:</strong> ${escapeHtml(req.venue.landmark)}</p>` : ''}
+            ${req.venue?.mapLink ? `<p style="margin: 0.25rem 0 0; font-size: 0.8rem;"><a href="${escapeHtml(req.venue.mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: underline;">View on Google Maps ↗</a></p>` : ''}
+          </div>
+
+          <!-- Inline Edit Form (Hidden by default) -->
+          <form id="venue-edit-form" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-border);">
+            <div class="grid grid-cols-2" style="gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Centre Name *</label>
+                <input type="text" id="edit-venue-centre" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.centreName || '')}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Full Address *</label>
+                <input type="text" id="edit-venue-address" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.address || '')}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Area / Locality</label>
+                <input type="text" id="edit-venue-area" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.area || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">City *</label>
+                <input type="text" id="edit-venue-city" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.city || req.city || '')}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">State</label>
+                <input type="text" id="edit-venue-state" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.state || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Pincode</label>
+                <input type="text" id="edit-venue-pincode" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.pincode || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Landmark</label>
+                <input type="text" id="edit-venue-landmark" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.landmark || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem;">Google Maps URL</label>
+                <input type="url" id="edit-venue-maplink" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(req.venue?.mapLink || '')}">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem;">
+              <button type="button" id="btn-cancel-venue-edit" class="btn btn--sm btn--ghost">Cancel</button>
+              <button type="submit" id="btn-save-venue" class="btn btn--sm btn--primary">Save Venue Details</button>
+            </div>
+          </form>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+            <button type="button" id="btn-toggle-venue-edit" class="btn btn--sm btn--outline">
+              Edit Venue
+            </button>
+            ${!req.venue?.confirmed ? `
+              <button type="button" id="btn-confirm-venue-detail" class="btn btn--sm btn--primary">
+                ✓ Confirm Venue
+              </button>
+            ` : ''}
+          </div>
         </div>
 
         ${history.length > 0 ? `
@@ -812,6 +919,56 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
           </div>
         ` : ''}
       `;
+
+      // Wire Venue Confirmation & Edit events
+      const toggleEditBtn = body.querySelector('#btn-toggle-venue-edit');
+      const editForm = body.querySelector('#venue-edit-form');
+      const cancelEditBtn = body.querySelector('#btn-cancel-venue-edit');
+      const confirmVenueBtn = body.querySelector('#btn-confirm-venue-detail');
+
+      if (toggleEditBtn && editForm) {
+        toggleEditBtn.addEventListener('click', () => {
+          editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+      if (cancelEditBtn && editForm) {
+        cancelEditBtn.addEventListener('click', () => {
+          editForm.style.display = 'none';
+        });
+      }
+      if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const venuePayload = {
+            centreName: body.querySelector('#edit-venue-centre')?.value.trim(),
+            address: body.querySelector('#edit-venue-address')?.value.trim(),
+            area: body.querySelector('#edit-venue-area')?.value.trim(),
+            city: body.querySelector('#edit-venue-city')?.value.trim(),
+            state: body.querySelector('#edit-venue-state')?.value.trim(),
+            pincode: body.querySelector('#edit-venue-pincode')?.value.trim(),
+            landmark: body.querySelector('#edit-venue-landmark')?.value.trim(),
+            mapLink: body.querySelector('#edit-venue-maplink')?.value.trim(),
+          };
+          try {
+            await api.patch(`/admin/requests/${requestId}/venue`, venuePayload);
+            showSuccess('Venue details updated successfully.');
+            openRequestDetailModal(requestId);
+          } catch (err) {
+            showError(err.message || 'Failed to update venue details.');
+          }
+        });
+      }
+      if (confirmVenueBtn) {
+        confirmVenueBtn.addEventListener('click', async () => {
+          try {
+            await api.post(`/admin/requests/${requestId}/confirm-venue`);
+            showSuccess('Examination venue confirmed!');
+            openRequestDetailModal(requestId);
+          } catch (err) {
+            showError(err.message || 'Failed to confirm venue.');
+          }
+        });
+      }
     }
   } catch (err) {
     if (body) {

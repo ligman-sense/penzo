@@ -4,7 +4,7 @@ const CANDIDATE_FIELD_LABELS = {
   fullName: 'Full Name',
   languages: 'Languages Known',
   city: 'City',
-  education: 'Education',
+  education: 'Qualification',
   assistanceNeeds: 'Assistance Needs',
 };
 
@@ -47,7 +47,8 @@ function candidateCompletion(profile, user) {
   const city = (profile.city || profile.address?.city || '').trim();
   if (!city) missing.push('city');
 
-  const education = (profile.education || '').trim();
+  const hasPursuing = (profile.currentlyPursuing || '').trim() && profile.currentlyPursuing !== 'Not Currently Pursuing Any Course';
+  const education = (profile.qualification || profile.education || (hasPursuing ? profile.currentlyPursuing : '') || '').trim();
   if (!education) missing.push('education');
 
   const assistance = (profile.assistanceNeeds || profile.disabilityType || '').trim();

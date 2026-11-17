@@ -94,6 +94,7 @@ async function getRequest(id) {
     statusLabel: REQUEST_STATUS_LABEL[r.status] || r.status,
     language: r.language,
     city: r.city,
+    venue: r.venue || null,
     requirements: r.requirements,
     cancelReason: r.cancelReason,
     createdAt: r.createdAt,
@@ -117,6 +118,9 @@ async function getRequest(id) {
       email: r.candidateId.email,
       languages: candidateProfile?.languages || [],
       city: candidateProfile?.city || null,
+      qualification: candidateProfile?.qualification || candidateProfile?.education || null,
+      currentlyPursuing: candidateProfile?.currentlyPursuing || null,
+      education: candidateProfile?.qualification || candidateProfile?.education || null,
       assistanceNeeds: candidateProfile?.assistanceNeeds || null,
     } : null,
     history: history.map((h) => ({
@@ -187,8 +191,95 @@ async function updateRequestStatus(id, toStatus, reason, { adminId, ip } = {}) {
   return getRequest(id);
 }
 
+async function updateRequestVenue(id, venueData, { adminId, ip } = {}) {
+  const request = await ScribeRequest.findById(id).populate('examinationId');
+  if (!request) throw HttpError.notFound('Request not found.');
+
+  const prevVenue = request.venue ? JSON.parse(JSON.stringify(request.venue)) : {};
+  const currentVenue = request.venue || {};
+
+  request.venue = {
+    centreName: venueData.centreName !== undefined ? venueData.centreName : currentVenue.centreName,
+    address: venueData.address !== undefined ? venueData.address : currentVenue.address,
+    area: venueData.area !== undefined ? venueData.area : currentVenue.area,
+    city: venueData.city !== undefined ? venueData.city : (currentVenue.city || request.city),
+    state: venueData.state !== undefined ? venueData.state : currentVenue.state,
+    pincode: venueData.pincode !== undefined ? venueData.pincode : currentVenue.pincode,
+    landmark: venueData.landmark !== undefined ? venueData.landmark : currentVenue.landmark,
+    mapLink: venueData.mapLink !== undefined ? venueData.mapLink : currentVenue.mapLink,
+    confirmed: venueData.confirmed !== undefined ? Boolean(venueData.confirmed) : currentVenue.confirmed,
+    confirmedAt: venueData.confirmed ? (currentVenue.confirmedAt || new Date()) : currentVenue.confirmedAt,
+    confirmedBy: venueData.confirmed ? (currentVenue.confirmedBy || adminId) : currentVenue.confirmedBy,
+  };
+
+  if (venueData.city) {
+    request.city = venueData.city;
+  }
+
+  await request.save();
+
+  const isChanged = prevVenue.centreName !== request.venue.centreName || prevVenue.address !== request.venue.address;
+  await RequestStatusHistory.create({
+    requestId: id,
+    fromStatus: request.status,
+    toStatus: request.status,
+    actorType: 'ADMIN',
+    actorAdminId: adminId,
+    reason: `Examination venue ${request.venue.confirmed ? 'confirmed' : 'updated'}: ${request.venue.centreName || 'Centre'} (${request.venue.city || ''})`,
+  });
+
+  // If match was already proposed or confirmed, notify candidate and volunteer
+  if (isChanged && ['MATCH_PROPOSED', 'VOLUNTEER_ACCEPTED', 'CONFIRMED'].includes(request.status)) {
+    const examName = request.examinationId?.name || 'Examination';
+    await notify({
+      userId: request.candidateId,
+      type: 'VENUE_UPDATED',
+      title: 'Examination Venue Updated',
+      body: `The examination venue for ${examName} has been updated to: ${request.venue.centreName}, ${request.venue.city}.`,
+      linkPath: `/candidate/request-details.html?id=${id}`,
+    });
+
+    const activeProposal = await MatchProposal.findOne({
+      requestId: id,
+      status: { $in: ['PROPOSED', 'INVITED', 'ACCEPTED', 'CANDIDATE_CONFIRMED'] },
+    });
+    if (activeProposal && activeProposal.volunteerId) {
+      await notify({
+        userId: activeProposal.volunteerId,
+        type: 'VENUE_UPDATED',
+        title: 'Examination Venue Updated',
+        body: `Important: The examination venue for ${examName} has been updated to: ${request.venue.centreName}, ${request.venue.city}. Please review your commitment.`,
+        linkPath: '/volunteer/commitments.html',
+      });
+    }
+  }
+
+  await writeAudit({
+    adminId,
+    action: 'request.venue_update',
+    entityType: 'ScribeRequest',
+    entityId: id,
+    details: { venue: request.venue },
+    ip,
+  });
+
+  return getRequest(id);
+}
+
+async function confirmRequestVenue(id, { adminId, ip } = {}) {
+  const request = await ScribeRequest.findById(id);
+  if (!request) throw HttpError.notFound('Request not found.');
+  if (!request.venue || !request.venue.centreName) {
+    throw HttpError.badRequest('Cannot confirm empty venue details. Please enter the examination centre name and address.');
+  }
+
+  return updateRequestVenue(id, { confirmed: true }, { adminId, ip });
+}
+
 module.exports = {
   listRequests,
   getRequest,
   updateRequestStatus,
+  updateRequestVenue,
+  confirmRequestVenue,
 };

@@ -2,14 +2,48 @@
 
 const Notification = require('../models/Notification');
 
-async function notify({ userId, type, title, body, linkPath }) {
+async function notify({ userId, adminAlert, type, title, body, linkPath, idempotencyKey, requestId }) {
   try {
+    if (adminAlert) {
+      const AdminUser = require('../models/AdminUser');
+      const admins = await AdminUser.find({ isActive: true });
+      const results = [];
+      for (const admin of admins) {
+        const adminKey = idempotencyKey ? `${idempotencyKey}_admin_${admin._id}` : null;
+        if (adminKey) {
+          const exists = await Notification.exists({ idempotencyKey: adminKey });
+          if (exists) continue;
+        }
+        const notif = await Notification.create({
+          userId: admin._id,
+          adminAlert: true,
+          type: type || 'ADMIN_ALERT',
+          title,
+          body: body || '',
+          linkPath: linkPath || null,
+          idempotencyKey: adminKey,
+          requestId: requestId || null,
+          readAt: null,
+        });
+        results.push(notif);
+      }
+      return results;
+    }
+
+    if (idempotencyKey) {
+      const exists = await Notification.exists({ idempotencyKey });
+      if (exists) return null;
+    }
+
     return await Notification.create({
       userId,
+      adminAlert: Boolean(adminAlert),
       type: type || 'GENERAL',
       title,
       body: body || '',
       linkPath: linkPath || null,
+      idempotencyKey: idempotencyKey || null,
+      requestId: requestId || null,
       readAt: null,
     });
   } catch (err) {

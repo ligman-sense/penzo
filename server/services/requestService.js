@@ -99,6 +99,16 @@ async function createRequest(candidateId, data) {
     throw HttpError.conflict('You already have an active request for this examination.');
   }
 
+  const v = data.venue || {};
+  const centreName = v.centreName || data.venueCentreName || null;
+  const address = v.address || data.venueAddress || null;
+  const area = v.area || data.venueArea || null;
+  const venueCity = v.city || data.venueCity || data.city || null;
+  const state = v.state || data.venueState || null;
+  const pincode = v.pincode || data.venuePincode || null;
+  const landmark = v.landmark || data.venueLandmark || null;
+  const mapLink = v.mapLink || data.venueMapLink || null;
+
   const reference = await generateReference();
   const request = await ScribeRequest.create({
     candidateId,
@@ -107,8 +117,21 @@ async function createRequest(candidateId, data) {
     reference,
     status: 'SUBMITTED',
     language: data.language,
-    city: data.city,
+    city: data.city || venueCity,
     requirements: data.requirements || null,
+    venue: {
+      centreName,
+      address,
+      area,
+      city: venueCity,
+      state,
+      pincode,
+      landmark,
+      mapLink,
+      confirmed: false,
+      confirmedAt: null,
+      confirmedBy: null,
+    },
     submittedAt: new Date(),
   });
 
@@ -156,6 +179,7 @@ async function getRequest(candidateId, requestId) {
     statusLabel: REQUEST_STATUS_LABEL[request.status] || request.status,
     language: request.language,
     city: request.city,
+    venue: request.venue || null,
     requirements: request.requirements,
     cancelReason: request.cancelReason,
     createdAt: request.createdAt,

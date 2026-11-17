@@ -10,6 +10,8 @@ const candidateProfileSchema = new Schema({
   gender: { type: String, enum: ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY', null], default: null },
   languages: { type: [String], default: [] },
   preferredLanguages: { type: [String], default: [] },
+  qualification: { type: String, default: null },
+  currentlyPursuing: { type: String, default: null },
   education: { type: String, default: null },
   city: { type: String, default: null },
   preferredExamCity: { type: String, default: null },
@@ -37,6 +39,12 @@ candidateProfileSchema.pre('save', function (next) {
   }
   if (this.preferredLanguages && this.preferredLanguages.length && (!this.languages || !this.languages.length)) {
     this.languages = this.preferredLanguages;
+  }
+  // Backwards compatibility between qualification and legacy education field
+  if (this.qualification && !this.education) {
+    this.education = this.qualification;
+  } else if (this.education && !this.qualification) {
+    this.qualification = this.education;
   }
   next();
 });

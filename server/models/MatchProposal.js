@@ -23,6 +23,9 @@ const matchProposalSchema = new Schema({
   isOverride: { type: Boolean, default: false },
   overrideJustification: { type: String, default: null },
   adminNote: { type: String, default: null },
+  termsAccepted: { type: Boolean, default: false },
+  termsVersion: { type: String, default: null },
+  termsAcceptedAt: { type: Date, default: null },
   declineReason: { type: String, default: null },
   candidateDeclineReason: { type: String, default: null },
   status: {

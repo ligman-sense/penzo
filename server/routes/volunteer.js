@@ -52,6 +52,7 @@ interestsRouter.get(
           language: r.language,
           city: r.city,
           requirements: r.requirements,
+          venue: r.venue || null,
         } : null,
         examination: e ? {
           id: e._id.toString(),
@@ -71,7 +72,7 @@ interestsRouter.post(
   '/invitations/:id/accept',
   asyncHandler(async (req, res) => {
     const { acceptInvitation } = require('../services/matchingService');
-    ok(res, await acceptInvitation(req.params.id, req.auth.user._id));
+    ok(res, await acceptInvitation(req.params.id, req.auth.user._id, req.body));
   })
 );
 

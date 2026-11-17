@@ -223,6 +223,26 @@ function renderRequest(req, match) {
         ${req.requirements ? `<div><dt>Special Needs / Requirements</dt><dd>${escapeHtml(req.requirements)}</dd></div>` : ''}
       </dl>
 
+      ${req.venue && req.venue.centreName ? `
+        <div style="margin-top: 1.25rem; padding: 1rem; background: var(--color-bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--color-border); border-radius: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
+              <span>📍</span> Examination Centre Venue
+            </strong>
+            ${req.venue.confirmed 
+              ? '<span class="badge badge--success" style="font-size: 0.75rem;">✓ Venue Confirmed by Admin</span>'
+              : '<span class="badge badge--amber" style="font-size: 0.75rem;">Pending Admin Confirmation</span>'
+            }
+          </div>
+          <p style="margin: 0.25rem 0; font-weight: 600; font-size: 0.95rem;">${escapeHtml(req.venue.centreName)}</p>
+          <p style="margin: 0.25rem 0; color: var(--color-text-secondary); font-size: 0.875rem;">
+            ${escapeHtml([req.venue.address, req.venue.area, req.venue.city, req.venue.state, req.venue.pincode].filter(Boolean).join(', '))}
+          </p>
+          ${req.venue.landmark ? `<p style="margin: 0.25rem 0; font-size: 0.85rem; color: var(--color-text-muted);"><strong>Landmark:</strong> ${escapeHtml(req.venue.landmark)}</p>` : ''}
+          ${req.venue.mapLink ? `<p style="margin: 0.25rem 0; font-size: 0.85rem;"><a href="${escapeHtml(req.venue.mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: underline;">View on Google Maps ↗</a></p>` : ''}
+        </div>
+      ` : ''}
+
       ${canCancel ? `
         <div class="detail-card__actions" style="margin-top: 1.5rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
           <button id="cancel-request-btn" class="btn btn--danger btn--sm">Cancel Request</button>
