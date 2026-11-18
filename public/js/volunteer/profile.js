@@ -1,8 +1,8 @@
 'use strict';
-import { requireAuth } from '../auth.js';
+import { getUser, requireAuth } from '../auth.js';
 import { api } from '../api.js';
 import { initTheme } from '../theme.js';
-import { initNavigation } from '../navigation.js';
+import { initNavigation, renderHeaderUser } from '../navigation.js';
 import { updateUnreadCount, showError, showSuccess } from '../notifications.js';
 import { validateEmail, validateRequired, showFieldError, clearAllErrors } from '../validation.js';
 import { escapeHtml, setLoading } from '../utils.js';
@@ -43,7 +43,7 @@ async function loadProfile() {
   try {
     const { data } = await api.get('/profile');
     const profile = data.profile || data;
-    fillForm(profile);
+    fillForm(profile, data);
 
     const completion = data.completion || computeVolunteerCompletion(collectFormData());
     _hasUnsavedChanges = false;
@@ -59,7 +59,7 @@ async function loadProfile() {
 }
 
 // ─── Fill Form ────────────────────────────────────────────────────────────────
-function fillForm(profile) {
+function fillForm(profile, responseData = {}) {
   if (!form) return;
 
   const set = (id, val) => {
@@ -70,10 +70,10 @@ function fillForm(profile) {
   // Common fields
   set('first-name',    profile.firstName || (profile.fullName ? profile.fullName.split(' ')[0] : ''));
   set('last-name',     profile.lastName || (profile.fullName ? profile.fullName.split(' ').slice(1).join(' ') : ''));
-  set('email',         profile.email);
+  set('email',         responseData.email ?? profile.email ?? '');
   set('date-of-birth', profile.dateOfBirth?.substring(0, 10));
   set('gender',        profile.gender);
-  set('mobile-display', profile.mobile);
+  set('mobile-display', responseData.mobile ?? profile.mobile ?? '');
 
   // Address fields
   set('city',          profile.city || profile.address?.city);
@@ -127,6 +127,11 @@ function setupFormSubmit() {
       const { data: updated } = await api.put('/profile', data);
       showSuccess('Profile updated successfully.');
       _hasUnsavedChanges = false;
+
+      renderHeaderUser({
+        ...(getUser() || { role: 'VOLUNTEER' }),
+        name: updated.profile?.fullName || data.fullName || null,
+      });
 
       const completion = updated.completion || computeVolunteerCompletion(updated.profile || data);
       renderCompletionWidget(completionContainer, completion, {
