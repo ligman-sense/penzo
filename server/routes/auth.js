@@ -5,7 +5,7 @@ const { USER_COOKIE, clearSessionCookie, setSessionCookie } = require('../utils/
 const { noStore, requireCsrf, optionalUser } = require('../middleware/auth');
 const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimits');
 const { sendOtp } = require('../services/otpService');
-const { loginWithOtp, toSessionUser } = require('../services/authService');
+const { loginWithOtp, resolveUserName, toSessionUser } = require('../services/authService');
 const User = require('../models/User');
 const { revokeSession } = require('../services/sessionService');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -61,8 +61,9 @@ authRouter.post(
     });
 
     setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
+    const name = await resolveUserName(user);
     ok(res, {
-      user: toSessionUser(user),
+      user: toSessionUser(user, name),
       csrfToken: session.csrfToken,
       isNewUser,
     });
@@ -87,9 +88,10 @@ authRouter.get(
   '/session',
   asyncHandler(async (req, res) => {
     if (req.auth?.kind === 'user') {
+      const name = await resolveUserName(req.auth.user);
       ok(res, {
         authenticated: true,
-        user: toSessionUser(req.auth.user),
+        user: toSessionUser(req.auth.user, name),
         csrfToken: req.auth.csrfToken,
       });
     } else {

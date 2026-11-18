@@ -98,7 +98,11 @@ async function saveProfile(userId, { role, data }) {
   if (!user) throw HttpError.notFound('User not found.');
 
   if (data.email !== undefined) {
-    user.email = data.email || null;
+    const trimmedEmail = typeof data.email === 'string' ? data.email.trim() : '';
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      throw HttpError.badRequest('Please enter a valid email address.');
+    }
+    user.email = trimmedEmail || null;
   }
 
   let cpOrVp;

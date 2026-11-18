@@ -12,10 +12,27 @@ function maskMobile(e164) {
   return `${e164.slice(0, 3)}${'*'.repeat(Math.max(0, e164.length - 6))}${e164.slice(-3)}`;
 }
 
-function toSessionUser(user) {
+async function resolveUserName(user) {
+  if (!user || !user._id) return null;
+  const ProfileModel = user.role === 'VOLUNTEER' ? VolunteerProfile : CandidateProfile;
+  const profile = await ProfileModel.findOne({ userId: user._id })
+    .select('fullName firstName lastName')
+    .lean();
+  if (!profile) return null;
+  const fullName = typeof profile.fullName === 'string' ? profile.fullName.trim() : '';
+  if (fullName) return fullName;
+  const combined = [profile.firstName, profile.lastName]
+    .map((part) => (typeof part === 'string' ? part.trim() : ''))
+    .filter(Boolean)
+    .join(' ');
+  return combined || null;
+}
+
+function toSessionUser(user, name = null) {
   return {
     id: user._id.toString(),
     role: user.role,
+    name: name || null,
     mobileMasked: maskMobile(user.mobileE164),
     email: user.email,
     profileComplete: user.profileComplete,
@@ -68,6 +85,7 @@ async function loginWithOtp({ mobile, code, role, ip, userAgent }) {
 
 module.exports = {
   maskMobile,
+  resolveUserName,
   toSessionUser,
   loginWithOtp,
 };
