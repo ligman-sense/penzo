@@ -30,11 +30,18 @@ const {
 const { getDashboardMetrics, getReports } = require('../services/adminReportService');
 const {
   listAuditLogs,
+  exportAuditLogsCsv,
   listFaqs,
   createFaq,
   updateFaq,
   deleteFaq,
 } = require('../services/adminMiscService');
+const {
+  listNotifications,
+  unreadCount,
+  markRead,
+  markAllRead,
+} = require('../services/notificationService');
 const {
   findPotentialMatches,
   proposeMatch,
@@ -70,8 +77,20 @@ adminRouter.get(
   asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page || '1', 10);
     const pageSize = parseInt(req.query.pageSize || '30', 10);
-    const { items, total } = await listAuditLogs({ page, pageSize });
+    const { action, entityType, search } = req.query;
+    const { items, total } = await listAuditLogs({ page, pageSize, action, entityType, search });
     ok(res, items, pageMeta(page, pageSize, total));
+  })
+);
+
+adminRouter.get(
+  '/audit/export',
+  asyncHandler(async (req, res) => {
+    const { action, entityType, search } = req.query;
+    const csvData = await exportAuditLogsCsv({ action, entityType, search, limit: 500 });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="admin_audit_logs.csv"');
+    res.send(csvData);
   })
 );
 
@@ -301,6 +320,45 @@ adminRouter.delete(
   '/faqs/:id',
   asyncHandler(async (req, res) => {
     ok(res, await deleteFaq(req.params.id));
+  })
+);
+
+// Admin Notifications & Alerts
+adminRouter.get(
+  '/notifications',
+  asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page || '1', 10);
+    const pageSize = parseInt(req.query.pageSize || '20', 10);
+    const unreadOnly = req.query.unread === 'true';
+
+    const { items, total, unread } = await listNotifications(req.auth.admin._id, {
+      page,
+      pageSize,
+      unreadOnly,
+    });
+    ok(res, { items, unread }, pageMeta(page, pageSize, total));
+  })
+);
+
+adminRouter.get(
+  '/notifications/unread-count',
+  asyncHandler(async (req, res) => {
+    ok(res, { unread: await unreadCount(req.auth.admin._id) });
+  })
+);
+
+adminRouter.post(
+  '/notifications/read-all',
+  asyncHandler(async (req, res) => {
+    ok(res, { updated: await markAllRead(req.auth.admin._id) });
+  })
+);
+
+adminRouter.post(
+  '/notifications/:id/read',
+  asyncHandler(async (req, res) => {
+    await markRead(req.auth.admin._id, req.params.id);
+    ok(res, { read: true });
   })
 );
 

@@ -2,7 +2,7 @@
 
 import { api } from '../api.js';
 import { requireAdmin, adminLogout } from '../auth.js';
-import { showError, showSuccess } from '../notifications.js';
+import { showError, showSuccess, updateUnreadCount } from '../notifications.js';
 import { formatDate } from '../utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('#admin-logout-btn, .admin-logout-btn').forEach((btn) => {
     btn.addEventListener('click', () => adminLogout());
   });
+
+  await updateUnreadCount('/admin/notifications');
 
   try {
     const { data } = await api.get('/admin/dashboard');

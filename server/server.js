@@ -4,7 +4,7 @@ const { createApp } = require('./app');
 const { connectDB } = require('./config/database');
 const env = require('./config/env');
 const { purgeExpired } = require('./services/sessionService');
-const { startAlertScheduler } = require('./services/alertSchedulerService');
+const { startAlertScheduler, stopAlertScheduler } = require('./services/alertSchedulerService');
 
 async function start() {
   await connectDB();
@@ -30,6 +30,7 @@ async function start() {
 
   const shutdown = (signal) => {
     console.log(`\n${signal} received. Closing HTTP server gracefully...`);
+    stopAlertScheduler();
     server.close(async () => {
       const mongoose = require('mongoose');
       await mongoose.disconnect();
