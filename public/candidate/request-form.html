@@ -88,6 +88,15 @@
               </select>
             </div>
 
+            <!-- Official Venues Dropdown (populated when exam has predefined locations) -->
+            <div class="form-group" id="official-venues-group" style="display: none;">
+              <label for="official-venue-select" class="form-label">Select Official Centre / Location</label>
+              <select id="official-venue-select" class="form-select">
+                <option value="">-- Choose from examination centres (or enter custom venue below) --</option>
+              </select>
+              <span class="form-hint">Selecting a centre will auto-fill the exact venue fields below.</span>
+            </div>
+
             <!-- Examination Venue Section -->
             <div class="card" style="margin: 1.5rem 0; padding: 1.25rem; background: var(--color-bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--color-border); border-radius: var(--radius-md, 8px);">
               <h3 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">

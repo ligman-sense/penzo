@@ -103,6 +103,37 @@
               </div>
             </div>
 
+            <h3 style="margin: 2rem 0 0.5rem;">Official Locations &amp; Centres</h3>
+            <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+              Add official examination cities, test centres, and exact venue addresses where candidates can request scribes.
+            </p>
+            <div id="locations-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;"></div>
+            <button type="button" id="add-location-btn" class="btn btn--outline btn--sm">+ Add Location / Venue</button>
+
+            <h3 style="margin: 2rem 0 0.5rem;">Examination Sessions &amp; Shifts</h3>
+            <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+              Define session times (e.g. Forenoon Shift, Afternoon Shift) and reporting schedules.
+            </p>
+            <div id="sessions-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;"></div>
+            <button type="button" id="add-session-btn" class="btn btn--outline btn--sm">+ Add Session</button>
+
+            <h3 style="margin: 2rem 0 0.5rem;">Scribe Rules, Instructions &amp; Accommodations</h3>
+            <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+              Guidelines, qualifications, and compensatory time rules specified by the conducting body.
+            </p>
+            <div class="grid grid-cols-2" style="gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="scribeEligibilityInfo" class="form-label">Scribe Eligibility Criteria</label>
+                <textarea id="scribeEligibilityInfo" name="scribeEligibilityInfo" class="form-textarea" rows="2" placeholder="e.g. Scribe qualification must be one step below candidate..."></textarea>
+              </div>
+              <div class="form-group">
+                <label for="accommodationInfo" class="form-label">Compensatory Time &amp; Accommodations</label>
+                <textarea id="accommodationInfo" name="accommodationInfo" class="form-textarea" rows="2" placeholder="e.g. 20 minutes compensatory time per hour of exam..."></textarea>
+              </div>
+            </div>
+            <div id="rules-container" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;"></div>
+            <button type="button" id="add-rule-btn" class="btn btn--outline btn--sm">+ Add Specific Rule</button>
+
             <div class="form-group" style="margin-top: 2rem;">
               <label for="adminNotes" class="form-label">Internal Administrator Notes</label>
               <textarea id="adminNotes" name="adminNotes" class="form-textarea" rows="2" placeholder="Internal notes, source verification notes..."></textarea>

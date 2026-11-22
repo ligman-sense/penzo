@@ -206,6 +206,40 @@ function renderSessionOptions(exam) {
     if (sessionGroup) sessionGroup.style.display = 'none';
     sessionSelect.innerHTML = `<option value="" selected>Default Exam Session (${exam.startsOn ? formatDate(exam.startsOn) : 'Main Session'})</option>`;
   }
+
+  // Populate official venues dropdown if exam has predefined locations
+  renderOfficialVenues(exam);
+}
+
+function renderOfficialVenues(exam) {
+  const venueGroup = document.getElementById('official-venues-group');
+  const venueSelect = document.getElementById('official-venue-select');
+  if (!venueGroup || !venueSelect) return;
+
+  const locs = Array.isArray(exam.locations) ? exam.locations : [];
+  if (locs.length > 0) {
+    venueGroup.style.display = 'block';
+    venueSelect.innerHTML = '<option value="">-- Choose from examination centres (or enter custom venue below) --</option>' +
+      locs.map((l, idx) => {
+        const title = [l.city, l.address || l.centre].filter(Boolean).join(' — ');
+        return `<option value="${idx}">${escapeHtml(title)}</option>`;
+      }).join('');
+
+    venueSelect.onchange = () => {
+      const selectedIdx = venueSelect.value;
+      if (selectedIdx === '' || !locs[selectedIdx]) return;
+      const l = locs[selectedIdx];
+      if (venueCentreName && (l.address || l.centre)) venueCentreName.value = l.address || l.centre;
+      if (venueAddress && l.address) venueAddress.value = l.address;
+      if (cityInput && l.city) cityInput.value = l.city;
+      if (venueState && l.state) venueState.value = l.state;
+      if (venuePincode && l.pincode) venuePincode.value = l.pincode;
+      if (venueArea && (l.region || l.area)) venueArea.value = l.region || l.area;
+    };
+  } else {
+    venueGroup.style.display = 'none';
+    venueSelect.innerHTML = '<option value="">-- Choose from examination centres (or enter custom venue below) --</option>';
+  }
 }
 
 // ─── Setup Events ─────────────────────────────────────────────────────────────

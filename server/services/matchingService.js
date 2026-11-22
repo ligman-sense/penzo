@@ -626,22 +626,30 @@ async function confirmMatch(requestId, candidateId) {
   }
   const isLocked = lockDeadline ? (new Date() >= lockDeadline) : false;
 
-  // Create ConfirmedAssignment in MongoDB
-  const assignment = await ConfirmedAssignment.create({
-    requestId,
-    matchProposalId: proposal._id,
-    candidateId,
-    volunteerId,
-    startsAt,
-    endsAt,
-    lockDeadline,
-    isLocked,
-    termsAccepted: proposal.termsAccepted || true,
-    termsVersion: proposal.termsVersion || '1.0',
-    termsAcceptedAt: proposal.termsAcceptedAt || new Date(),
-    status: 'CONFIRMED',
-    confirmedAt: new Date(),
-  });
+  // Create ConfirmedAssignment in MongoDB with duplicate active protection
+  let assignment;
+  try {
+    assignment = await ConfirmedAssignment.create({
+      requestId,
+      matchProposalId: proposal._id,
+      candidateId,
+      volunteerId,
+      startsAt,
+      endsAt,
+      lockDeadline,
+      isLocked,
+      termsAccepted: proposal.termsAccepted || true,
+      termsVersion: proposal.termsVersion || '1.0',
+      termsAcceptedAt: proposal.termsAcceptedAt || new Date(),
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+    });
+  } catch (err) {
+    if (err.code === 11000 || err.message?.includes('E11000')) {
+      throw HttpError.conflict('An active confirmed scribe assignment already exists for this request.');
+    }
+    throw err;
+  }
 
   const prevStatus = request.status;
   request.status = 'CONFIRMED';
