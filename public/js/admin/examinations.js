@@ -73,6 +73,11 @@ async function loadExaminations() {
                   ? `<button class="btn btn--secondary btn--sm publish-btn" data-id="${e.id}">Publish</button>`
                   : `<button class="btn btn--ghost btn--sm unpublish-btn" data-id="${e.id}">Unpublish</button>`
               }
+              ${
+                e.status !== 'ARCHIVED'
+                  ? `<button class="btn btn--outline btn--sm archive-btn" data-id="${e.id}" style="color:var(--color-error,#dc2626);border-color:var(--color-error,#dc2626);">Archive</button>`
+                  : ''
+              }
             </div>
           </td>
         </tr>`;
@@ -85,6 +90,9 @@ async function loadExaminations() {
     });
     document.querySelectorAll('.unpublish-btn').forEach((btn) => {
       btn.addEventListener('click', () => unpublishExam(btn.dataset.id));
+    });
+    document.querySelectorAll('.archive-btn').forEach((btn) => {
+      btn.addEventListener('click', () => archiveExam(btn.dataset.id));
     });
 
     if (paginationContainer && meta) {
@@ -115,6 +123,19 @@ async function unpublishExam(id) {
     loadExaminations();
   } catch (err) {
     showError(err.message || 'Failed to unpublish examination.');
+  }
+}
+
+async function archiveExam(id) {
+  if (!confirm('Are you sure you want to archive this examination? It will no longer accept new requests or interest.')) {
+    return;
+  }
+  try {
+    await api.post(`/admin/examinations/${id}/archive`);
+    showSuccess('Examination archived successfully.');
+    loadExaminations();
+  } catch (err) {
+    showError(err.message || 'Failed to archive examination.');
   }
 }
 

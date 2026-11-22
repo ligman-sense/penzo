@@ -32,5 +32,14 @@ const confirmedAssignmentSchema = new Schema({
 confirmedAssignmentSchema.index({ candidateId: 1, status: 1 });
 confirmedAssignmentSchema.index({ volunteerId: 1, status: 1 });
 confirmedAssignmentSchema.index({ requestId: 1 });
+// Concurrency protection: At most ONE active 'CONFIRMED' assignment per request
+confirmedAssignmentSchema.index(
+  { requestId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: 'CONFIRMED' },
+    name: 'unique_active_assignment_per_request',
+  }
+);
 
 module.exports = mongoose.model('ConfirmedAssignment', confirmedAssignmentSchema);
