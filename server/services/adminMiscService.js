@@ -5,14 +5,39 @@ const AdminAuditLog = require('../models/AdminAuditLog');
 const SupportRequest = require('../models/SupportRequest');
 const { HttpError } = require('../utils/httpError');
 
-async function listAuditLogs({ page = 1, pageSize = 30 } = {}) {
+function escapeCsvField(val) {
+  if (val === null || val === undefined) return '""';
+  let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  // Neutralize CSV formula injection attacks (=, +, -, @, \t, \r)
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = "'" + str;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
+async function listAuditLogs({ page = 1, pageSize = 30, action, entityType, search } = {}) {
+  const safePageSize = Math.min(Math.max(1, pageSize), 100);
+  const safePage = Math.max(1, page);
+
+  const query = {};
+  if (action) query.action = action;
+  if (entityType) query.entityType = entityType;
+  if (search && search.trim()) {
+    const s = search.trim();
+    query.$or = [
+      { action: { $regex: s, $options: 'i' } },
+      { entityType: { $regex: s, $options: 'i' } },
+      { entityId: { $regex: s, $options: 'i' } },
+    ];
+  }
+
   const [items, total] = await Promise.all([
-    AdminAuditLog.find()
+    AdminAuditLog.find(query)
       .populate('adminId', 'name email')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize),
-    AdminAuditLog.countDocuments(),
+      .skip((safePage - 1) * safePageSize)
+      .limit(safePageSize),
+    AdminAuditLog.countDocuments(query),
   ]);
 
   return {
@@ -29,6 +54,49 @@ async function listAuditLogs({ page = 1, pageSize = 30 } = {}) {
     })),
     total,
   };
+}
+
+async function exportAuditLogsCsv({ action, entityType, search, limit = 500 } = {}) {
+  const query = {};
+  if (action) query.action = action;
+  if (entityType) query.entityType = entityType;
+  if (search && search.trim()) {
+    const s = search.trim();
+    query.$or = [
+      { action: { $regex: s, $options: 'i' } },
+      { entityType: { $regex: s, $options: 'i' } },
+      { entityId: { $regex: s, $options: 'i' } },
+    ];
+  }
+
+  const safeLimit = Math.min(Math.max(1, limit), 1000);
+  const items = await AdminAuditLog.find(query)
+    .populate('adminId', 'name email')
+    .sort({ createdAt: -1 })
+    .limit(safeLimit);
+
+  const headers = ['ID', 'Admin Name', 'Admin Email', 'Action', 'Entity Type', 'Entity ID', 'IP Address', 'Timestamp', 'Details'];
+  const rows = [headers.map(escapeCsvField).join(',')];
+
+  for (const a of items) {
+    const adminName = a.adminId ? a.adminId.name : 'Unknown';
+    const adminEmail = a.adminId ? a.adminId.email : '';
+    const details = a.details ? JSON.stringify(a.details) : '';
+    const row = [
+      a._id.toString(),
+      adminName,
+      adminEmail,
+      a.action || '',
+      a.entityType || '',
+      a.entityId || '',
+      a.ipAddress || '',
+      a.createdAt ? a.createdAt.toISOString() : '',
+      details,
+    ];
+    rows.push(row.map(escapeCsvField).join(','));
+  }
+
+  return rows.join('\r\n');
 }
 
 async function listFaqs(publishedOnly = false) {
@@ -67,6 +135,7 @@ async function deleteFaq(id) {
 
 module.exports = {
   listAuditLogs,
+  exportAuditLogsCsv,
   listFaqs,
   createFaq,
   updateFaq,

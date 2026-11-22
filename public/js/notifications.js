@@ -49,19 +49,38 @@ export function showWarning(msg) { return showToast(msg, 'warning', 5000); }
 export function showInfo(msg) { return showToast(msg, 'info'); }
 
 // Notification bell badge
-export async function updateUnreadCount() {
+export async function updateUnreadCount(apiPrefix = '/notifications', badgeSelector = '.notification-badge') {
   try {
-    const { data } = await api.get('/notifications/unread-count');
-    const badge = document.querySelector('.notification-badge');
-    if (badge) {
-      if (data.unread > 0) {
+    const { data } = await api.get(`${apiPrefix}/unread-count`);
+    const badges = document.querySelectorAll(badgeSelector);
+    badges.forEach((badge) => {
+      if (data && data.unread > 0) {
         badge.textContent = data.unread > 99 ? '99+' : data.unread;
         badge.hidden = false;
+        badge.style.display = 'inline-flex';
       } else {
         badge.hidden = true;
+        badge.style.display = 'none';
       }
-    }
+    });
+    return data?.unread || 0;
   } catch {
     // Silently ignore — badge update is non-critical
+    return 0;
   }
+}
+
+export async function fetchNotifications({ apiPrefix = '/notifications', page = 1, pageSize = 20, unreadOnly = false } = {}) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (unreadOnly) params.append('unread', 'true');
+  const res = await api.get(`${apiPrefix}?${params.toString()}`);
+  return res;
+}
+
+export async function markNotificationRead(id, apiPrefix = '/notifications') {
+  return await api.post(`${apiPrefix}/${id}/read`);
+}
+
+export async function markAllNotificationsRead(apiPrefix = '/notifications') {
+  return await api.post(`${apiPrefix}/read-all`);
 }
