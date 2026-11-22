@@ -96,7 +96,16 @@ async function saveProfile(userId, { role, data }) {
   if (!user) throw HttpError.notFound('User not found.');
 
   if (data.email !== undefined) {
-    user.email = data.email || null;
+    if (data.email === null || data.email === '') {
+      user.email = null;
+    } else {
+      const trimmedEmail = String(data.email).trim().toLowerCase();
+      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        throw HttpError.badRequest('Invalid email address format.');
+      }
+      user.email = trimmedEmail;
+    }
   }
 
   let cpOrVp;

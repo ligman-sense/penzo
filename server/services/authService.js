@@ -13,11 +13,14 @@ function maskMobile(e164) {
 }
 
 function toSessionUser(user) {
+  const defaultRoleName = user.role === 'VOLUNTEER' ? 'Volunteer' : 'Candidate';
   return {
     id: user._id.toString(),
     role: user.role,
+    name: user.name || defaultRoleName,
+    mobile: user.mobileE164,
     mobileMasked: maskMobile(user.mobileE164),
-    email: user.email,
+    email: user.email || '',
     profileComplete: user.profileComplete,
     verificationStatus: user.verificationStatus || 'UNVERIFIED',
     status: user.status,

@@ -1,42 +1,62 @@
+'use strict';
+
 const OtpChallenge = require('../models/OtpChallenge');
 const { generateOtp, hashOtp } = require('../utils/crypto');
 const { HttpError } = require('../utils/httpError');
 const env = require('../config/env');
 
+const RESEND_WINDOW_MS = 15 * 60 * 1000; // 15-minute rolling window for resends
+const MAX_RESENDS_PER_WINDOW = 4; // Initial send + 4 resends = 5 total attempts
+
 /**
  * Send OTP to mobileE164.
- * Enforces resend cooldown. Invalidates old challenges.
- * Returns the challenge document.
+ * Enforces durable resend cooldown and attempt limits across process restarts.
+ * Invalidates old challenges.
+ * Returns the challenge document and code.
  */
-async function sendOtp(mobileE164, { ipAddress } = {}) {
-  // Check resend cooldown in production: look for recent challenge
-  if (env.NODE_ENV === 'production') {
-    const cooldownCutoff = new Date(Date.now() - env.OTP_RESEND_COOLDOWN_SECONDS * 1000);
-    const recent = await OtpChallenge.findOne({
-      mobileE164,
-      sentAt: { $gt: cooldownCutoff },
-      consumedAt: null,
-    }).sort({ sentAt: -1 });
+async function sendOtp(mobileE164, options = {}) {
+  const { ipAddress = null, skipCooldown = false } = options;
 
-    if (recent) {
-      const waitSeconds = Math.ceil(
-        (recent.sentAt.getTime() + env.OTP_RESEND_COOLDOWN_SECONDS * 1000 - Date.now()) / 1000
-      );
+  // Look for the most recent challenge for this mobile within the resend window
+  const windowCutoff = new Date(Date.now() - RESEND_WINDOW_MS);
+  const recent = await OtpChallenge.findOne({
+    mobileE164,
+    createdAt: { $gte: windowCutoff },
+  }).sort({ createdAt: -1 });
+
+  let nextResendCount = 0;
+
+  if (recent) {
+    const cooldownSeconds = env.OTP_RESEND_COOLDOWN_SECONDS || 30;
+    const elapsedSeconds = (Date.now() - new Date(recent.sentAt).getTime()) / 1000;
+
+    // Enforce cooldown if not explicitly skipped
+    if (!skipCooldown && cooldownSeconds > 0 && elapsedSeconds < cooldownSeconds) {
+      const waitSeconds = Math.ceil(cooldownSeconds - elapsedSeconds);
       throw HttpError.tooMany(
         `Please wait ${waitSeconds} second(s) before requesting a new code.`,
         { waitSeconds }
       );
     }
+
+    // Enforce durable maximum resend limit across restarts
+    if (recent.resendCount >= MAX_RESENDS_PER_WINDOW) {
+      throw HttpError.tooMany(
+        'Maximum OTP resend attempts exceeded for this mobile number. Please try again after 15 minutes.'
+      );
+    }
+
+    nextResendCount = (recent.resendCount || 0) + 1;
   }
 
   const code = generateOtp();
   const codeHash = hashOtp(mobileE164, code);
   const expiresAt = new Date(Date.now() + env.OTP_TTL_SECONDS * 1000);
 
-  // Expire old active challenges for this number
+  // Invalidate any prior unconsumed active challenges for this number
   await OtpChallenge.updateMany(
     { mobileE164, consumedAt: null, expiresAt: { $gt: new Date() } },
-    { expiresAt: new Date() }
+    { consumedAt: new Date() }
   );
 
   const challenge = await OtpChallenge.create({
@@ -45,8 +65,9 @@ async function sendOtp(mobileE164, { ipAddress } = {}) {
     expiresAt,
     maxAttempts: env.OTP_MAX_VERIFY_ATTEMPTS,
     provider: env.OTP_PROVIDER,
-    ipAddress: ipAddress || null,
+    ipAddress,
     sentAt: new Date(),
+    resendCount: nextResendCount,
   });
 
   await deliverOtp(mobileE164, code);
@@ -96,10 +117,12 @@ async function verifyOtp(mobileE164, code) {
  */
 async function deliverOtp(mobileE164, code) {
   if (env.OTP_PROVIDER === 'development') {
-    console.log(`\n[OTP] ============================`);
-    console.log(`[OTP] Mobile : ${mobileE164}`);
-    console.log(`[OTP] Code   : ${code}`);
-    console.log(`[OTP] ============================\n`);
+    if (env.NODE_ENV !== 'production') {
+      console.log(`\n[OTP] ============================`);
+      console.log(`[OTP] Mobile : ${mobileE164}`);
+      console.log(`[OTP] Code   : ${code}`);
+      console.log(`[OTP] ============================\n`);
+    }
     return;
   }
 
@@ -111,4 +134,9 @@ async function deliverOtp(mobileE164, code) {
   throw new Error(`Unknown OTP_PROVIDER: ${env.OTP_PROVIDER}`);
 }
 
-module.exports = { sendOtp, verifyOtp };
+module.exports = {
+  sendOtp,
+  verifyOtp,
+  RESEND_WINDOW_MS,
+  MAX_RESENDS_PER_WINDOW,
+};

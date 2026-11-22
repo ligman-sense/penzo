@@ -34,5 +34,25 @@ const scribeRequestSchema = new Schema({
 
 scribeRequestSchema.index({ candidateId: 1, status: 1 });
 scribeRequestSchema.index({ examinationId: 1, status: 1 });
+scribeRequestSchema.index(
+  { candidateId: 1, examinationId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: {
+        $in: [
+          'SUBMITTED',
+          'PENDING_REVIEW',
+          'AWAITING_VOLUNTEER',
+          'MATCH_PROPOSED',
+          'VOLUNTEER_ACCEPTED',
+          'AWAITING_CANDIDATE_CONFIRMATION',
+          'CONFIRMED',
+          'REPLACEMENT_REQUIRED',
+        ],
+      },
+    },
+  }
+);
 
 module.exports = mongoose.model('ScribeRequest', scribeRequestSchema);

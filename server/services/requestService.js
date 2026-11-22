@@ -1,5 +1,6 @@
 'use strict';
 
+const mongoose = require('mongoose');
 const ScribeRequest = require('../models/ScribeRequest');
 const RequestStatusHistory = require('../models/RequestStatusHistory');
 const Examination = require('../models/Examination');
@@ -7,6 +8,17 @@ const User = require('../models/User');
 const { HttpError } = require('../utils/httpError');
 const { canEdit, canCancel, assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
 const { notify } = require('./notificationService');
+
+const ACTIVE_REQUEST_STATUSES = [
+  'SUBMITTED',
+  'PENDING_REVIEW',
+  'AWAITING_VOLUNTEER',
+  'MATCH_PROPOSED',
+  'VOLUNTEER_ACCEPTED',
+  'AWAITING_CANDIDATE_CONFIRMATION',
+  'CONFIRMED',
+  'REPLACEMENT_REQUIRED',
+];
 
 async function generateReference() {
   const year = new Date().getFullYear();
@@ -93,24 +105,32 @@ async function createRequest(candidateId, data) {
   const existing = await ScribeRequest.findOne({
     candidateId,
     examinationId: data.examinationId,
-    status: { $nin: ['CANCELLED', 'REJECTED'] },
+    status: { $in: ACTIVE_REQUEST_STATUSES },
   });
   if (existing) {
     throw HttpError.conflict('You already have an active request for this examination.');
   }
 
   const reference = await generateReference();
-  const request = await ScribeRequest.create({
-    candidateId,
-    examinationId: data.examinationId,
-    sessionId: data.sessionId || null,
-    reference,
-    status: 'SUBMITTED',
-    language: data.language,
-    city: data.city,
-    requirements: data.requirements || null,
-    submittedAt: new Date(),
-  });
+  let request;
+  try {
+    request = await ScribeRequest.create({
+      candidateId,
+      examinationId: data.examinationId,
+      sessionId: data.sessionId || null,
+      reference,
+      status: 'SUBMITTED',
+      language: data.language,
+      city: data.city,
+      requirements: data.requirements || null,
+      submittedAt: new Date(),
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      throw HttpError.conflict('You already have an active request for this examination.');
+    }
+    throw err;
+  }
 
   await RequestStatusHistory.create({
     requestId: request._id,
@@ -133,6 +153,10 @@ async function createRequest(candidateId, data) {
 }
 
 async function getRequest(candidateId, requestId) {
+  if (!mongoose.Types.ObjectId.isValid(requestId)) {
+    throw HttpError.notFound('Request not found.');
+  }
+
   const request = await ScribeRequest.findOne({ _id: requestId, candidateId })
     .populate('examinationId')
     .populate('candidateId', 'mobileE164 email status');
@@ -189,6 +213,10 @@ async function getRequest(candidateId, requestId) {
 }
 
 async function updateRequest(candidateId, requestId, data) {
+  if (!mongoose.Types.ObjectId.isValid(requestId)) {
+    throw HttpError.notFound('Request not found.');
+  }
+
   const request = await ScribeRequest.findOne({ _id: requestId, candidateId });
   if (!request) throw HttpError.notFound('Request not found.');
 
@@ -206,6 +234,10 @@ async function updateRequest(candidateId, requestId, data) {
 }
 
 async function cancelRequest(candidateId, requestId, reason) {
+  if (!mongoose.Types.ObjectId.isValid(requestId)) {
+    throw HttpError.notFound('Request not found.');
+  }
+
   const request = await ScribeRequest.findOne({ _id: requestId, candidateId });
   if (!request) throw HttpError.notFound('Request not found.');
 

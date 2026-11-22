@@ -3,6 +3,7 @@
 const VolunteerInterest = require('../models/VolunteerInterest');
 const Examination = require('../models/Examination');
 const { HttpError } = require('../utils/httpError');
+const { getExamTimeRange, findVolunteerScheduleConflict } = require('../utils/conflictChecker');
 
 async function listInterests(volunteerId) {
   const items = await VolunteerInterest.find({ volunteerId })
@@ -38,6 +39,15 @@ async function setInterest(volunteerId, examinationId, data) {
   const exam = await Examination.findById(examinationId);
   if (!exam || exam.status !== 'PUBLISHED') {
     throw HttpError.notFound('Published examination not found.');
+  }
+
+  // Prevent double-booking if volunteer already has a confirmed assignment during this examination
+  const { startsAt, endsAt } = getExamTimeRange(exam);
+  if (startsAt && endsAt) {
+    const conflict = await findVolunteerScheduleConflict(volunteerId, { startsAt, endsAt });
+    if (conflict.hasConflict && conflict.conflictType === 'CONFIRMED_ASSIGNMENT') {
+      throw HttpError.conflict('Cannot register interest: You already have a confirmed scribe assignment during this examination schedule.');
+    }
   }
 
   const interest = await VolunteerInterest.findOneAndUpdate(

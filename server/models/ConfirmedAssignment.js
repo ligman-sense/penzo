@@ -23,6 +23,9 @@ const confirmedAssignmentSchema = new Schema({
 
 confirmedAssignmentSchema.index({ candidateId: 1, status: 1 });
 confirmedAssignmentSchema.index({ volunteerId: 1, status: 1 });
-confirmedAssignmentSchema.index({ requestId: 1 });
+confirmedAssignmentSchema.index(
+  { requestId: 1 },
+  { unique: true, partialFilterExpression: { status: 'CONFIRMED' } }
+);
 
 module.exports = mongoose.model('ConfirmedAssignment', confirmedAssignmentSchema);

@@ -16,6 +16,7 @@ const { writeAudit } = require('./auditService');
 const { notify } = require('./notificationService');
 const { assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
 const { HttpError } = require('../utils/httpError');
+const { getExamTimeRange, findVolunteerScheduleConflict } = require('../utils/conflictChecker');
 
 async function generateMatchReference() {
   const year = new Date().getFullYear();
@@ -473,6 +474,24 @@ async function acceptInvitation(proposalId, volunteerId) {
   const request = proposal.requestId;
   if (!request) throw HttpError.notFound('Linked scribe request not found.');
 
+  // Prevent volunteer double-booking or schedule conflict across assignments and accepted proposals
+  const exam = await Examination.findById(request.examinationId);
+  let session = null;
+  if (exam && exam.sessions && request.sessionId) {
+    session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
+  }
+  const { startsAt, endsAt } = getExamTimeRange(exam, session);
+  if (startsAt && endsAt) {
+    const conflict = await findVolunteerScheduleConflict(volunteerId, {
+      startsAt,
+      endsAt,
+      excludeProposalId: proposal._id,
+    });
+    if (conflict.hasConflict) {
+      throw HttpError.conflict('Cannot accept invitation: You have a scheduling conflict with an existing confirmed assignment or accepted invitation.');
+    }
+  }
+
   proposal.status = 'ACCEPTED';
   proposal.respondedAt = new Date();
   await proposal.save();
@@ -568,6 +587,18 @@ async function confirmMatch(requestId, candidateId) {
     if (session) {
       startsAt = session.startsAt || session.date || startsAt;
       endsAt = session.endsAt || session.date || endsAt;
+    }
+  }
+
+  // Prevent volunteer schedule conflict at final assignment confirmation
+  if (startsAt && endsAt) {
+    const conflict = await findVolunteerScheduleConflict(volunteerId, {
+      startsAt,
+      endsAt,
+      excludeProposalId: proposal._id,
+    });
+    if (conflict.hasConflict && conflict.conflictType === 'CONFIRMED_ASSIGNMENT') {
+      throw HttpError.conflict('Cannot confirm assignment: The volunteer has a scheduling conflict with another confirmed assignment.');
     }
   }
 

@@ -1,10 +1,12 @@
 'use strict';
 
+const mongoose = require('mongoose');
 const { Router } = require('express');
 const { noStore, requireUser, requireRole } = require('../middleware/auth');
 const { listRequests, createRequest, getRequest, updateRequest, cancelRequest } = require('../services/requestService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok, created } = require('../utils/response');
+const { HttpError } = require('../utils/httpError');
 
 const requestsRouter = Router();
 requestsRouter.use(noStore, requireUser, requireRole('CANDIDATE'));
@@ -49,6 +51,19 @@ requestsRouter.post(
 requestsRouter.get(
   '/:id/proposed-match',
   asyncHandler(async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      throw HttpError.notFound('Scribe request not found.');
+    }
+
+    const ScribeRequest = require('../models/ScribeRequest');
+    const request = await ScribeRequest.findOne({
+      _id: req.params.id,
+      candidateId: req.auth.user._id,
+    });
+    if (!request) {
+      throw HttpError.notFound('Scribe request not found.');
+    }
+
     const MatchProposal = require('../models/MatchProposal');
     const VolunteerProfile = require('../models/VolunteerProfile');
     const proposal = await MatchProposal.findOne({

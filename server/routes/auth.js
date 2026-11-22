@@ -2,11 +2,13 @@
 
 const { Router } = require('express');
 const { USER_COOKIE, clearSessionCookie, setSessionCookie } = require('../utils/cookies');
-const { noStore, requireCsrf, optionalUser } = require('../middleware/auth');
+const { noStore, requireCsrf, optionalUser, requireUser } = require('../middleware/auth');
 const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimits');
 const { sendOtp } = require('../services/otpService');
 const { loginWithOtp, toSessionUser } = require('../services/authService');
 const User = require('../models/User');
+const CandidateProfile = require('../models/CandidateProfile');
+const VolunteerProfile = require('../models/VolunteerProfile');
 const { revokeSession } = require('../services/sessionService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok } = require('../utils/response');
@@ -71,15 +73,35 @@ authRouter.post(
 
 authRouter.post(
   '/register',
+  requireUser,
   asyncHandler(async (req, res) => {
     const { mobile, role } = req.body || {};
-    const cleanMobile = mobile ? mobile.replace(/\s+/g, '') : null;
-    let user = await User.findOne({ mobileE164: cleanMobile });
-    if (user && role) {
-      user.role = role;
-      await user.save();
+    if (!role || !['CANDIDATE', 'VOLUNTEER'].includes(role)) {
+      throw HttpError.badRequest('A valid role (CANDIDATE or VOLUNTEER) is required.');
     }
-    ok(res, { success: true, role });
+
+    const cleanMobile = mobile ? String(mobile).replace(/\s+/g, '') : null;
+    if (cleanMobile && cleanMobile !== req.auth.user.mobileE164) {
+      throw HttpError.forbidden('You can only update your own user account.');
+    }
+
+    const user = await User.findById(req.auth.user._id);
+    if (!user) {
+      throw HttpError.notFound('User account not found.');
+    }
+
+    user.role = role;
+    await user.save();
+
+    if (role === 'CANDIDATE') {
+      const exists = await CandidateProfile.findOne({ userId: user._id });
+      if (!exists) await CandidateProfile.create({ userId: user._id });
+    } else if (role === 'VOLUNTEER') {
+      const exists = await VolunteerProfile.findOne({ userId: user._id });
+      if (!exists) await VolunteerProfile.create({ userId: user._id });
+    }
+
+    ok(res, { success: true, role, csrfToken: req.auth.csrfToken });
   })
 );
 
