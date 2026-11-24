@@ -45,6 +45,23 @@ class MockSmsAdapter {
   }
 }
 
+class Fast2SmsAdapter {
+  constructor() {
+    this.name = 'fast2sms';
+  }
+
+  async sendOtp({ destination, code }) {
+    const { sendFast2Sms } = require('./fast2smsService');
+    const result = await sendFast2Sms({ destination, code });
+    return {
+      success: true,
+      provider: 'fast2sms',
+      destination,
+      messageId: result.requestId,
+    };
+  }
+}
+
 class TwilioVerifySmsAdapter {
   constructor() {
     this.name = 'twilio';
@@ -67,8 +84,17 @@ let activeSmsAdapter = null;
 function getSmsAdapter() {
   if (activeSmsAdapter) return activeSmsAdapter;
 
-  const provider = (process.env.SMS_PROVIDER || (process.env.OTP_PROVIDER === 'sms' ? 'twilio' : 'mock')).toLowerCase();
-  if (provider === 'twilio') {
+  const provider = (
+    process.env.SMS_PROVIDER ||
+    process.env.SMS_GATEWAY ||
+    (process.env.OTP_PROVIDER === 'sms'
+      ? (process.env.FAST2SMS_API_KEY ? 'fast2sms' : 'twilio')
+      : 'mock')
+  ).toLowerCase();
+
+  if (provider === 'fast2sms') {
+    activeSmsAdapter = new Fast2SmsAdapter();
+  } else if (provider === 'twilio') {
     activeSmsAdapter = new TwilioVerifySmsAdapter();
   } else {
     activeSmsAdapter = new MockSmsAdapter();
@@ -81,4 +107,5 @@ module.exports = {
   getSmsAdapter,
   MockSmsAdapter,
   TwilioVerifySmsAdapter,
+  Fast2SmsAdapter,
 };

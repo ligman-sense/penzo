@@ -104,6 +104,18 @@ async function deliverOtp(mobileE164, code) {
   }
 
   if (env.OTP_PROVIDER === 'sms') {
+    const gateway = (
+      process.env.SMS_PROVIDER ||
+      process.env.SMS_GATEWAY ||
+      (process.env.FAST2SMS_API_KEY ? 'fast2sms' : 'twilio')
+    ).toLowerCase();
+
+    if (gateway === 'fast2sms') {
+      const { sendFast2Sms } = require('./verification/fast2smsService');
+      await sendFast2Sms({ destination: mobileE164, code });
+      return;
+    }
+
     const { sendTwilioSms } = require('./verification/twilioService');
     await sendTwilioSms({ destination: mobileE164, code });
     return;
