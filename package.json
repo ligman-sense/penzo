@@ -1,0 +1,37 @@
+{
+  "name": "penzo",
+  "version": "1.0.0",
+  "description": "PENZO — Connecting Candidates with Examination Scribe Volunteers",
+  "private": true,
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon server/server.js",
+    "start": "node server/server.js",
+    "seed": "node scripts/seed.js",
+    "admin:create": "node server/scripts/createAdmin.js",
+    "test": "node scripts/test-endpoints.js",
+    "test:login": "node scripts/test-login-flow.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-mongo": "^5.1.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "csurf": "^1.11.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.8.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

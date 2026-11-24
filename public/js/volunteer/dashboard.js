@@ -1,0 +1,181 @@
+'use strict';
+import { requireAuth } from '../auth.js';
+import { api } from '../api.js';
+import { initTheme } from '../theme.js';
+import { initNavigation } from '../navigation.js';
+import { updateUnreadCount, showError } from '../notifications.js';
+import { formatDate, escapeHtml, renderStatusBadge, timeAgo } from '../utils.js';
+import { renderCompletionWidget, computeVolunteerCompletion } from '../profileCompletion.js';
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+(async () => {
+  initTheme();
+  const user = await requireAuth('/login.html');
+  if (!user) return;
+
+  // Enforce volunteer role
+  if (user.role !== 'VOLUNTEER') {
+    window.location.href = '/candidate/dashboard.html';
+    return;
+  }
+
+  initNavigation();
+
+  const nameEl = document.querySelector('.user-name, #user-name');
+  if (nameEl) nameEl.textContent = user.name || user.mobile || 'Volunteer';
+
+  await Promise.all([
+    checkProfileCompletion(),
+    loadStats(),
+    loadInterests(),
+    loadUpcomingCommitments(),
+    updateUnreadCount(),
+  ]);
+})();
+
+async function checkProfileCompletion() {
+  const container = document.getElementById('dashboard-profile-completion');
+  if (!container) return;
+  try {
+    const { data } = await api.get('/profile');
+    const completion = data.completion || computeVolunteerCompletion(data.profile);
+    if (!completion.isComplete) {
+      container.hidden = false;
+      container.className = 'card';
+      container.style.padding = '1.25rem';
+      container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem;">Complete Your Volunteer Profile</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+              A complete profile helps match you with candidates seeking scribes in your area.
+            </p>
+          </div>
+          <a href="/volunteer/profile.html" class="btn btn--secondary btn--sm" style="white-space: nowrap;">Complete Profile</a>
+        </div>
+        <div id="dashboard-progress-widget"></div>
+      `;
+      const widgetBox = container.querySelector('#dashboard-progress-widget');
+      renderCompletionWidget(widgetBox, completion, { roleColor: 'var(--color-secondary, #0d9488)' });
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const container = document.getElementById('stats-container');
+  const banner = document.getElementById('dashboard-invitations-banner');
+  if (!container) return;
+
+  try {
+    const { data } = await api.get('/dashboard');
+
+    if (banner && data.invitations && data.invitations.length > 0) {
+      banner.hidden = false;
+      const count = data.invitations.length;
+      banner.className = 'card';
+      banner.style.padding = '1.25rem';
+      banner.style.borderLeft = '4px solid var(--color-primary)';
+      banner.style.backgroundColor = 'var(--color-surface)';
+      banner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span class="badge badge--amber">${count} New Scribe Invitation${count > 1 ? 's' : ''}</span>
+            </div>
+            <h3 style="margin: 0; font-size: 1.1rem;">You have pending examination scribe invitations!</h3>
+            <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+              An administrator matched your examination interest with a candidate scribe request.
+            </p>
+          </div>
+          <a href="/volunteer/commitments.html" class="btn btn--primary btn--sm">Review & Respond &rarr;</a>
+        </div>
+      `;
+    }
+
+    const stats = [
+      { label: 'Active Interests',   value: data.stats?.activeInterests ?? data.totalInterests ?? 0, icon: '⭐' },
+      { label: 'Pending Invitations',value: data.invitations?.length ?? 0, icon: '⏳' },
+      { label: 'Confirmed Sessions', value: data.stats?.confirmedCommitments ?? data.confirmedSessions ?? 0, icon: '✅' },
+      { label: 'Completed',          value: data.completedSessions ?? 0, icon: '🎓' },
+    ];
+
+    container.innerHTML = stats.map(s => `
+      <div class="stat-card">
+        <span class="stat-card__icon" aria-hidden="true">${s.icon}</span>
+        <p class="stat-card__value">${s.value}</p>
+        <p class="stat-card__label">${escapeHtml(s.label)}</p>
+      </div>`).join('');
+  } catch (err) {
+    container.innerHTML = '<p class="text-error">Failed to load statistics.</p>';
+    showError(err.message || 'Could not load dashboard stats.');
+  }
+}
+
+// ─── Interests ────────────────────────────────────────────────────────────────
+async function loadInterests() {
+  const container = document.getElementById('interests-container');
+  if (!container) return;
+
+  try {
+    const { data } = await api.get('/interests');
+    const interests = Array.isArray(data) ? data : (data.interests || data.items || []);
+
+    if (!interests.length) {
+      container.innerHTML = `
+        <p class="empty-state">No interests registered yet.
+          <a href="/volunteer/examinations.html" class="link">Browse exams</a> to express interest.
+        </p>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <ul class="interest-list" aria-label="Registered interests">
+        ${interests.slice(0, 4).map(i => `
+          <li class="interest-list__item">
+            <span class="interest-list__exam">${escapeHtml(i.examination?.name || 'Unknown Exam')}</span>
+            <span class="interest-list__date">${formatDate(i.examination?.startsOn)}</span>
+            ${renderStatusBadge(i.status)}
+          </li>`).join('')}
+      </ul>
+      ${interests.length > 4 ? '<a href="/volunteer/interests.html" class="btn btn--ghost btn--sm">View All</a>' : ''}`;
+  } catch (err) {
+    container.innerHTML = '<p class="text-error">Failed to load interests.</p>';
+  }
+}
+
+// ─── Upcoming Commitments ─────────────────────────────────────────────────────
+async function loadUpcomingCommitments() {
+  const container = document.getElementById('commitments-container');
+  if (!container) return;
+
+  try {
+    const { data } = await api.get('/assignments');
+    const assignments = Array.isArray(data) ? data : (data.assignments || data.items || []);
+
+    const upcoming = assignments.filter(a => ['CONFIRMED', 'VOLUNTEER_ACCEPTED'].includes(a.status));
+
+    if (!upcoming.length) {
+      container.innerHTML = '<p class="empty-state">No upcoming commitments.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <ul class="commitment-list" aria-label="Upcoming commitments">
+        ${upcoming.slice(0, 4).map(a => `
+          <li class="commitment-list__item">
+            <div class="commitment-list__info">
+              <strong>${escapeHtml(a.examination?.name || 'Unknown Exam')}</strong>
+              <span>${formatDate(a.examination?.startsOn)}</span>
+              <span>${escapeHtml(a.candidateName || 'Candidate TBD')}</span>
+            </div>
+            ${renderStatusBadge(a.status)}
+          </li>`).join('')}
+      </ul>
+      <a href="/volunteer/commitments.html" class="btn btn--ghost btn--sm">View All Commitments</a>`;
+  } catch (err) {
+    container.innerHTML = '<p class="text-error">Failed to load commitments.</p>';
+  }
+}

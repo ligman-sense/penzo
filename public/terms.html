@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms &amp; Conditions — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="brand-logo"><span>PENZO</span></a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <a href="/" class="btn btn--outline btn--sm">Back to Home</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" style="padding: 3rem 0;">
+    <div class="container" style="max-width: 800px;">
+      <h1 style="margin-bottom: 1.5rem;">Terms &amp; Conditions</h1>
+      <div class="card">
+        <div class="card-body" style="display: flex; flex-direction: column; gap: 1.25rem; line-height: 1.6;">
+          <h3>1. Platform Scope</h3>
+          <p>
+            PENZO is a coordination tool connecting individuals. PENZO is not an examination board, testing agency,
+            or government authority. Use of this platform does not guarantee compliance with examination rules.
+          </p>
+          <h3>2. Volunteer Conduct</h3>
+          <p>
+            Volunteers agree to act ethically, arrive punctually for confirmed commitments, and strictly adhere
+            to the code of conduct defined by the examination authority.
+          </p>
+          <h3>3. Candidate Responsibilities</h3>
+          <p>
+            Candidates are solely responsible for ensuring that their requested scribe meets the criteria specified
+            by the examination authority (e.g. academic qualification limits, prior approvals).
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom">
+      <p>&copy; 2026 PENZO. All rights reserved.</p>
+    </div>
+  </footer>
+  <script type="module" src="/js/theme.js"></script>
+</body>
+</html>

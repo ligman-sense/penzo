@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help & FAQs — PENZO</title>
+  <script>
+    const savedTheme = localStorage.getItem('penzo-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/themes.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <header class="site-header">
+    <div class="container">
+      <a href="/" class="brand-logo"><span>PENZO</span></a>
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="/" class="nav-link">Home</a></li>
+          <li><a href="/about.html" class="nav-link">About</a></li>
+          <li><a href="/help.html" class="nav-link active" aria-current="page">Help & FAQs</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+        <a href="/login.html" class="btn btn--primary btn--sm">Sign In</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" style="padding: 3rem 0;">
+    <div class="container" style="max-width: 800px;">
+      <h1 style="margin-bottom: 1.5rem;">Help & Frequently Asked Questions</h1>
+
+      <div id="faqs-list" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="card">
+          <div class="card-body">
+            <h3>What is PENZO?</h3>
+            <p style="margin-top: 0.5rem;">
+              PENZO is an independent web application that helps candidates who require scribes for examinations
+              connect with volunteer scribes.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h3>Who can request a scribe?</h3>
+            <p style="margin-top: 0.5rem;">
+              Candidates with benchmark disabilities as defined under relevant guidelines who are appearing for competitive,
+              academic, or entrance examinations.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h3>Are volunteer matches guaranteed to be approved?</h3>
+            <p style="margin-top: 0.5rem;">
+              No. PENZO facilitates community coordination only. You must verify and submit the necessary scribe undertakings
+              and documents to your official examination centre as required by the conducting authority.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom">
+      <p>&copy; 2026 PENZO. Built for accessible examination support.</p>
+      <p><a href="/">Back to Home</a></p>
+    </div>
+  </footer>
+  <script type="module" src="/js/theme.js"></script>
+</body>
+</html>
