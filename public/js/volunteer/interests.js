@@ -13,6 +13,9 @@ let _totalPages = 1;
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const listEl    = document.getElementById('interests-list');
 const emptyEl   = document.getElementById('interests-empty');
+const errorEl   = document.getElementById('interests-error');
+const errorMsgEl = document.getElementById('interests-error-msg');
+const retryBtn  = document.getElementById('interests-retry-btn');
 const paginEl   = document.getElementById('pagination');
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -29,13 +32,22 @@ const paginEl   = document.getElementById('pagination');
   initNavigation();
   updateUnreadCount();
 
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => loadInterests());
+  }
+
   _page = parseInt(getQueryParam('page') || '1', 10);
   await loadInterests();
 })();
 
 // ─── Load Interests ───────────────────────────────────────────────────────────
 async function loadInterests() {
-  if (listEl) listEl.innerHTML = '<li class="loading-cell">Loading…</li>';
+  if (listEl) {
+    listEl.hidden = false;
+    listEl.innerHTML = '<li class="loading-cell">Loading your interests…</li>';
+  }
+  if (emptyEl) emptyEl.hidden = true;
+  if (errorEl) errorEl.hidden = true;
 
   try {
     const res = await api.get(`/interests?page=${_page}&pageSize=15`);
@@ -43,14 +55,16 @@ async function loadInterests() {
     _totalPages     = res.meta?.totalPages || res.data?.totalPages || 1;
 
     if (!interests.length) {
-      if (listEl)   listEl.hidden  = true;
-      if (emptyEl) emptyEl.hidden  = false;
+      if (listEl)  listEl.hidden  = true;
+      if (emptyEl) emptyEl.hidden = false;
+      if (errorEl) errorEl.hidden = true;
       if (paginEl) paginEl.innerHTML = '';
       return;
     }
 
-    if (listEl)   listEl.hidden  = false;
-    if (emptyEl) emptyEl.hidden  = true;
+    if (listEl)  listEl.hidden  = false;
+    if (emptyEl) emptyEl.hidden = true;
+    if (errorEl) errorEl.hidden = true;
 
     if (listEl) {
       listEl.innerHTML = interests.map(i => renderInterestItem(i)).join('');
@@ -60,16 +74,22 @@ async function loadInterests() {
     if (paginEl) renderPagination(paginEl, { page: _page, totalPages: _totalPages }, goToPage);
 
   } catch (err) {
-    if (listEl) listEl.innerHTML = '<li class="text-error">Failed to load interests.</li>';
+    if (listEl)  listEl.hidden  = true;
+    if (emptyEl) emptyEl.hidden = true;
+    if (errorEl) {
+      errorEl.hidden = false;
+      if (errorMsgEl) errorMsgEl.textContent = err.message || 'Could not fetch interests.';
+    }
     showError(err.message || 'Could not fetch interests.');
   }
 }
 
 // ─── Render Interest Item ─────────────────────────────────────────────────────
 function renderInterestItem(interest) {
+  const examId = interest.examinationId || interest.examination?.id;
   const canWithdraw = !['CONFIRMED', 'COMPLETED', 'WITHDRAWN'].includes(interest.status);
 
-  return `<li class="interest-item" data-interest-id="${interest.examinationId}">
+  return `<li class="interest-item" data-interest-id="${escapeHtml(examId)}">
     <div class="interest-item__info">
       <strong class="interest-item__exam">${escapeHtml(interest.examination?.name || 'Unknown Exam')}</strong>
       <span class="interest-item__authority">${escapeHtml(interest.examination?.authority || '')}</span>
@@ -82,7 +102,7 @@ function renderInterestItem(interest) {
       ${renderStatusBadge(interest.status)}
       ${canWithdraw ? `
         <button class="btn btn--danger btn--sm withdraw-btn" 
-                data-exam-id="${interest.examinationId}"
+                data-exam-id="${escapeHtml(examId)}"
                 aria-label="Withdraw interest for ${escapeHtml(interest.examination?.name || '')}">
           Withdraw
         </button>` : ''}

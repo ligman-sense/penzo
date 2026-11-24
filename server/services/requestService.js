@@ -69,6 +69,8 @@ async function listRequests(candidateId, scope = 'all') {
         name: exam.name || exam.title,
         authority: exam.authority,
         slug: exam.slug,
+        startsOn: exam.startsOn,
+        endsOn: exam.endsOn,
       } : null,
       session: session ? {
         id: session._id.toString(),
@@ -189,6 +191,9 @@ async function getRequest(candidateId, requestId) {
       name: exam.name || exam.title,
       authority: exam.authority,
       slug: exam.slug,
+      startsOn: exam.startsOn,
+      endsOn: exam.endsOn,
+      locations: exam.locations,
       scribeEligibilityInfo: exam.scribeEligibilityInfo,
       scribeRequestInstructions: exam.scribeRequestInstructions,
       requiredDocuments: exam.requiredDocuments,

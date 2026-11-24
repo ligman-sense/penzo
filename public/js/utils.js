@@ -2,12 +2,29 @@
 
 export function formatDate(dateStr) {
   if (!dateStr) return 'TBD';
-  return new Date(dateStr).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'TBD';
+  return d.toLocaleDateString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 }
 
 export function formatDateTime(dateStr) {
   if (!dateStr) return 'TBD';
-  return new Date(dateStr).toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'TBD';
+  return d.toLocaleString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
 
 export function timeAgo(dateStr) {

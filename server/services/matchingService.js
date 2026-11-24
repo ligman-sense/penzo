@@ -515,29 +515,79 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
   proposal.respondedAt = new Date();
   await proposal.save();
 
+  // Calculate examination timing & 5-day lock deadline
+  let startsAt = exam?.startsOn || null;
+  let endsAt = exam?.endsOn || null;
+  if (session) {
+    startsAt = session.startsAt || session.date || startsAt;
+    endsAt = session.endsAt || session.date || endsAt;
+  }
+
+  let lockDeadline = null;
+  if (startsAt) {
+    lockDeadline = new Date(new Date(startsAt).getTime() - 5 * 24 * 60 * 60 * 1000);
+  }
+  const isLocked = lockDeadline ? (new Date() >= lockDeadline) : false;
+
+  // Create ConfirmedAssignment in MongoDB with duplicate active protection
+  let assignment;
+  try {
+    assignment = await ConfirmedAssignment.create({
+      requestId: request._id,
+      matchProposalId: proposal._id,
+      candidateId: request.candidateId,
+      volunteerId,
+      startsAt,
+      endsAt,
+      lockDeadline,
+      isLocked,
+      termsAccepted: proposal.termsAccepted || true,
+      termsVersion: proposal.termsVersion || '1.0',
+      termsAcceptedAt: proposal.termsAcceptedAt || new Date(),
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+    });
+  } catch (err) {
+    if (err.code === 11000 || err.message?.includes('E11000')) {
+      throw HttpError.conflict('An active confirmed scribe assignment already exists for this request.');
+    }
+    throw err;
+  }
+
   const prevStatus = request.status;
-  request.status = 'VOLUNTEER_ACCEPTED';
+  request.status = 'CONFIRMED';
   await request.save();
 
   await RequestStatusHistory.create({
     requestId: request._id,
     fromStatus: prevStatus,
-    toStatus: 'VOLUNTEER_ACCEPTED',
+    toStatus: 'CONFIRMED',
     actorType: 'VOLUNTEER',
     actorUserId: volunteerId,
-    reason: 'Volunteer accepted the scribe invitation.',
+    reason: 'Volunteer accepted the scribe invitation. Assignment is automatically confirmed.',
   });
 
-  // Notify Candidate to confirm
+  const examName = exam ? (exam.name || exam.title) : 'Examination';
+
+  // Notify Volunteer
+  await notify({
+    userId: volunteerId,
+    type: 'ASSIGNMENT_CONFIRMED',
+    title: 'Assignment Confirmed! ✅',
+    body: `Your scribe assignment for ${examName} is officially confirmed! Thank you for supporting the candidate.`,
+    linkPath: '/volunteer/commitments.html',
+  });
+
+  // Notify Candidate (Privacy-safe: no volunteer personal details)
   await notify({
     userId: request.candidateId,
-    type: 'VOLUNTEER_ACCEPTED',
-    title: 'Volunteer Accepted! Confirmation Required',
-    body: 'A volunteer has accepted your scribe request. Please confirm the arrangement to finalize the scribe assistance.',
+    type: 'SCRIBE_ALLOCATED',
+    title: 'Scribe Assistance Confirmed! ✅',
+    body: `A qualified scribe has been allocated and confirmed for your examination: ${examName}. View details in your dashboard.`,
     linkPath: `/candidate/request-details.html?id=${request._id}`,
   });
 
-  return { proposal, request };
+  return { proposal, request, assignment };
 }
 
 /**
@@ -579,14 +629,19 @@ async function declineInvitation(proposalId, volunteerId, reason) {
 }
 
 /**
- * Candidate confirms the proposed volunteer.
+ * Candidate confirms the proposed volunteer (Deprecated - auto-confirmed on volunteer acceptance).
  */
 async function confirmMatch(requestId, candidateId) {
   const request = await ScribeRequest.findOne({ _id: requestId, candidateId }).populate('examinationId');
   if (!request) throw HttpError.notFound('Scribe request not found.');
 
+  if (request.status === 'CONFIRMED') {
+    throw HttpError.badRequest('Candidate confirmation of scribe allocation is no longer required. The assignment is already confirmed.');
+  }
+
+  // Handle any existing/legacy request in VOLUNTEER_ACCEPTED or AWAITING_CANDIDATE_CONFIRMATION safely
   if (request.status !== 'VOLUNTEER_ACCEPTED' && request.status !== 'AWAITING_CANDIDATE_CONFIRMATION') {
-    throw HttpError.badRequest(`Cannot confirm match for request in status: ${request.status}.`);
+    throw HttpError.badRequest('Candidate confirmation of scribe allocation is no longer required or supported.');
   }
 
   const proposal = await MatchProposal.findOne({
@@ -598,11 +653,11 @@ async function confirmMatch(requestId, candidateId) {
   const volunteerId = proposal.volunteerId;
   const exam = request.examinationId;
 
-  let startsAt = exam.startsOn || null;
-  let endsAt = exam.endsOn || null;
+  let startsAt = exam?.startsOn || null;
+  let endsAt = exam?.endsOn || null;
 
   let session = null;
-  if (exam.sessions && request.sessionId) {
+  if (exam && exam.sessions && request.sessionId) {
     session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
     if (session) {
       startsAt = session.startsAt || session.date || startsAt;
@@ -664,7 +719,7 @@ async function confirmMatch(requestId, candidateId) {
     reason: 'Candidate confirmed the scribe arrangement. Assignment is now confirmed.',
   });
 
-  const examName = exam.name || exam.title;
+  const examName = exam ? (exam.name || exam.title) : 'Examination';
 
   // Notify Volunteer
   await notify({
@@ -675,16 +730,23 @@ async function confirmMatch(requestId, candidateId) {
     linkPath: '/volunteer/commitments.html',
   });
 
-  // Notify Candidate
+  // Notify Candidate (Privacy-safe: no volunteer personal details)
   await notify({
     userId: candidateId,
-    type: 'ASSIGNMENT_CONFIRMED',
+    type: 'SCRIBE_ALLOCATED',
     title: 'Scribe Assistance Confirmed! ✅',
     body: `Your scribe arrangement for ${examName} is confirmed. View details in your dashboard.`,
     linkPath: `/candidate/request-details.html?id=${requestId}`,
   });
 
   return { request, assignment, proposal };
+}
+
+/**
+ * Candidate declines match (Disabled - candidates cannot reject allocated scribes).
+ */
+async function declineMatch(requestId, candidateId, reason) {
+  throw HttpError.badRequest('Candidate rejection of scribe allocation is no longer required or supported.');
 }
 
 /**

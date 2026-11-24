@@ -31,7 +31,6 @@ interestsRouter.get(
         path: 'requestId',
         populate: [
           { path: 'examinationId', select: 'name title authority startsOn endsOn locations' },
-          { path: 'candidateId', select: 'mobileE164' },
         ],
       })
       .sort({ createdAt: -1 });
@@ -51,7 +50,6 @@ interestsRouter.get(
           reference: r.reference,
           language: r.language,
           city: r.city,
-          requirements: r.requirements,
           venue: r.venue || null,
         } : null,
         examination: e ? {

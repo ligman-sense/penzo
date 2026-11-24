@@ -166,6 +166,9 @@
             <div class="form-group" style="margin-bottom: 1.25rem;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <label for="auth-password" class="form-label" style="margin-bottom: 0;">Password *</label>
+                <button type="button" id="forgot-password-link" style="background: none; border: none; padding: 0; font-size: 0.85rem; color: var(--color-primary, #2563eb); cursor: pointer; text-decoration: underline;">
+                  Forgot Password?
+                </button>
               </div>
               <div style="position: relative; display: flex; align-items: center; margin-top: 0.35rem;">
                 <input
@@ -230,6 +233,127 @@
               Continue with Google
             </a>
           </form>
+        </div>
+
+        <!-- Forgot Password View -->
+        <div id="step-forgot" hidden>
+          <div class="auth-header" style="margin-bottom: 1.25rem;">
+            <h1 id="forgot-title">Reset Your Password</h1>
+            <p id="forgot-subtitle">Enter your registered email address to receive a 6-digit verification code.</p>
+          </div>
+
+          <!-- Step 1: Request Code (Email) -->
+          <form id="forgot-email-form" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-email" class="form-label">Email Address *</label>
+              <input
+                type="email"
+                id="forgot-email"
+                name="email"
+                class="form-input"
+                placeholder="name@example.com"
+                autocomplete="email"
+                required
+              >
+              <span class="form-hint">A 6-digit recovery code will be sent if the email is registered.</span>
+            </div>
+
+            <button type="submit" id="forgot-send-btn" class="btn btn--primary btn--full">
+              Send Verification Code
+            </button>
+          </form>
+
+          <!-- Step 2: Verify Code (OTP) -->
+          <form id="forgot-otp-form" style="display: none;" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-otp" class="form-label">6-Digit Verification Code *</label>
+              <input
+                type="text"
+                id="forgot-otp"
+                name="otp"
+                class="form-input"
+                placeholder="123456"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                style="font-size: 1.25rem; letter-spacing: 0.25rem; text-align: center; font-family: monospace;"
+                required
+              >
+              <span class="form-hint">Enter the 6-digit code sent to your email. Expires in 5 minutes.</span>
+            </div>
+
+            <button type="submit" id="forgot-verify-btn" class="btn btn--primary btn--full" style="margin-bottom: 0.75rem;">
+              Verify Code
+            </button>
+
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+              <button type="button" id="forgot-resend-btn" class="btn btn--ghost btn--sm" disabled>
+                Resend Code (<span id="resend-countdown">60</span>s)
+              </button>
+            </div>
+          </form>
+
+          <!-- Step 3: Set New Password -->
+          <form id="forgot-password-form" style="display: none;" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-new-password" class="form-label">New Password *</label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input
+                  type="password"
+                  id="forgot-new-password"
+                  name="newPassword"
+                  class="form-input"
+                  placeholder="••••••••"
+                  required
+                  autocomplete="new-password"
+                  style="padding-right: 3rem;"
+                >
+                <button
+                  type="button"
+                  id="toggle-forgot-password-btn"
+                  aria-label="Show password"
+                  style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1.1rem; padding: 0.25rem 0.5rem;"
+                >
+                  👁️
+                </button>
+              </div>
+
+              <div id="forgot-password-requirements" style="margin-top: 0.75rem; padding: 0.75rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.8rem;">
+                <div style="font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Password must include:</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <div id="forgot-rule-length" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 8 characters</div>
+                  <div id="forgot-rule-upper" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 uppercase letter (A-Z)</div>
+                  <div id="forgot-rule-number" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 number (0-9)</div>
+                  <div id="forgot-rule-special" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 special character (!@#$%^&*...)</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-confirm-password" class="form-label">Confirm New Password *</label>
+              <input
+                type="password"
+                id="forgot-confirm-password"
+                name="confirmPassword"
+                class="form-input"
+                placeholder="••••••••"
+                required
+                autocomplete="new-password"
+              >
+            </div>
+
+            <button type="submit" id="forgot-reset-btn" class="btn btn--primary btn--full">
+              Reset Password
+            </button>
+          </form>
+
+          <!-- Back to Sign In Link -->
+          <div style="text-align: center; margin-top: 1.25rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <button type="button" id="back-to-signin-btn" class="btn btn--ghost btn--sm">
+              ← Back to Sign In
+            </button>
+          </div>
         </div>
 
       </div>

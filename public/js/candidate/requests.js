@@ -92,7 +92,7 @@ async function loadRequests() {
             </a>
           </td>
           <td data-label="Applied On">${formatDate(r.createdAt)}</td>
-          <td data-label="Exam Date">${formatDate(r.examination?.startsOn)}</td>
+          <td data-label="Exam Date">${formatDate(r.session?.startsAt || r.examination?.startsOn)}</td>
           <td data-label="Status">${renderStatusBadge(r.status)}</td>
           <td data-label="Action">
             <a href="/candidate/request-details.html?id=${r.id}" class="btn btn--ghost btn--sm">View</a>

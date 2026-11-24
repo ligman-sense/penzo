@@ -33,6 +33,11 @@ const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'PENZO <onboarding@resend.dev>',
+  PASSWORD_RESET_OTP_EXPIRY: parseInt(process.env.PASSWORD_RESET_OTP_EXPIRY || '300', 10),
+  PASSWORD_RESET_MAX_ATTEMPTS: parseInt(process.env.PASSWORD_RESET_MAX_ATTEMPTS || '5', 10),
+  PASSWORD_RESET_RESEND_COOLDOWN: parseInt(process.env.PASSWORD_RESET_RESEND_COOLDOWN || '60', 10),
 };
 
 module.exports = env;

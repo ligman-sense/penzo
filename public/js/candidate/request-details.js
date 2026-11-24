@@ -19,13 +19,6 @@ const cancelForm         = document.getElementById('cancel-form');
 const cancelReasonEl     = document.getElementById('cancel-reason');
 const cancelCloseBtn     = document.getElementById('cancel-modal-close');
 
-const declineMatchModal  = document.getElementById('decline-match-modal');
-const declineMatchForm   = document.getElementById('decline-match-form');
-const declineMatchReason = document.getElementById('decline-match-reason');
-const declineMatchClose  = document.getElementById('decline-match-close');
-const declineMatchCancel = document.getElementById('decline-match-cancel');
-const declineMatchSubmit = document.getElementById('decline-match-submit');
-
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async () => {
   initTheme();
@@ -42,7 +35,6 @@ const declineMatchSubmit = document.getElementById('decline-match-submit');
   }
 
   setupCancelModal();
-  setupDeclineMatchModal();
   await loadRequest();
 })();
 
@@ -54,8 +46,8 @@ async function loadRequest() {
     const { data } = await api.get(`/requests/${_requestId}`);
     _request = data.request || data;
 
-    // If request has matching workflow status, load proposed match details
-    if (['MATCH_PROPOSED', 'VOLUNTEER_ACCEPTED', 'AWAITING_CANDIDATE_CONFIRMATION', 'CONFIRMED'].includes(_request.status)) {
+    // Load non-identifying allocation metadata if available
+    if (['MATCH_PROPOSED', 'CONFIRMED'].includes(_request.status)) {
       try {
         const matchRes = await api.get(`/requests/${_requestId}/proposed-match`);
         _proposedMatch = matchRes.data;
@@ -86,7 +78,6 @@ function renderRequest(req, match) {
   if (!detailContainer) return;
 
   const canCancel = ['SUBMITTED', 'PENDING_REVIEW', 'AWAITING_VOLUNTEER', 'MATCH_PROPOSED'].includes(req.status);
-  const isAwaitingCandidate = ['VOLUNTEER_ACCEPTED', 'AWAITING_CANDIDATE_CONFIRMATION'].includes(req.status);
   const isConfirmed = req.status === 'CONFIRMED';
   const isMatchProposed = req.status === 'MATCH_PROPOSED';
 
@@ -94,95 +85,27 @@ function renderRequest(req, match) {
 
   let matchSectionHtml = '';
 
-  if (isAwaitingCandidate && match) {
-    const vol = match.volunteer || {};
-    matchSectionHtml = `
-      <section class="card" style="border: 2px solid var(--color-success, #16a34a); margin-bottom: 1.5rem; background: var(--color-surface);">
-        <div class="card-body" style="padding: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                <span class="badge badge--success" style="font-weight: 700;">Action Required: Confirm Scribe Match</span>
-                <span class="badge badge--teal">Match ${escapeHtml(match.matchReference || '')}</span>
-              </div>
-              <h2 style="margin: 0; font-size: 1.35rem; color: var(--color-text);">
-                Volunteer Accepted: ${escapeHtml(vol.name || 'Volunteer')}
-              </h2>
-              <p style="margin: 0.25rem 0 0; font-size: 0.875rem; color: var(--color-text-muted);">
-                A verified volunteer scribe who expressed interest in your examination has accepted. Please review and confirm.
-              </p>
-            </div>
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
-              <button id="btn-decline-match" class="btn btn--outline btn--sm" style="color: var(--color-danger); border-color: var(--color-danger);">
-                Decline Match
-              </button>
-              <button id="btn-confirm-match" class="btn btn--primary btn--sm" style="background-color: var(--color-success, #16a34a);">
-                Confirm Scribe Match
-              </button>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; padding: 1rem; background: var(--color-bg-secondary, rgba(0,0,0,0.02)); border-radius: 6px; font-size: 0.9rem;">
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Verification Status</span>
-              <span class="badge badge--success" style="font-size: 0.75rem; margin-top: 0.25rem;">✓ Verified Volunteer Scribe</span>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Compatibility Score</span>
-              <strong style="color: var(--color-success, #16a34a); font-size: 1.1rem;">${match.score || 100}%</strong>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Location / City</span>
-              <strong>${escapeHtml(vol.city || 'Location compatible')}</strong>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Languages</span>
-              <strong>${escapeHtml((vol.languages && vol.languages.length) ? vol.languages.join(', ') : 'Fluent in required languages')}</strong>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Subjects</span>
-              <strong>${escapeHtml((vol.subjects && vol.subjects.length) ? vol.subjects.join(', ') : 'All general subjects')}</strong>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; display: block;">Prior Experience</span>
-              <strong>${vol.hasExperience ? 'Experienced scribe' : 'Trained volunteer'}</strong>
-            </div>
-          </div>
-
-          ${match.adminNote ? `
-            <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--color-text-secondary);">
-              <strong>Admin Note:</strong> ${escapeHtml(match.adminNote)}
-            </div>
-          ` : ''}
-        </div>
-      </section>
-    `;
-  } else if (isConfirmed) {
-    const vol = match?.volunteer || {};
+  if (isConfirmed) {
     matchSectionHtml = `
       <section class="card" style="border-left: 4px solid var(--color-success, #16a34a); margin-bottom: 1.5rem; background: var(--color-surface);">
         <div class="card-body" style="padding: 1.25rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <span class="badge badge--success">✓ Scribe Arrangement Confirmed</span>
+            <span class="badge badge--success">✓ Scribe Allocated & Confirmed</span>
           </div>
           <h2 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">
-            Assigned Scribe: ${escapeHtml(vol.name || req.volunteerName || 'Volunteer Scribe')}
+            Scribe Allocated
           </h2>
           <p style="margin: 0; font-size: 0.9rem; color: var(--color-text-muted);">
-            Your scribe has been confirmed for this examination. Please reach out if coordination is required before exam day.
+            A qualified volunteer scribe has been allocated and confirmed for your examination assistance.
           </p>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem; font-size: 0.875rem;">
             <div>
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Scribe Contact</span>
-              <strong>Available via Penzo Support</strong>
+              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Allocation Status</span>
+              <strong style="color: var(--color-success, #16a34a);">Confirmed</strong>
             </div>
             <div>
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Languages</span>
-              <strong>${escapeHtml(vol.languages ? vol.languages.join(', ') : req.language || 'English')}</strong>
-            </div>
-            <div>
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">City</span>
-              <strong>${escapeHtml(vol.city || req.city || 'Local')}</strong>
+              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Coordination</span>
+              <strong>Facilitated via PENZO</strong>
             </div>
           </div>
         </div>
@@ -196,7 +119,7 @@ function renderRequest(req, match) {
         </div>
         <h3 style="margin: 0; font-size: 1.1rem;">Awaiting Volunteer Acceptance</h3>
         <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
-          Our administrative team has matched your request with a verified volunteer who expressed interest in this examination. We will notify you as soon as the volunteer accepts.
+          Our administrative team has matched your request with an eligible volunteer. We will update your status as soon as the volunteer accepts.
         </p>
       </div>
     `;
@@ -217,7 +140,7 @@ function renderRequest(req, match) {
       <dl class="detail-grid">
         <div><dt>Request ID / Ref</dt><dd><code>${escapeHtml(req.reference || req.id)}</code></dd></div>
         <div><dt>Submitted On</dt><dd>${formatDate(req.createdAt)}</dd></div>
-        <div><dt>Exam Date</dt><dd>${formatDate(req.examination?.startsOn)}</dd></div>
+        <div><dt>Exam Date</dt><dd>${formatDate(req.session?.startsAt || req.examination?.startsOn)}</dd></div>
         <div><dt>Required Language</dt><dd>${escapeHtml(req.language || 'English')}</dd></div>
         <div><dt>City / Location</dt><dd>${escapeHtml(req.city || req.examination?.locations?.[0]?.city || 'TBD')}</dd></div>
         ${req.requirements ? `<div><dt>Special Needs / Requirements</dt><dd>${escapeHtml(req.requirements)}</dd></div>` : ''}
@@ -258,33 +181,6 @@ function renderRequest(req, match) {
   // Attach button event listeners
   const cancelBtn = detailContainer.querySelector('#cancel-request-btn');
   if (cancelBtn) cancelBtn.addEventListener('click', () => openCancelModal());
-
-  const confirmMatchBtn = detailContainer.querySelector('#btn-confirm-match');
-  if (confirmMatchBtn) {
-    confirmMatchBtn.addEventListener('click', () => handleConfirmMatch(confirmMatchBtn));
-  }
-
-  const declineMatchBtn = detailContainer.querySelector('#btn-decline-match');
-  if (declineMatchBtn) {
-    declineMatchBtn.addEventListener('click', () => openDeclineMatchModal());
-  }
-}
-
-// ─── Confirm Match Action ─────────────────────────────────────────────────────
-async function handleConfirmMatch(btn) {
-  if (!confirm('Are you sure you want to confirm this scribe match? This will finalize your scribe arrangement for the examination.')) {
-    return;
-  }
-
-  setLoading(btn, true, 'Confirming…');
-  try {
-    await api.post(`/requests/${_requestId}/confirm-match`);
-    showSuccess('Scribe arrangement confirmed! Your volunteer has been assigned.');
-    await loadRequest();
-  } catch (err) {
-    showError(err.message || 'Failed to confirm match. Please try again.');
-    setLoading(btn, false);
-  }
 }
 
 // ─── Timeline ─────────────────────────────────────────────────────────────────
@@ -302,54 +198,6 @@ function renderTimeline(history) {
         </div>
       </li>`).join('')}
   </ol>`;
-}
-
-// ─── Decline Match Modal ──────────────────────────────────────────────────────
-function setupDeclineMatchModal() {
-  if (!declineMatchModal) return;
-
-  function closeModal() {
-    declineMatchModal.hidden = true;
-    document.body.style.overflow = '';
-    if (declineMatchReason) declineMatchReason.value = '';
-  }
-
-  if (declineMatchClose) declineMatchClose.addEventListener('click', closeModal);
-  if (declineMatchCancel) declineMatchCancel.addEventListener('click', closeModal);
-
-  declineMatchModal.addEventListener('click', (e) => {
-    if (e.target === declineMatchModal) closeModal();
-  });
-
-  if (declineMatchForm) {
-    declineMatchForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const reason = declineMatchReason ? declineMatchReason.value.trim() : '';
-      setLoading(declineMatchSubmit, true, 'Declining…');
-
-      try {
-        await api.post(`/requests/${_requestId}/decline-match`, { reason });
-        showSuccess('Match declined. Your request has been returned to the queue.');
-        closeModal();
-        await loadRequest();
-      } catch (err) {
-        showError(err.message || 'Failed to decline match.');
-      } finally {
-        setLoading(declineMatchSubmit, false);
-      }
-    });
-  }
-}
-
-function openDeclineMatchModal() {
-  if (declineMatchModal) {
-    declineMatchModal.hidden = false;
-    document.body.style.overflow = 'hidden';
-    if (declineMatchReason) {
-      declineMatchReason.value = '';
-      declineMatchReason.focus();
-    }
-  }
 }
 
 // ─── Cancel Modal ─────────────────────────────────────────────────────────────

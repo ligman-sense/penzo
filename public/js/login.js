@@ -54,6 +54,39 @@ const ruleSpecial = document.getElementById('rule-special');
 
 const roleForm = document.getElementById('role-form');
 
+const forgotPasswordLink = document.getElementById('forgot-password-link');
+const stepForgot = document.getElementById('step-forgot');
+const forgotTitle = document.getElementById('forgot-title');
+const forgotSubtitle = document.getElementById('forgot-subtitle');
+
+const forgotEmailForm = document.getElementById('forgot-email-form');
+const forgotEmail = document.getElementById('forgot-email');
+const forgotSendBtn = document.getElementById('forgot-send-btn');
+
+const forgotOtpForm = document.getElementById('forgot-otp-form');
+const forgotOtp = document.getElementById('forgot-otp');
+const forgotVerifyBtn = document.getElementById('forgot-verify-btn');
+const forgotResendBtn = document.getElementById('forgot-resend-btn');
+const resendCountdown = document.getElementById('resend-countdown');
+
+const forgotPasswordForm = document.getElementById('forgot-password-form');
+const forgotNewPassword = document.getElementById('forgot-new-password');
+const toggleForgotPasswordBtn = document.getElementById('toggle-forgot-password-btn');
+const forgotConfirmPassword = document.getElementById('forgot-confirm-password');
+const forgotResetBtn = document.getElementById('forgot-reset-btn');
+
+const forgotRuleLength = document.getElementById('forgot-rule-length');
+const forgotRuleUpper = document.getElementById('forgot-rule-upper');
+const forgotRuleNumber = document.getElementById('forgot-rule-number');
+const forgotRuleSpecial = document.getElementById('forgot-rule-special');
+
+const backToSigninBtn = document.getElementById('back-to-signin-btn');
+
+let _resetEmail = '';
+let _resetToken = '';
+let _resendTimer = null;
+let _resendSecondsRemaining = 60;
+
 // ─── Initialization ───────────────────────────────────────────────────────────
 (async () => {
   initTheme();
@@ -84,6 +117,7 @@ const roleForm = document.getElementById('role-form');
   setupLivePasswordCheck();
   setupAuthForm();
   setupRoleForm();
+  setupForgotPassword();
 })();
 
 // ─── Tab Switching (Sign In / Register) ────────────────────────────────────────
@@ -111,6 +145,7 @@ function setMode(mode) {
     registerRoleSection.style.display = 'none';
     registerNameSection.style.display = 'none';
     passwordRequirements.style.display = 'none';
+    if (forgotPasswordLink) forgotPasswordLink.style.display = 'inline';
   } else {
     tabRegister.className = 'btn btn--sm btn--primary';
     tabRegister.setAttribute('aria-selected', 'true');
@@ -124,6 +159,7 @@ function setMode(mode) {
     registerRoleSection.style.display = 'block';
     registerNameSection.style.display = 'block';
     passwordRequirements.style.display = 'block';
+    if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
 
     updateLivePasswordCheck(authPassword.value);
   }
@@ -340,4 +376,250 @@ function redirectByRole(role) {
   if (role === 'CANDIDATE') window.location.replace('/candidate/dashboard.html');
   else if (role === 'VOLUNTEER') window.location.replace('/volunteer/dashboard.html');
   else window.location.replace('/');
+}
+
+// ─── Forgot Password / Reset Flow ─────────────────────────────────────────────
+function setupForgotPassword() {
+  if (!forgotPasswordLink || !stepForgot) return;
+
+  forgotPasswordLink.addEventListener('click', () => {
+    stepAuth.hidden = true;
+    stepForgot.hidden = false;
+    resetForgotFlow();
+  });
+
+  if (backToSigninBtn) {
+    backToSigninBtn.addEventListener('click', () => {
+      stepForgot.hidden = true;
+      stepAuth.hidden = false;
+      setMode('signin');
+    });
+  }
+
+  // Toggle new password visibility in forgot password form
+  if (toggleForgotPasswordBtn && forgotNewPassword) {
+    toggleForgotPasswordBtn.addEventListener('click', () => {
+      const isPass = forgotNewPassword.type === 'password';
+      forgotNewPassword.type = isPass ? 'text' : 'password';
+      toggleForgotPasswordBtn.textContent = isPass ? '🙈' : '👁️';
+    });
+  }
+
+  // Live password requirements checking for forgot password
+  if (forgotNewPassword) {
+    forgotNewPassword.addEventListener('input', () => {
+      const rules = checkPasswordRules(forgotNewPassword.value);
+      updateRuleElement(forgotRuleLength, rules.minLength, 'At least 8 characters');
+      updateRuleElement(forgotRuleUpper, rules.hasUppercase, 'At least 1 uppercase letter (A-Z)');
+      updateRuleElement(forgotRuleNumber, rules.hasNumber, 'At least 1 number (0-9)');
+      updateRuleElement(forgotRuleSpecial, rules.hasSpecial, 'At least 1 special character (!@#$%^&*...)');
+    });
+  }
+
+  // Step 1: Send OTP
+  if (forgotEmailForm) {
+    forgotEmailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors(forgotEmailForm);
+
+      const email = forgotEmail?.value.trim() || '';
+      if (!email) {
+        showFieldError(forgotEmail, 'Email address is required.');
+        forgotEmail?.focus();
+        return;
+      }
+      if (!validateEmail(email)) {
+        showFieldError(forgotEmail, 'Please enter a valid email address.');
+        forgotEmail?.focus();
+        return;
+      }
+
+      setLoading(forgotSendBtn, true, 'Sending code…');
+      try {
+        const { data } = await api.post('/auth/forgot-password', { email });
+        _resetEmail = email;
+        showSuccess(data.message || 'Verification code sent if the email is registered.');
+
+        forgotEmailForm.style.display = 'none';
+        forgotOtpForm.style.display = 'block';
+        forgotTitle.textContent = 'Enter Verification Code';
+        forgotSubtitle.textContent = `A 6-digit recovery code was sent to ${email}`;
+        startResendTimer(60);
+        forgotOtp.value = '';
+        forgotOtp.focus();
+      } catch (err) {
+        showError(err.message || 'Failed to request reset code. Please try again.');
+      } finally {
+        setLoading(forgotSendBtn, false);
+      }
+    });
+  }
+
+  // Resend OTP button
+  if (forgotResendBtn) {
+    forgotResendBtn.addEventListener('click', async () => {
+      if (_resendSecondsRemaining > 0 || !_resetEmail) return;
+
+      setLoading(forgotResendBtn, true, 'Resending…');
+      try {
+        const { data } = await api.post('/auth/forgot-password', { email: _resetEmail });
+        showSuccess(data.message || 'New verification code sent.');
+        startResendTimer(60);
+      } catch (err) {
+        showError(err.message || 'Failed to resend verification code.');
+      } finally {
+        setLoading(forgotResendBtn, false);
+      }
+    });
+  }
+
+  // Step 2: Verify OTP
+  if (forgotOtpForm) {
+    forgotOtpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors(forgotOtpForm);
+
+      const otp = forgotOtp?.value.trim() || '';
+      if (!otp) {
+        showFieldError(forgotOtp, 'Verification code is required.');
+        forgotOtp?.focus();
+        return;
+      }
+      if (!/^\d{6}$/.test(otp)) {
+        showFieldError(forgotOtp, 'Please enter the 6-digit numeric verification code.');
+        forgotOtp?.focus();
+        return;
+      }
+
+      setLoading(forgotVerifyBtn, true, 'Verifying code…');
+      try {
+        const { data } = await api.post('/auth/verify-reset-otp', {
+          email: _resetEmail,
+          otp,
+        });
+
+        _resetToken = data.resetToken;
+        if (_resendTimer) clearInterval(_resendTimer);
+
+        showSuccess('Verification code confirmed! Please set your new password.');
+        forgotOtpForm.style.display = 'none';
+        forgotPasswordForm.style.display = 'block';
+        forgotTitle.textContent = 'Set New Password';
+        forgotSubtitle.textContent = 'Create a secure new password for your account.';
+        forgotNewPassword.value = '';
+        forgotConfirmPassword.value = '';
+        forgotNewPassword.focus();
+      } catch (err) {
+        showError(err.message || 'Invalid or expired verification code.');
+        forgotOtp.value = '';
+        forgotOtp.focus();
+      } finally {
+        setLoading(forgotVerifyBtn, false);
+      }
+    });
+  }
+
+  // Step 3: Complete Password Reset
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAllErrors(forgotPasswordForm);
+
+      const newPassword = forgotNewPassword?.value || '';
+      const confirmPassword = forgotConfirmPassword?.value || '';
+
+      if (!newPassword) {
+        showFieldError(forgotNewPassword, 'New password is required.');
+        forgotNewPassword?.focus();
+        return;
+      }
+
+      const rules = checkPasswordRules(newPassword);
+      if (!rules.isValid) {
+        showFieldError(forgotNewPassword, 'Password does not meet the security requirements.');
+        forgotNewPassword?.focus();
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showFieldError(forgotConfirmPassword, 'Passwords do not match.');
+        forgotConfirmPassword?.focus();
+        return;
+      }
+
+      setLoading(forgotResetBtn, true, 'Resetting password…');
+      try {
+        const { data } = await api.post('/auth/reset-password', {
+          email: _resetEmail,
+          resetToken: _resetToken,
+          newPassword,
+        });
+
+        showSuccess(data.message || 'Password reset successfully! Please sign in.');
+        resetForgotFlow();
+        stepForgot.hidden = true;
+        stepAuth.hidden = false;
+        setMode('signin');
+        setIdentifierType('EMAIL');
+        authEmail.value = _resetEmail;
+        authPassword.value = '';
+        authPassword.focus();
+      } catch (err) {
+        showError(err.message || 'Failed to reset password. Please try again.');
+      } finally {
+        setLoading(forgotResetBtn, false);
+      }
+    });
+  }
+}
+
+function resetForgotFlow() {
+  if (_resendTimer) clearInterval(_resendTimer);
+  _resetEmail = '';
+  _resetToken = '';
+  _resendSecondsRemaining = 60;
+
+  if (forgotEmailForm) {
+    forgotEmailForm.style.display = 'block';
+    clearAllErrors(forgotEmailForm);
+    forgotEmail.value = '';
+    forgotEmail.focus();
+  }
+  if (forgotOtpForm) {
+    forgotOtpForm.style.display = 'none';
+    clearAllErrors(forgotOtpForm);
+    forgotOtp.value = '';
+  }
+  if (forgotPasswordForm) {
+    forgotPasswordForm.style.display = 'none';
+    clearAllErrors(forgotPasswordForm);
+    forgotNewPassword.value = '';
+    forgotConfirmPassword.value = '';
+  }
+
+  if (forgotTitle) forgotTitle.textContent = 'Reset Your Password';
+  if (forgotSubtitle) forgotSubtitle.textContent = 'Enter your registered email address to receive a 6-digit verification code.';
+}
+
+function startResendTimer(seconds = 60) {
+  if (_resendTimer) clearInterval(_resendTimer);
+  _resendSecondsRemaining = seconds;
+
+  if (forgotResendBtn && resendCountdown) {
+    forgotResendBtn.disabled = true;
+    resendCountdown.textContent = _resendSecondsRemaining;
+
+    _resendTimer = setInterval(() => {
+      _resendSecondsRemaining -= 1;
+      if (_resendSecondsRemaining <= 0) {
+        clearInterval(_resendTimer);
+        _resendTimer = null;
+        forgotResendBtn.disabled = false;
+        forgotResendBtn.textContent = 'Resend Code';
+      } else {
+        resendCountdown.textContent = _resendSecondsRemaining;
+        forgotResendBtn.innerHTML = `Resend Code (<span id="resend-countdown">${_resendSecondsRemaining}</span>s)`;
+      }
+    }, 1000);
+  }
 }

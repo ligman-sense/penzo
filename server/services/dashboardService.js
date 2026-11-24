@@ -25,7 +25,7 @@ async function getDashboard(userId, role) {
     const cp = await CandidateProfile.findOne({ userId });
     const completion = candidateCompletion(cp, user);
 
-    const [totalRequests, activeRequests, recentRequests, upcomingExams, assignments, pendingCandidateProposals] = await Promise.all([
+    const [totalRequests, activeRequests, recentRequests, upcomingExams, assignments] = await Promise.all([
       ScribeRequest.countDocuments({ candidateId: userId }),
       ScribeRequest.countDocuments({
         candidateId: userId,
@@ -45,38 +45,9 @@ async function getDashboard(userId, role) {
         })
         .sort({ startsAt: 1 })
         .limit(5),
-      MatchProposal.find({ candidateId: userId, status: 'ACCEPTED' })
-        .populate({
-          path: 'requestId',
-          populate: { path: 'examinationId', select: 'name title authority startsOn' },
-        })
-        .populate('volunteerId', 'mobileE164 verificationStatus')
-        .sort({ createdAt: -1 }),
     ]);
 
-    const proposedMatches = await Promise.all(
-      pendingCandidateProposals.map(async (p) => {
-        const vp = p.volunteerId ? await VolunteerProfile.findOne({ userId: p.volunteerId._id }) : null;
-        return {
-          id: p._id.toString(),
-          requestId: p.requestId?._id.toString(),
-          reference: p.matchReference,
-          status: p.status,
-          examination: p.requestId?.examinationId ? {
-            name: p.requestId.examinationId.name || p.requestId.examinationId.title,
-            authority: p.requestId.examinationId.authority,
-            startsOn: p.requestId.examinationId.startsOn,
-          } : null,
-          volunteer: {
-            name: vp?.fullName || 'Volunteer',
-            languages: vp?.languages || [],
-            city: vp?.city,
-            hasExperience: Boolean(vp?.hasPriorExperience || vp?.hasScribeExperience),
-            verificationStatus: p.volunteerId?.verificationStatus || 'UNVERIFIED',
-          },
-        };
-      })
-    );
+    const proposedMatches = [];
 
     return {
       user: {
@@ -210,7 +181,6 @@ async function getDashboard(userId, role) {
           reference: p.requestId.reference,
           language: p.requestId.language,
           city: p.requestId.city,
-          requirements: p.requestId.requirements,
         } : null,
       })),
     };

@@ -94,7 +94,7 @@ async function getProfile(userId) {
     mobileVerifiedAt: user.mobileVerifiedAt || null,
     mobileVerificationSource: user.mobileVerificationSource || 'NONE',
     isMobileReadOnly: isMobileLogin,
-    isMobileRequired: isMobileLogin,
+    isMobileRequired: true,
   };
 
   return {
@@ -171,18 +171,17 @@ async function saveProfile(userId, { role, data }) {
         throw HttpError.badRequest('Registered mobile login identifier cannot be modified via profile update.');
       }
     } else {
-      // Email/Google user updating optional mobile
-      if (cleanMobileStr) {
-        const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
-        if (canonical !== user.mobileE164) {
-          const duplicate = await User.findOne({ mobileE164: canonical, _id: { $ne: user._id } });
-          if (duplicate) {
-            throw HttpError.badRequest('This mobile number is already in use by another account.');
-          }
-          user.mobileE164 = canonical;
+      // Email/Google user updating mandatory mobile
+      if (!cleanMobileStr) {
+        throw HttpError.badRequest('Mobile number is mandatory and cannot be removed.');
+      }
+      const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
+      if (canonical !== user.mobileE164) {
+        const duplicate = await User.findOne({ mobileE164: canonical, _id: { $ne: user._id } });
+        if (duplicate) {
+          throw HttpError.badRequest('This mobile number is already in use by another account.');
         }
-      } else {
-        user.mobileE164 = null;
+        user.mobileE164 = canonical;
       }
     }
   }

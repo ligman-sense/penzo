@@ -27,6 +27,11 @@ const { asyncHandler } = require('../utils/asyncHandler');
 const { ok } = require('../utils/response');
 const { HttpError } = require('../utils/httpError');
 const env = require('../config/env');
+const {
+  requestPasswordReset,
+  verifyPasswordResetOtp,
+  completePasswordReset,
+} = require('../services/passwordResetService');
 
 const authRouter = Router();
 authRouter.use(noStore);
@@ -206,6 +211,56 @@ authRouter.post(
       newPassword,
     });
     ok(res, { success: true, message: 'Password updated successfully.' });
+  })
+);
+
+authRouter.post(
+  '/change-password',
+  requireUser,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    await setPassword({
+      userId: req.auth.user._id,
+      currentPassword,
+      newPassword,
+    });
+    ok(res, { success: true, message: 'Password updated successfully.' });
+  })
+);
+
+// ─── Forgot Password & Password Reset (Resend Integration) ───────────────────
+
+authRouter.post(
+  '/forgot-password',
+  otpSendLimiter,
+  asyncHandler(async (req, res) => {
+    const { email } = req.body || {};
+    const result = await requestPasswordReset(email);
+    ok(res, result);
+  })
+);
+
+authRouter.post(
+  '/verify-reset-otp',
+  otpVerifyLimiter,
+  asyncHandler(async (req, res) => {
+    const { email, otp } = req.body || {};
+    const result = await verifyPasswordResetOtp(email, otp);
+    ok(res, result);
+  })
+);
+
+authRouter.post(
+  '/reset-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { email, resetToken, newPassword } = req.body || {};
+    const result = await completePasswordReset({
+      rawEmail: email,
+      resetToken,
+      newPassword,
+    });
+    ok(res, result);
   })
 );
 
