@@ -46,50 +46,19 @@ class MockSmsAdapter {
 }
 
 class TwilioVerifySmsAdapter {
-  constructor({ accountSid, authToken, serviceSid }) {
+  constructor() {
     this.name = 'twilio';
-    this.accountSid = accountSid;
-    this.authToken = authToken;
-    this.serviceSid = serviceSid;
   }
 
-  async sendOtp({ destination }) {
-    if (!this.accountSid || !this.authToken || !this.serviceSid) {
-      throw HttpError.serviceUnavailable(
-        'SMS verification service is not fully configured. Missing Twilio credentials.'
-      );
-    }
-
-    try {
-      // Twilio Verify API call template
-      const url = `https://verify.twilio.com/v2/Services/${this.serviceSid}/Verifications`;
-      const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
-      const body = new URLSearchParams({ To: destination, Channel: 'sms' });
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${auth}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: body.toString(),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Twilio verification dispatch failed');
-      }
-
-      return {
-        success: true,
-        provider: 'twilio',
-        destination,
-        messageId: data.sid,
-      };
-    } catch (err) {
-      console.error('[Twilio Verify Error]', err.message);
-      throw HttpError.serviceUnavailable('Failed to dispatch SMS verification. Please try again later.');
-    }
+  async sendOtp({ destination, code }) {
+    const { sendTwilioSms } = require('./twilioService');
+    const result = await sendTwilioSms({ destination, code });
+    return {
+      success: true,
+      provider: result.provider,
+      destination,
+      messageId: result.sid,
+    };
   }
 }
 
@@ -98,13 +67,9 @@ let activeSmsAdapter = null;
 function getSmsAdapter() {
   if (activeSmsAdapter) return activeSmsAdapter;
 
-  const provider = (process.env.SMS_PROVIDER || 'mock').toLowerCase();
+  const provider = (process.env.SMS_PROVIDER || (process.env.OTP_PROVIDER === 'sms' ? 'twilio' : 'mock')).toLowerCase();
   if (provider === 'twilio') {
-    activeSmsAdapter = new TwilioVerifySmsAdapter({
-      accountSid: process.env.TWILIO_ACCOUNT_SID,
-      authToken: process.env.TWILIO_AUTH_TOKEN,
-      serviceSid: process.env.TWILIO_VERIFY_SERVICE_SID,
-    });
+    activeSmsAdapter = new TwilioVerifySmsAdapter();
   } else {
     activeSmsAdapter = new MockSmsAdapter();
   }
