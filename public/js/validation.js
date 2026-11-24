@@ -36,6 +36,21 @@ export function validateRequired(value) {
   return value != null && String(value).trim() !== '';
 }
 
+export function checkPasswordRules(password) {
+  const pwd = String(password || '');
+  const minLength = pwd.length >= 8;
+  const hasUppercase = /[A-Z]/.test(pwd);
+  const hasNumber = /[0-9]/.test(pwd);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pwd);
+  return {
+    minLength,
+    hasUppercase,
+    hasNumber,
+    hasSpecial,
+    isValid: minLength && hasUppercase && hasNumber && hasSpecial,
+  };
+}
+
 export function showFieldError(field, message) {
   const formGroup = field.closest('.form-group') || field.parentElement;
   field.setAttribute('aria-invalid', 'true');

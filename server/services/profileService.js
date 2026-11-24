@@ -76,26 +76,32 @@ async function getProfile(userId) {
     profileData.verificationStatus = user.verificationStatus || 'UNVERIFIED';
   }
 
+  const primaryIdentifier = user.primaryIdentifier || (user.authProvider === 'GOOGLE' ? 'GOOGLE' : (user.email ? 'EMAIL' : 'MOBILE'));
+  const isEmailLogin = primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE';
+  const isMobileLogin = primaryIdentifier === 'MOBILE';
+
   const contactInfo = {
-    authProvider: user.authProvider || 'OTP',
+    authProvider: user.authProvider || 'PASSWORD',
+    primaryIdentifier,
     email: user.email || null,
     isEmailVerified: Boolean(user.isEmailVerified),
     emailVerifiedAt: user.emailVerifiedAt || null,
     emailVerificationSource: user.emailVerificationSource || 'NONE',
-    pendingEmail: user.pendingEmail || null,
-    isEmailReadOnly: user.authProvider === 'GOOGLE',
+    isEmailReadOnly: isEmailLogin,
+    isEmailRequired: isEmailLogin,
     mobile: user.mobileE164 || null,
     isMobileVerified: Boolean(user.isMobileVerified),
     mobileVerifiedAt: user.mobileVerifiedAt || null,
     mobileVerificationSource: user.mobileVerificationSource || 'NONE',
-    pendingMobile: user.pendingMobileE164 || null,
-    isMobileReadOnly: user.authProvider === 'OTP',
+    isMobileReadOnly: isMobileLogin,
+    isMobileRequired: isMobileLogin,
   };
 
   return {
     role: user.role,
     mobile: user.mobileE164,
     email: user.email,
+    primaryIdentifier,
     profileComplete: user.profileComplete,
     verificationStatus: user.verificationStatus || 'UNVERIFIED',
     completion,
@@ -115,7 +121,9 @@ async function saveProfile(userId, { role, data }) {
   const user = await User.findById(userId);
   if (!user) throw HttpError.notFound('User not found.');
 
-  // Contact field handling & strict identity immutability enforcement
+  const primaryIdentifier = user.primaryIdentifier || (user.authProvider === 'GOOGLE' ? 'GOOGLE' : (user.email ? 'EMAIL' : 'MOBILE'));
+
+  // 1. Email handling
   if (data.email !== undefined) {
     const rawEmail = typeof data.email === 'string' ? data.email.trim() : '';
     if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
@@ -123,51 +131,63 @@ async function saveProfile(userId, { role, data }) {
     }
     const cleanEmail = rawEmail.toLowerCase();
 
-    if (user.authProvider === 'GOOGLE') {
-      // OAuth email is immutable server-side
-      if (cleanEmail && cleanEmail !== (user.email || '').toLowerCase()) {
-        throw HttpError.badRequest('OAuth account email is managed by Google and cannot be modified.');
+    if (primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE') {
+      if (!cleanEmail) {
+        throw HttpError.badRequest('Registered email is your required login identifier and cannot be removed.');
+      }
+      if (cleanEmail !== (user.email || '').toLowerCase()) {
+        const msg = user.authProvider === 'GOOGLE'
+          ? 'OAuth account email is managed by Google and cannot be modified.'
+          : 'Registered email login identifier cannot be modified via profile update.';
+        throw HttpError.badRequest(msg);
       }
     } else {
-      // Mobile-login user:
-      // If email has changed from canonical verified email, mark as pendingEmail
+      // Mobile-first user updating optional email
       if (cleanEmail !== (user.email || '').toLowerCase()) {
-        user.pendingEmail = cleanEmail || null;
-        // Canonical email is not modified until verified via email challenge
+        if (cleanEmail) {
+          const duplicate = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
+          if (duplicate) {
+            throw HttpError.badRequest('This email address is already in use by another account.');
+          }
+          user.email = cleanEmail;
+        } else {
+          user.email = null;
+        }
       }
     }
   }
 
+  // 2. Mobile handling
   if (data.mobile !== undefined || data.phoneNumber !== undefined) {
     const rawMobile = data.mobile !== undefined ? data.mobile : data.phoneNumber;
-    if (user.authProvider === 'OTP') {
-      // Mobile login identity is immutable
-      if (rawMobile) {
-        const canonical = normalizeAndValidateIndianMobile(rawMobile);
-        if (canonical !== user.mobileE164) {
-          throw HttpError.badRequest('Mobile login identity cannot be modified.');
-        }
+    const cleanMobileStr = typeof rawMobile === 'string' ? rawMobile.trim() : '';
+
+    if (primaryIdentifier === 'MOBILE') {
+      if (!cleanMobileStr) {
+        throw HttpError.badRequest('Registered mobile number is your required login identifier and cannot be removed.');
+      }
+      const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
+      if (canonical !== user.mobileE164) {
+        throw HttpError.badRequest('Registered mobile login identifier cannot be modified via profile update.');
       }
     } else {
-      // OAuth user adding/updating mobile number:
-      if (rawMobile) {
-        const canonical = normalizeAndValidateIndianMobile(rawMobile);
+      // Email/Google user updating optional mobile
+      if (cleanMobileStr) {
+        const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
         if (canonical !== user.mobileE164) {
-          // New/changed number requires verification; clear verified state
-          user.pendingMobileE164 = canonical;
-          user.isMobileVerified = false;
-          user.mobileVerifiedAt = null;
-          user.mobileVerificationSource = 'NONE';
+          const duplicate = await User.findOne({ mobileE164: canonical, _id: { $ne: user._id } });
+          if (duplicate) {
+            throw HttpError.badRequest('This mobile number is already in use by another account.');
+          }
+          user.mobileE164 = canonical;
         }
       } else {
-        user.pendingMobileE164 = null;
         user.mobileE164 = null;
-        user.isMobileVerified = false;
-        user.mobileVerifiedAt = null;
-        user.mobileVerificationSource = 'NONE';
       }
     }
   }
+
+  await user.save();
 
   let cpOrVp;
   let completion;

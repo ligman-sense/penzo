@@ -48,8 +48,23 @@ const adminLoginLimiter = rateLimit({
   },
 });
 
+const authLimiter = rateLimit({
+  windowMs: FIFTEEN_MINUTES,
+  limit: isDev ? 1000 : 30,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Too many authentication attempts from this network. Please wait a few minutes.',
+    },
+  },
+});
+
 module.exports = {
   otpSendLimiter,
   otpVerifyLimiter,
   adminLoginLimiter,
+  authLimiter,
 };

@@ -3,9 +3,14 @@
 const { Router } = require('express');
 const { USER_COOKIE, clearSessionCookie, setSessionCookie } = require('../utils/cookies');
 const { noStore, requireCsrf, optionalUser, requireUser } = require('../middleware/auth');
-const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimits');
-const { sendOtp } = require('../services/otpService');
-const { loginWithOtp, resolveUserName, toSessionUser } = require('../services/authService');
+const { authLimiter, otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimits');
+const {
+  registerWithPassword,
+  loginWithPassword,
+  setPassword,
+  resolveUserName,
+  toSessionUser,
+} = require('../services/authService');
 const User = require('../models/User');
 const CandidateProfile = require('../models/CandidateProfile');
 const VolunteerProfile = require('../models/VolunteerProfile');
@@ -26,61 +31,59 @@ const env = require('../config/env');
 const authRouter = Router();
 authRouter.use(noStore);
 
+// ─── Deprecated OTP Endpoints (Explicit 410 Gone) ────────────────────────────
+
 authRouter.post(
   '/otp/send',
-  otpSendLimiter,
-  asyncHandler(async (req, res) => {
-    const { mobile } = req.body || {};
-    const cleanMobile = normalizeAndValidateIndianMobile(mobile);
-    const { challenge, code } = await sendOtp(cleanMobile, { ipAddress: req.ip });
-    const payload = {
-      expiresInSeconds: 300,
-      resendAfterSeconds: 30,
-      provider: challenge?.provider || 'development',
-    };
-    if (env.OTP_PROVIDER === 'development' || env.NODE_ENV !== 'production') {
-      payload.devCode = code;
-    }
-    ok(res, payload);
+  asyncHandler(async () => {
+    throw new HttpError(410, 'OTP_DEPRECATED', 'OTP authentication has been discontinued. Please register or sign in with your email or mobile and password.');
   })
 );
 
 authRouter.post(
   '/otp/verify',
-  otpVerifyLimiter,
-  asyncHandler(async (req, res) => {
-    const { mobile, role } = req.body || {};
-    const code = req.body?.code || req.body?.otp;
-    if (!mobile || !code) {
-      throw HttpError.badRequest('Mobile number and verification code are required.');
-    }
-    const cleanMobile = normalizeAndValidateIndianMobile(mobile);
-
-    const previous = req.cookies?.[USER_COOKIE];
-    if (typeof previous === 'string') await revokeSession(previous);
-
-    const { user, session, token, isNewUser } = await loginWithOtp({
-      mobile: cleanMobile,
-      code,
-      role: role || 'CANDIDATE',
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-    });
-
-    setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
-    const name = await resolveUserName(user);
-    ok(res, {
-      user: toSessionUser(user, name),
-      csrfToken: session.csrfToken,
-      isNewUser,
-    });
+  asyncHandler(async () => {
+    throw new HttpError(410, 'OTP_DEPRECATED', 'OTP authentication has been discontinued. Please register or sign in with your email or mobile and password.');
   })
 );
 
+// ─── Password Registration & Sign-in ─────────────────────────────────────────
+
 authRouter.post(
   '/register',
-  requireUser,
+  authLimiter,
+  optionalUser,
   asyncHandler(async (req, res) => {
+    // If request contains registration credentials, process password registration
+    if (req.body?.password || req.body?.identifier || req.body?.identifierType) {
+      const { role, identifierType, identifier, password, name } = req.body || {};
+      const previous = req.cookies?.[USER_COOKIE];
+      if (typeof previous === 'string') await revokeSession(previous);
+
+      const { user, session, token, isNewUser } = await registerWithPassword({
+        role,
+        identifierType,
+        identifier,
+        password,
+        name,
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
+      const resolvedName = await resolveUserName(user);
+      return ok(res, {
+        user: toSessionUser(user, resolvedName),
+        csrfToken: session.csrfToken,
+        isNewUser,
+      });
+    }
+
+    // Otherwise, handle existing authenticated Google OAuth user completing role selection
+    if (req.auth?.kind !== 'user') {
+      throw HttpError.unauthorized('Please sign in or provide registration credentials.');
+    }
+
     const { mobile, role } = req.body || {};
     if (!role || !['CANDIDATE', 'VOLUNTEER'].includes(role)) {
       throw HttpError.badRequest('A valid role (CANDIDATE or VOLUNTEER) is required.');
@@ -111,6 +114,98 @@ authRouter.post(
     }
 
     ok(res, { success: true, role, csrfToken: req.auth.csrfToken });
+  })
+);
+
+authRouter.post(
+  '/register-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { role, identifierType, identifier, password, name } = req.body || {};
+    const previous = req.cookies?.[USER_COOKIE];
+    if (typeof previous === 'string') await revokeSession(previous);
+
+    const { user, session, token, isNewUser } = await registerWithPassword({
+      role,
+      identifierType,
+      identifier,
+      password,
+      name,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
+    const resolvedName = await resolveUserName(user);
+    ok(res, {
+      user: toSessionUser(user, resolvedName),
+      csrfToken: session.csrfToken,
+      isNewUser,
+    });
+  })
+);
+
+authRouter.post(
+  '/login',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { identifier, password } = req.body || {};
+    const previous = req.cookies?.[USER_COOKIE];
+    if (typeof previous === 'string') await revokeSession(previous);
+
+    const { user, session, token, isNewUser } = await loginWithPassword({
+      identifier,
+      password,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
+    const resolvedName = await resolveUserName(user);
+    ok(res, {
+      user: toSessionUser(user, resolvedName),
+      csrfToken: session.csrfToken,
+      isNewUser,
+    });
+  })
+);
+
+authRouter.post(
+  '/login-password',
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { identifier, password } = req.body || {};
+    const previous = req.cookies?.[USER_COOKIE];
+    if (typeof previous === 'string') await revokeSession(previous);
+
+    const { user, session, token, isNewUser } = await loginWithPassword({
+      identifier,
+      password,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    setSessionCookie(res, USER_COOKIE, token, session.expiresAt);
+    const resolvedName = await resolveUserName(user);
+    ok(res, {
+      user: toSessionUser(user, resolvedName),
+      csrfToken: session.csrfToken,
+      isNewUser,
+    });
+  })
+);
+
+authRouter.post(
+  '/set-password',
+  requireUser,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    await setPassword({
+      userId: req.auth.user._id,
+      currentPassword,
+      newPassword,
+    });
+    ok(res, { success: true, message: 'Password updated successfully.' });
   })
 );
 

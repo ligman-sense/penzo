@@ -12,7 +12,7 @@ class HttpError extends Error {
   static notFound(msg = "We couldn't find what you were looking for.") { return new HttpError(404, 'NOT_FOUND', msg); }
   static tooMany(msg, details) { return new HttpError(429, 'RATE_LIMITED', msg, details); }
   static invalidOtp(msg) { return new HttpError(400, 'INVALID_OTP', msg); }
-  static invalidCredentials() { return new HttpError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password.'); }
+  static invalidCredentials(msg = 'Invalid identifier or password.') { return new HttpError(401, 'INVALID_CREDENTIALS', msg); }
   static conflict(msg, details) { return new HttpError(409, 'CONFLICT', msg, details); }
   static invalidTransition(msg) { return new HttpError(409, 'INVALID_STATE_TRANSITION', msg); }
   static profileIncomplete(msg) { return new HttpError(409, 'PROFILE_INCOMPLETE', msg); }

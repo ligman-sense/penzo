@@ -7,7 +7,6 @@ import { updateUnreadCount, showError, showSuccess } from '../notifications.js';
 import { validateEmail, validateRequired, showFieldError, clearAllErrors } from '../validation.js';
 import { escapeHtml, setLoading } from '../utils.js';
 import { computeCandidateCompletion, renderCompletionWidget } from '../profileCompletion.js';
-import { initContactVerification } from '../contactVerification.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const form                = document.getElementById('profile-form');
@@ -116,23 +115,75 @@ function fillForm(profile, responseData = {}) {
   set('state',           profile.state || profile.address?.state);
   set('pincode',         profile.pincode || profile.address?.pincode);
 
-  // Initialize Contact Information Verification
-  const contactInfo = responseData.contactInfo || {
-    authProvider: (responseData.email && !responseData.mobile) ? 'GOOGLE' : 'OTP',
-    email: responseData.email || profile.email,
-    mobile: responseData.mobile || profile.mobile,
-    isEmailVerified: false,
-    isMobileVerified: Boolean(responseData.mobile),
-  };
+  // Contact fields & Login Identifier rendering
+  const contactInfo = responseData.contactInfo || {};
+  const emailInput = form.querySelector('#email');
+  const mobileInput = form.querySelector('#mobile-display');
+  const emailBadge = document.getElementById('email-status-badge');
+  const mobileBadge = document.getElementById('mobile-status-badge');
+  const emailHint = document.getElementById('email-hint');
+  const mobileHint = document.getElementById('mobile-hint');
 
-  initContactVerification({
-    form,
-    contactInfo,
-    onVerified: () => {
-      _hasUnsavedChanges = false;
-      loadProfile();
-    },
-  });
+  const primary = contactInfo.primaryIdentifier || (contactInfo.authProvider === 'GOOGLE' ? 'GOOGLE' : (responseData.email ? 'EMAIL' : 'MOBILE'));
+  const isEmailLogin = primary === 'EMAIL' || contactInfo.authProvider === 'GOOGLE';
+  const isMobileLogin = primary === 'MOBILE';
+
+  if (emailInput) {
+    emailInput.value = responseData.email || profile.email || '';
+    if (isEmailLogin) {
+      emailInput.readOnly = true;
+      emailInput.setAttribute('aria-readonly', 'true');
+      emailInput.style.backgroundColor = 'var(--color-surface-2)';
+      if (emailBadge) {
+        emailBadge.className = 'badge badge--primary';
+        emailBadge.textContent = contactInfo.authProvider === 'GOOGLE' ? 'Google Login (Required)' : 'Login Identifier (Required)';
+      }
+      if (emailHint) {
+        emailHint.textContent = contactInfo.authProvider === 'GOOGLE'
+          ? 'Managed by your Google account.'
+          : 'Your registered account login identifier (cannot be removed).';
+      }
+    } else {
+      emailInput.readOnly = false;
+      emailInput.removeAttribute('aria-readonly');
+      emailInput.style.backgroundColor = '';
+      if (emailBadge) {
+        emailBadge.className = 'badge badge--gray';
+        emailBadge.textContent = 'Optional';
+      }
+      if (emailHint) {
+        emailHint.textContent = 'Optional email for exam notifications and updates.';
+      }
+    }
+  }
+
+  if (mobileInput) {
+    const rawMobile = (responseData.mobile || profile.mobile || '').replace(/^\+91/, '');
+    mobileInput.value = rawMobile;
+    if (isMobileLogin) {
+      mobileInput.readOnly = true;
+      mobileInput.setAttribute('aria-readonly', 'true');
+      mobileInput.style.backgroundColor = 'var(--color-surface-2)';
+      if (mobileBadge) {
+        mobileBadge.className = 'badge badge--primary';
+        mobileBadge.textContent = 'Login Identifier (Required)';
+      }
+      if (mobileHint) {
+        mobileHint.textContent = 'Your registered mobile login identifier (cannot be removed).';
+      }
+    } else {
+      mobileInput.readOnly = false;
+      mobileInput.removeAttribute('aria-readonly');
+      mobileInput.style.backgroundColor = '';
+      if (mobileBadge) {
+        mobileBadge.className = 'badge badge--gray';
+        mobileBadge.textContent = 'Optional';
+      }
+      if (mobileHint) {
+        mobileHint.textContent = 'Optional 10-digit Indian mobile number (+91).';
+      }
+    }
+  }
 
   setupLiveProgress();
   setupFormSubmit();

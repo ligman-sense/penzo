@@ -23,7 +23,9 @@ const userSchema = new Schema({
   },
   pendingEmail: { type: String, default: null },
   googleId: { type: String, default: null },
-  authProvider: { type: String, enum: ['OTP', 'GOOGLE'], default: 'OTP' },
+  passwordHash: { type: String, default: null },
+  primaryIdentifier: { type: String, enum: ['EMAIL', 'MOBILE'], default: null },
+  authProvider: { type: String, enum: ['PASSWORD', 'GOOGLE', 'OTP'], default: 'PASSWORD' },
   avatarUrl: { type: String, default: null },
   status: { type: String, enum: ['ACTIVE', 'SUSPENDED'], default: 'ACTIVE' },
   profileComplete: { type: Boolean, default: false },
@@ -48,7 +50,7 @@ userSchema.index(
 );
 userSchema.index(
   { email: 1 },
-  { partialFilterExpression: { email: { $type: 'string' } } }
+  { unique: true, partialFilterExpression: { email: { $type: 'string' } } }
 );
 
 module.exports = mongoose.model('User', userSchema);

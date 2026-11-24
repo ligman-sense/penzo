@@ -2,16 +2,10 @@
 
 const { Router } = require('express');
 const { noStore, requireUser, requireRole } = require('../middleware/auth');
-const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimits');
 const { getProfile, saveProfile } = require('../services/profileService');
-const {
-  initiateMobileVerification,
-  confirmMobileVerification,
-  initiateEmailVerification,
-  confirmEmailVerification,
-} = require('../services/verification/contactVerificationService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok } = require('../utils/response');
+const { HttpError } = require('../utils/httpError');
 
 const profileRouter = Router();
 profileRouter.use(noStore, requireUser, requireRole('CANDIDATE', 'VOLUNTEER'));
@@ -32,50 +26,15 @@ profileRouter.put(
   })
 );
 
-// ─── Contact Verification Routes ──────────────────────────────────────────────
+// ─── Deprecated Contact Verification Endpoints (410 Gone) ─────────────────────
 
-profileRouter.post(
-  '/contact/mobile/send-otp',
-  otpSendLimiter,
-  asyncHandler(async (req, res) => {
-    const { mobile } = req.body || {};
-    const result = await initiateMobileVerification(req.auth.user._id, mobile, {
-      ipAddress: req.ip,
-    });
-    ok(res, result);
-  })
-);
+const deprecatedVerificationHandler = asyncHandler(async () => {
+  throw new HttpError(410, 'OTP_DEPRECATED', 'Contact OTP verification has been discontinued. Password authentication is in effect.');
+});
 
-profileRouter.post(
-  '/contact/mobile/verify-otp',
-  otpVerifyLimiter,
-  asyncHandler(async (req, res) => {
-    const code = req.body?.code || req.body?.otp;
-    const result = await confirmMobileVerification(req.auth.user._id, code);
-    ok(res, result);
-  })
-);
-
-profileRouter.post(
-  '/contact/email/send-code',
-  otpSendLimiter,
-  asyncHandler(async (req, res) => {
-    const { email } = req.body || {};
-    const result = await initiateEmailVerification(req.auth.user._id, email, {
-      ipAddress: req.ip,
-    });
-    ok(res, result);
-  })
-);
-
-profileRouter.post(
-  '/contact/email/verify-code',
-  otpVerifyLimiter,
-  asyncHandler(async (req, res) => {
-    const code = req.body?.code || req.body?.otp;
-    const result = await confirmEmailVerification(req.auth.user._id, code);
-    ok(res, result);
-  })
-);
+profileRouter.post('/contact/mobile/send-otp', deprecatedVerificationHandler);
+profileRouter.post('/contact/mobile/verify-otp', deprecatedVerificationHandler);
+profileRouter.post('/contact/email/send-code', deprecatedVerificationHandler);
+profileRouter.post('/contact/email/verify-code', deprecatedVerificationHandler);
 
 module.exports = { profileRouter };

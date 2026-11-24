@@ -35,9 +35,4 @@ const env = {
   GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
 };
 
-if (env.NODE_ENV === 'production' && env.OTP_PROVIDER === 'development') {
-  console.error('OTP_PROVIDER=development is not allowed in production');
-  process.exit(1);
-}
-
 module.exports = env;
