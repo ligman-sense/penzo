@@ -20,6 +20,13 @@ class MockEmailAdapter {
       expiresInSeconds,
     };
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n[EMAIL VERIFY OTP] ============================`);
+      console.log(`[EMAIL VERIFY OTP] Destination : ${destination}`);
+      console.log(`[EMAIL VERIFY OTP] Code        : ${code}`);
+      console.log(`[EMAIL VERIFY OTP] ============================\n`);
+    }
+
     return {
       success: true,
       provider: 'mock',

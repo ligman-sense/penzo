@@ -104,13 +104,17 @@ async function initiateMobileVerification(userId, mobileInput, { ipAddress } = {
     expiresInSeconds: CHALLENGE_TTL_SECONDS,
   });
 
-  return {
+  const payload = {
     success: true,
     message: 'Verification code sent to your mobile number.',
     expiresInSeconds: CHALLENGE_TTL_SECONDS,
     resendCooldownSeconds: RESEND_COOLDOWN_SECONDS,
     destination: canonicalMobile,
   };
+  if (process.env.NODE_ENV !== 'production') {
+    payload.devCode = code;
+  }
+  return payload;
 }
 
 /**
@@ -260,13 +264,17 @@ async function initiateEmailVerification(userId, emailInput, { ipAddress } = {})
     expiresInSeconds: CHALLENGE_TTL_SECONDS,
   });
 
-  return {
+  const payload = {
     success: true,
     message: 'Verification code sent to your email address.',
     expiresInSeconds: CHALLENGE_TTL_SECONDS,
     resendCooldownSeconds: RESEND_COOLDOWN_SECONDS,
     destination: cleanEmail,
   };
+  if (process.env.NODE_ENV !== 'production') {
+    payload.devCode = code;
+  }
+  return payload;
 }
 
 /**

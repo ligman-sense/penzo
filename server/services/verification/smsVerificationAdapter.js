@@ -21,6 +21,13 @@ class MockSmsAdapter {
       expiresInSeconds,
     };
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n[SMS VERIFY OTP] ============================`);
+      console.log(`[SMS VERIFY OTP] Destination : ${destination}`);
+      console.log(`[SMS VERIFY OTP] Code        : ${code}`);
+      console.log(`[SMS VERIFY OTP] ============================\n`);
+    }
+
     return {
       success: true,
       provider: 'mock',

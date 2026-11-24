@@ -170,7 +170,12 @@ export function initContactVerification({ form, contactInfo, onVerified }) {
 
     try {
       const { data } = await api.post('/profile/contact/mobile/send-otp', { mobile: canonicalMobile });
-      showSuccess(data.message || 'Verification code sent to your mobile number.');
+      if (data.devCode && mobileOtpInput) {
+        mobileOtpInput.value = data.devCode;
+        showSuccess(`Verification code sent! (Dev OTP: ${data.devCode})`);
+      } else {
+        showSuccess(data.message || 'Verification code sent to your mobile number.');
+      }
       if (mobileOtpPanel) mobileOtpPanel.style.display = 'block';
       mobileOtpInput?.focus();
       startCooldown('mobile', data.resendCooldownSeconds || 60);
@@ -232,7 +237,12 @@ export function initContactVerification({ form, contactInfo, onVerified }) {
 
     try {
       const { data } = await api.post('/profile/contact/email/send-code', { email: rawEmail });
-      showSuccess(data.message || 'Verification code sent to your email address.');
+      if (data.devCode && emailOtpInput) {
+        emailOtpInput.value = data.devCode;
+        showSuccess(`Verification code sent! (Dev Code: ${data.devCode})`);
+      } else {
+        showSuccess(data.message || 'Verification code sent to your email address.');
+      }
       if (emailOtpPanel) emailOtpPanel.style.display = 'block';
       emailOtpInput?.focus();
       startCooldown('email', data.resendCooldownSeconds || 60);
