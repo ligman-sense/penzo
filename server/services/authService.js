@@ -35,7 +35,13 @@ function toSessionUser(user, name = null) {
     name: name || user.name || null,
     mobile: user.mobileE164 || null,
     mobileMasked: maskMobile(user.mobileE164),
-    email: user.email,
+    isMobileVerified: Boolean(user.isMobileVerified),
+    mobileVerifiedAt: user.mobileVerifiedAt || null,
+    pendingMobile: user.pendingMobileE164 || null,
+    email: user.email || null,
+    isEmailVerified: Boolean(user.isEmailVerified),
+    emailVerifiedAt: user.emailVerifiedAt || null,
+    pendingEmail: user.pendingEmail || null,
     avatarUrl: user.avatarUrl || null,
     authProvider: user.authProvider || 'OTP',
     profileComplete: user.profileComplete,
@@ -61,7 +67,10 @@ async function loginWithOtp({ mobile, code, role, ip, userAgent }) {
     user = await User.create({
       role,
       mobileE164: mobile,
+      isMobileVerified: true,
       mobileVerifiedAt: now,
+      mobileVerificationSource: 'LOGIN_OTP',
+      authProvider: 'OTP',
       status: 'ACTIVE',
       profileComplete: false,
       lastLoginAt: now,
@@ -77,7 +86,11 @@ async function loginWithOtp({ mobile, code, role, ip, userAgent }) {
       throw HttpError.forbidden('This account has been suspended. Please contact support.');
     }
     user.lastLoginAt = now;
+    user.isMobileVerified = true;
     if (!user.mobileVerifiedAt) user.mobileVerifiedAt = now;
+    if (!user.mobileVerificationSource || user.mobileVerificationSource === 'NONE') {
+      user.mobileVerificationSource = 'LOGIN_OTP';
+    }
     await user.save();
   }
 

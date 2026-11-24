@@ -83,7 +83,7 @@ function setupPhoneForm() {
 
     const mobile = normalizeMobile(countryCode, rawNumber);
     if (!validateMobile(mobile)) {
-      showFieldError(phoneInput, 'Enter a valid phone number.');
+      showFieldError(phoneInput, 'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
       return;
     }
 

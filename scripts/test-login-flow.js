@@ -105,8 +105,8 @@ async function testUserFlow(roleName, mobile) {
 
 async function run() {
   try {
-    await testUserFlow('Candidate', '+00012345001');
-    await testUserFlow('Volunteer', '+00012345002');
+    await testUserFlow('Candidate', '+919876543001');
+    await testUserFlow('Volunteer', '+919876543002');
     console.log('\n========================================');
     console.log('ALL CANDIDATE & VOLUNTEER TESTS PASSED!');
     console.log('========================================\n');

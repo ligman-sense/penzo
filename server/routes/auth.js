@@ -17,6 +17,7 @@ const {
   authenticateWithGoogle,
 } = require('../services/googleAuthService');
 const { revokeSession } = require('../services/sessionService');
+const { normalizeAndValidateIndianMobile } = require('../utils/phoneValidator');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok } = require('../utils/response');
 const { HttpError } = require('../utils/httpError');
@@ -30,10 +31,7 @@ authRouter.post(
   otpSendLimiter,
   asyncHandler(async (req, res) => {
     const { mobile } = req.body || {};
-    if (!mobile || typeof mobile !== 'string') {
-      throw HttpError.badRequest('Valid mobile number in E.164 format is required.');
-    }
-    const cleanMobile = mobile.replace(/\s+/g, '');
+    const cleanMobile = normalizeAndValidateIndianMobile(mobile);
     const { challenge, code } = await sendOtp(cleanMobile, { ipAddress: req.ip });
     const payload = {
       expiresInSeconds: 300,
@@ -56,7 +54,7 @@ authRouter.post(
     if (!mobile || !code) {
       throw HttpError.badRequest('Mobile number and verification code are required.');
     }
-    const cleanMobile = mobile.replace(/\s+/g, '');
+    const cleanMobile = normalizeAndValidateIndianMobile(mobile);
 
     const previous = req.cookies?.[USER_COOKIE];
     if (typeof previous === 'string') await revokeSession(previous);

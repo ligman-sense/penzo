@@ -44,13 +44,9 @@
           <form id="phone-form">
             <div class="form-group">
               <label for="phone-number" class="form-label">Mobile Number</label>
-              <div class="phone-input-group">
-                <select id="country-code" class="form-select phone-prefix" aria-label="Country Code">
-                  <option value="91">+91 (IN)</option>
-                  <option value="1">+1 (US)</option>
-                  <option value="44">+44 (UK)</option>
-                  <option value="000">+000 (DEMO)</option>
-                </select>
+              <div class="phone-input-group" style="display: flex;">
+                <input type="hidden" id="country-code" value="91">
+                <span class="phone-prefix" style="display: flex; align-items: center; justify-content: center; padding: 0 0.85rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); font-weight: 600; color: var(--color-text); font-size: 0.95rem;">+91</span>
                 <input
                   type="tel"
                   id="phone-number"
@@ -59,9 +55,10 @@
                   placeholder="98765 43210"
                   required
                   autocomplete="tel"
+                  style="border-top-left-radius: 0; border-bottom-left-radius: 0;"
                 >
               </div>
-              <span class="form-hint">We'll send a 6-digit code to this number.</span>
+              <span class="form-hint">Enter your 10-digit Indian mobile number (+91).</span>
             </div>
 
             <button type="submit" class="btn btn--primary btn--full" style="margin-top: 1rem;">

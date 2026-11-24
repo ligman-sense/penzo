@@ -5,6 +5,7 @@ const CandidateProfile = require('../models/CandidateProfile');
 const VolunteerProfile = require('../models/VolunteerProfile');
 const VerificationRecord = require('../models/VerificationRecord');
 const { candidateCompletion, volunteerCompletion } = require('./profileCompletion');
+const { normalizeAndValidateIndianMobile } = require('../utils/phoneValidator');
 const { HttpError } = require('../utils/httpError');
 
 async function getProfile(userId) {
@@ -75,6 +76,22 @@ async function getProfile(userId) {
     profileData.verificationStatus = user.verificationStatus || 'UNVERIFIED';
   }
 
+  const contactInfo = {
+    authProvider: user.authProvider || 'OTP',
+    email: user.email || null,
+    isEmailVerified: Boolean(user.isEmailVerified),
+    emailVerifiedAt: user.emailVerifiedAt || null,
+    emailVerificationSource: user.emailVerificationSource || 'NONE',
+    pendingEmail: user.pendingEmail || null,
+    isEmailReadOnly: user.authProvider === 'GOOGLE',
+    mobile: user.mobileE164 || null,
+    isMobileVerified: Boolean(user.isMobileVerified),
+    mobileVerifiedAt: user.mobileVerifiedAt || null,
+    mobileVerificationSource: user.mobileVerificationSource || 'NONE',
+    pendingMobile: user.pendingMobileE164 || null,
+    isMobileReadOnly: user.authProvider === 'OTP',
+  };
+
   return {
     role: user.role,
     mobile: user.mobileE164,
@@ -83,6 +100,7 @@ async function getProfile(userId) {
     verificationStatus: user.verificationStatus || 'UNVERIFIED',
     completion,
     profile: profileData,
+    contactInfo,
     verifications: verifications.map((v) => ({
       id: v._id.toString(),
       kind: v.kind,
@@ -97,12 +115,58 @@ async function saveProfile(userId, { role, data }) {
   const user = await User.findById(userId);
   if (!user) throw HttpError.notFound('User not found.');
 
+  // Contact field handling & strict identity immutability enforcement
   if (data.email !== undefined) {
-    const trimmedEmail = typeof data.email === 'string' ? data.email.trim() : '';
-    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    const rawEmail = typeof data.email === 'string' ? data.email.trim() : '';
+    if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       throw HttpError.badRequest('Please enter a valid email address.');
     }
-    user.email = trimmedEmail || null;
+    const cleanEmail = rawEmail.toLowerCase();
+
+    if (user.authProvider === 'GOOGLE') {
+      // OAuth email is immutable server-side
+      if (cleanEmail && cleanEmail !== (user.email || '').toLowerCase()) {
+        throw HttpError.badRequest('OAuth account email is managed by Google and cannot be modified.');
+      }
+    } else {
+      // Mobile-login user:
+      // If email has changed from canonical verified email, mark as pendingEmail
+      if (cleanEmail !== (user.email || '').toLowerCase()) {
+        user.pendingEmail = cleanEmail || null;
+        // Canonical email is not modified until verified via email challenge
+      }
+    }
+  }
+
+  if (data.mobile !== undefined || data.phoneNumber !== undefined) {
+    const rawMobile = data.mobile !== undefined ? data.mobile : data.phoneNumber;
+    if (user.authProvider === 'OTP') {
+      // Mobile login identity is immutable
+      if (rawMobile) {
+        const canonical = normalizeAndValidateIndianMobile(rawMobile);
+        if (canonical !== user.mobileE164) {
+          throw HttpError.badRequest('Mobile login identity cannot be modified.');
+        }
+      }
+    } else {
+      // OAuth user adding/updating mobile number:
+      if (rawMobile) {
+        const canonical = normalizeAndValidateIndianMobile(rawMobile);
+        if (canonical !== user.mobileE164) {
+          // New/changed number requires verification; clear verified state
+          user.pendingMobileE164 = canonical;
+          user.isMobileVerified = false;
+          user.mobileVerifiedAt = null;
+          user.mobileVerificationSource = 'NONE';
+        }
+      } else {
+        user.pendingMobileE164 = null;
+        user.mobileE164 = null;
+        user.isMobileVerified = false;
+        user.mobileVerifiedAt = null;
+        user.mobileVerificationSource = 'NONE';
+      }
+    }
   }
 
   let cpOrVp;

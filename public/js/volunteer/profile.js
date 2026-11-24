@@ -7,6 +7,7 @@ import { updateUnreadCount, showError, showSuccess } from '../notifications.js';
 import { validateEmail, validateRequired, showFieldError, clearAllErrors } from '../validation.js';
 import { escapeHtml, setLoading } from '../utils.js';
 import { computeVolunteerCompletion, renderCompletionWidget } from '../profileCompletion.js';
+import { initContactVerification } from '../contactVerification.js';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const form                = document.getElementById('profile-form');
@@ -87,6 +88,24 @@ function fillForm(profile, responseData = {}) {
   const expEl = form.querySelector('#has-experience');
   if (expEl) expEl.checked = !!(profile.hasPreviousExperience || profile.hasPriorExperience || profile.hasScribeExperience);
 
+  // Initialize Contact Information Verification
+  const contactInfo = responseData.contactInfo || {
+    authProvider: (responseData.email && !responseData.mobile) ? 'GOOGLE' : 'OTP',
+    email: responseData.email || profile.email,
+    mobile: responseData.mobile || profile.mobile,
+    isEmailVerified: false,
+    isMobileVerified: Boolean(responseData.mobile),
+  };
+
+  initContactVerification({
+    form,
+    contactInfo,
+    onVerified: () => {
+      _hasUnsavedChanges = false;
+      loadProfile();
+    },
+  });
+
   setupLiveProgress();
   setupFormSubmit();
 }
@@ -160,11 +179,15 @@ function collectFormData() {
   const subjStr   = g('subjects');
   const regionStr = g('available-regions');
 
+  const mobileVal = g('mobile-display');
+  const canonicalMobile = mobileVal ? (mobileVal.startsWith('+') ? mobileVal : `+91${mobileVal.replace(/[^0-9]/g, '').slice(-10)}`) : undefined;
+
   return {
     firstName:          g('first-name'),
     lastName:           g('last-name'),
     fullName:           `${g('first-name')} ${g('last-name')}`.trim(),
     email:              g('email'),
+    mobile:             canonicalMobile,
     dateOfBirth:        g('date-of-birth'),
     gender:             g('gender'),
     hasPreviousExperience: form.querySelector('#has-experience')?.checked || false,

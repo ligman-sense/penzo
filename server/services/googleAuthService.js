@@ -93,8 +93,11 @@ async function fetchGoogleUserInfo(accessToken) {
  * Authenticate or register user using verified Google profile information.
  */
 async function authenticateWithGoogle({ profile, ip, userAgent }) {
-  const { sub: googleId, email, name, picture, given_name, family_name } = profile;
+  const { sub: googleId, email, name, picture, given_name, family_name, email_verified } = profile;
   const cleanEmail = email ? String(email).trim().toLowerCase() : null;
+  const isGoogleEmailVerified = Boolean(
+    email_verified === true || email_verified === 'true'
+  );
 
   if (!googleId) {
     throw HttpError.badRequest('Invalid Google profile: missing unique user identifier.');
@@ -112,6 +115,11 @@ async function authenticateWithGoogle({ profile, ip, userAgent }) {
       if (picture && !user.avatarUrl) user.avatarUrl = picture;
       if (name && !user.name) user.name = name;
       user.authProvider = 'GOOGLE';
+      if (isGoogleEmailVerified) {
+        user.isEmailVerified = true;
+        user.emailVerifiedAt = user.emailVerifiedAt || now;
+        user.emailVerificationSource = 'GOOGLE';
+      }
       await user.save();
     }
   }
@@ -122,6 +130,12 @@ async function authenticateWithGoogle({ profile, ip, userAgent }) {
       role: 'CANDIDATE', // Default initial role, user can select/switch in onboarding
       googleId,
       email: cleanEmail,
+      isEmailVerified: isGoogleEmailVerified,
+      emailVerifiedAt: isGoogleEmailVerified ? now : null,
+      emailVerificationSource: isGoogleEmailVerified ? 'GOOGLE' : 'NONE',
+      isMobileVerified: false,
+      mobileVerifiedAt: null,
+      mobileVerificationSource: 'NONE',
       name: name || (cleanEmail ? cleanEmail.split('@')[0] : 'User'),
       avatarUrl: picture || null,
       authProvider: 'GOOGLE',
@@ -143,6 +157,11 @@ async function authenticateWithGoogle({ profile, ip, userAgent }) {
       throw HttpError.forbidden('This account has been suspended. Please contact support.');
     }
     user.lastLoginAt = now;
+    if (isGoogleEmailVerified && !user.isEmailVerified) {
+      user.isEmailVerified = true;
+      user.emailVerifiedAt = user.emailVerifiedAt || now;
+      user.emailVerificationSource = 'GOOGLE';
+    }
     if (picture && user.avatarUrl !== picture) {
       user.avatarUrl = picture;
     }
