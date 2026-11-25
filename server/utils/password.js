@@ -25,4 +25,39 @@ async function verifyPassword(password, stored) {
 let _dummy;
 const dummyHash = () => (_dummy ??= hashPassword(crypto.randomBytes(12).toString('hex')));
 
-module.exports = { hashPassword, verifyPassword, dummyHash };
+/**
+ * Validates password meets minimum security policy:
+ * - Minimum 8 characters
+ * - At least 1 uppercase letter
+ * - At least 1 number
+ * - At least 1 special character
+ */
+function validatePasswordPolicy(password) {
+  if (typeof password !== 'string' || !password) {
+    return {
+      isValid: false,
+      errors: ['Password is required.'],
+    };
+  }
+
+  const errors = [];
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long.');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter.');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number.');
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
+    errors.push('Password must contain at least one special character.');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+module.exports = { hashPassword, verifyPassword, dummyHash, validatePasswordPolicy };

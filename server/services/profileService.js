@@ -5,6 +5,7 @@ const CandidateProfile = require('../models/CandidateProfile');
 const VolunteerProfile = require('../models/VolunteerProfile');
 const VerificationRecord = require('../models/VerificationRecord');
 const { candidateCompletion, volunteerCompletion } = require('./profileCompletion');
+const { normalizeAndValidateIndianMobile } = require('../utils/phoneValidator');
 const { HttpError } = require('../utils/httpError');
 
 async function getProfile(userId) {
@@ -75,14 +76,37 @@ async function getProfile(userId) {
     profileData.verificationStatus = user.verificationStatus || 'UNVERIFIED';
   }
 
+  const primaryIdentifier = user.primaryIdentifier || (user.authProvider === 'GOOGLE' ? 'GOOGLE' : (user.email ? 'EMAIL' : 'MOBILE'));
+  const isEmailLogin = primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE';
+  const isMobileLogin = primaryIdentifier === 'MOBILE';
+
+  const contactInfo = {
+    authProvider: user.authProvider || 'PASSWORD',
+    primaryIdentifier,
+    email: user.email || null,
+    isEmailVerified: Boolean(user.isEmailVerified),
+    emailVerifiedAt: user.emailVerifiedAt || null,
+    emailVerificationSource: user.emailVerificationSource || 'NONE',
+    isEmailReadOnly: isEmailLogin,
+    isEmailRequired: isEmailLogin,
+    mobile: user.mobileE164 || null,
+    isMobileVerified: Boolean(user.isMobileVerified),
+    mobileVerifiedAt: user.mobileVerifiedAt || null,
+    mobileVerificationSource: user.mobileVerificationSource || 'NONE',
+    isMobileReadOnly: isMobileLogin,
+    isMobileRequired: true,
+  };
+
   return {
     role: user.role,
     mobile: user.mobileE164,
     email: user.email,
+    primaryIdentifier,
     profileComplete: user.profileComplete,
     verificationStatus: user.verificationStatus || 'UNVERIFIED',
     completion,
     profile: profileData,
+    contactInfo,
     verifications: verifications.map((v) => ({
       id: v._id.toString(),
       kind: v.kind,
@@ -97,13 +121,72 @@ async function saveProfile(userId, { role, data }) {
   const user = await User.findById(userId);
   if (!user) throw HttpError.notFound('User not found.');
 
+  const primaryIdentifier = user.primaryIdentifier || (user.authProvider === 'GOOGLE' ? 'GOOGLE' : (user.email ? 'EMAIL' : 'MOBILE'));
+
+  // 1. Email handling
   if (data.email !== undefined) {
-    const trimmedEmail = typeof data.email === 'string' ? data.email.trim() : '';
-    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    const rawEmail = typeof data.email === 'string' ? data.email.trim() : '';
+    if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       throw HttpError.badRequest('Please enter a valid email address.');
     }
-    user.email = trimmedEmail || null;
+    const cleanEmail = rawEmail.toLowerCase();
+
+    if (primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE') {
+      if (!cleanEmail) {
+        throw HttpError.badRequest('Registered email is your required login identifier and cannot be removed.');
+      }
+      if (cleanEmail !== (user.email || '').toLowerCase()) {
+        const msg = user.authProvider === 'GOOGLE'
+          ? 'OAuth account email is managed by Google and cannot be modified.'
+          : 'Registered email login identifier cannot be modified via profile update.';
+        throw HttpError.badRequest(msg);
+      }
+    } else {
+      // Mobile-first user updating optional email
+      if (cleanEmail !== (user.email || '').toLowerCase()) {
+        if (cleanEmail) {
+          const duplicate = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
+          if (duplicate) {
+            throw HttpError.badRequest('This email address is already in use by another account.');
+          }
+          user.email = cleanEmail;
+        } else {
+          user.email = null;
+        }
+      }
+    }
   }
+
+  // 2. Mobile handling
+  if (data.mobile !== undefined || data.phoneNumber !== undefined) {
+    const rawMobile = data.mobile !== undefined ? data.mobile : data.phoneNumber;
+    const cleanMobileStr = typeof rawMobile === 'string' ? rawMobile.trim() : '';
+
+    if (primaryIdentifier === 'MOBILE') {
+      if (!cleanMobileStr) {
+        throw HttpError.badRequest('Registered mobile number is your required login identifier and cannot be removed.');
+      }
+      const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
+      if (canonical !== user.mobileE164) {
+        throw HttpError.badRequest('Registered mobile login identifier cannot be modified via profile update.');
+      }
+    } else {
+      // Email/Google user updating mandatory mobile
+      if (!cleanMobileStr) {
+        throw HttpError.badRequest('Mobile number is mandatory and cannot be removed.');
+      }
+      const canonical = normalizeAndValidateIndianMobile(cleanMobileStr);
+      if (canonical !== user.mobileE164) {
+        const duplicate = await User.findOne({ mobileE164: canonical, _id: { $ne: user._id } });
+        if (duplicate) {
+          throw HttpError.badRequest('This mobile number is already in use by another account.');
+        }
+        user.mobileE164 = canonical;
+      }
+    }
+  }
+
+  await user.save();
 
   let cpOrVp;
   let completion;

@@ -6,6 +6,7 @@ export const CANDIDATE_FIELD_LABELS = {
   city: 'City',
   education: 'Qualification',
   assistanceNeeds: 'Assistance Needs',
+  mobile: 'Mobile Number',
 };
 
 export const VOLUNTEER_FIELD_LABELS = {
@@ -13,6 +14,7 @@ export const VOLUNTEER_FIELD_LABELS = {
   languages: 'Languages Known',
   subjects: 'Subjects',
   city: 'City',
+  mobile: 'Mobile Number',
 };
 
 function normalizeArray(val) {
@@ -24,10 +26,10 @@ function normalizeArray(val) {
 
 export function computeCandidateCompletion(data) {
   const missing = [];
-  const total = 5;
+  const total = 6;
 
   if (!data) {
-    const all = ['fullName', 'languages', 'city', 'education', 'assistanceNeeds'];
+    const all = ['fullName', 'languages', 'city', 'education', 'assistanceNeeds', 'mobile'];
     return {
       percentage: 0,
       isComplete: false,
@@ -54,6 +56,9 @@ export function computeCandidateCompletion(data) {
   const assistance = (data.assistanceNeeds || data.disabilityType || '').trim();
   if (!assistance) missing.push('assistanceNeeds');
 
+  const mobile = (data.mobile || data.mobileE164 || '').trim();
+  if (!mobile) missing.push('mobile');
+
   const completed = total - missing.length;
   let percentage = Math.round((completed / total) * 100);
   percentage = Math.max(0, Math.min(100, percentage));
@@ -71,10 +76,10 @@ export function computeCandidateCompletion(data) {
 
 export function computeVolunteerCompletion(data) {
   const missing = [];
-  const total = 4;
+  const total = 5;
 
   if (!data) {
-    const all = ['fullName', 'languages', 'subjects', 'city'];
+    const all = ['fullName', 'languages', 'subjects', 'city', 'mobile'];
     return {
       percentage: 0,
       isComplete: false,
@@ -96,6 +101,9 @@ export function computeVolunteerCompletion(data) {
 
   const city = (data.city || data.address?.city || '').trim();
   if (!city) missing.push('city');
+
+  const mobile = (data.mobile || data.mobileE164 || '').trim();
+  if (!mobile) missing.push('mobile');
 
   const completed = total - missing.length;
   let percentage = Math.round((completed / total) * 100);
@@ -122,8 +130,21 @@ export function renderCompletionWidget(containerEl, completion, options = {}) {
   if (!containerEl) return;
 
   const pct = completion.percentage ?? 0;
+  const isComplete = Boolean(completion.isComplete || pct >= 100);
+
+  // Requirement 7.E: Hide section completely when 100% complete without leaving blank space
+  if (isComplete) {
+    containerEl.hidden = true;
+    containerEl.style.display = 'none';
+    containerEl.innerHTML = '';
+    return;
+  }
+
+  containerEl.hidden = false;
+  containerEl.style.display = '';
+
   const completed = completion.completedCount ?? 0;
-  const total = completion.totalCount ?? 5;
+  const total = completion.totalCount ?? 6;
   const missingLabels = completion.missingLabels || [];
   const hasUnsaved = Boolean(options.hasUnsavedChanges);
   const barColor = options.roleColor || 'var(--color-primary, #2563eb)';
@@ -131,7 +152,7 @@ export function renderCompletionWidget(containerEl, completion, options = {}) {
   const ariaValueText = `${pct} percent complete, ${completed} of ${total} required items done`;
 
   containerEl.innerHTML = `
-    <div class="completion-widget" style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="completion-widget" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <span style="font-weight: 600; font-size: 0.95rem; color: var(--color-text);">
           Profile Completion: <span style="font-weight: 700; color: ${barColor};">${pct}%</span>
@@ -143,7 +164,6 @@ export function renderCompletionWidget(containerEl, completion, options = {}) {
           <span class="badge badge--yellow" id="unsaved-changes-badge" style="display: ${hasUnsaved ? 'inline-flex' : 'none'}; font-size: 0.75rem;">
             Unsaved changes
           </span>
-          ${completion.isComplete ? '<span class="badge badge--green" style="font-size: 0.75rem;">Complete</span>' : ''}
         </div>
       </div>
 
@@ -159,10 +179,7 @@ export function renderCompletionWidget(containerEl, completion, options = {}) {
       </div>
 
       <div class="completion-status-text" aria-live="polite" style="font-size: 0.85rem; color: var(--color-text-muted);">
-        ${completion.isComplete
-          ? '<span style="color: var(--color-success, #16a34a); font-weight: 500;">✓ All required profile details are complete.</span>'
-          : `<span>Still required: <strong style="color: var(--color-text);">${missingLabels.join(', ')}</strong></span>`
-        }
+        <span>Still required: <strong style="color: var(--color-text);">${missingLabels.join(', ')}</strong></span>
       </div>
     </div>
   `;

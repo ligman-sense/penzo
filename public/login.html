@@ -25,9 +25,6 @@
       </a>
 
       <div class="header-actions">
-        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme">
-          <span class="theme-icon">🌙</span>
-        </button>
         <a href="/" class="btn btn--ghost btn--sm">Back to Home</a>
       </div>
     </div>
@@ -37,94 +34,8 @@
   <main id="main-content" class="auth-wrapper">
     <div class="card auth-card">
       <div class="card-body">
-        <!-- Step 1: Phone Form -->
-        <div id="step-phone">
-          <div class="auth-header">
-            <h1>Sign In or Register</h1>
-            <p>Enter your mobile number to receive a one-time verification code.</p>
-          </div>
 
-          <form id="phone-form">
-            <div class="form-group">
-              <label for="phone-number" class="form-label">Mobile Number</label>
-              <div class="phone-input-group">
-                <select id="country-code" class="form-select phone-prefix" aria-label="Country Code">
-                  <option value="91">+91 (IN)</option>
-                  <option value="1">+1 (US)</option>
-                  <option value="44">+44 (UK)</option>
-                  <option value="000">+000 (DEMO)</option>
-                </select>
-                <input
-                  type="tel"
-                  id="phone-number"
-                  name="phoneNumber"
-                  class="form-input"
-                  placeholder="98765 43210"
-                  required
-                  autocomplete="tel"
-                >
-              </div>
-              <span class="form-hint">We'll send a 6-digit code to this number.</span>
-            </div>
-
-            <button type="submit" class="btn btn--primary btn--full" style="margin-top: 1rem;">
-              Send Verification Code
-            </button>
-          </form>
-
-          <div class="demo-box" style="margin-top: 1.5rem; padding: 1rem; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface-2);">
-            <p style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.75rem; color: var(--color-text-secondary);">
-              ⚡ Quick Demo Access (1-Click Login):
-            </p>
-            <div style="display: flex; gap: 0.5rem; flex-direction: column;">
-              <button type="button" id="demo-candidate-btn" class="btn btn--secondary btn--sm" style="text-align: left; justify-content: flex-start;">
-                👤 Log in as Demo Candidate (+00012345001)
-              </button>
-              <button type="button" id="demo-volunteer-btn" class="btn btn--secondary btn--sm" style="text-align: left; justify-content: flex-start;">
-                ✍️ Log in as Demo Volunteer / Scribe (+00012345002)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 2: OTP Form -->
-        <div id="step-otp" hidden>
-          <div class="auth-header">
-            <h1>Enter Verification Code</h1>
-            <p>Code sent to <strong id="mobile-display"></strong></p>
-            <button type="button" id="edit-phone" class="btn btn--ghost btn--sm" style="margin-top: 0.25rem;">
-              Change phone number
-            </button>
-          </div>
-
-          <form id="otp-form">
-            <div class="form-group">
-              <label for="otp-code" class="form-label">6-Digit Code</label>
-              <input
-                type="text"
-                id="otp-code"
-                name="otp"
-                class="form-input"
-                placeholder="123456"
-                maxlength="6"
-                required
-                autocomplete="one-time-code"
-                style="text-align: center; letter-spacing: 4px; font-size: 1.25rem; font-weight: 700;"
-              >
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0;">
-              <button type="button" id="resend-otp" class="btn btn--ghost btn--sm">Resend code</button>
-              <span id="resend-countdown" class="form-hint" hidden></span>
-            </div>
-
-            <button type="submit" class="btn btn--primary btn--full">
-              Verify &amp; Continue
-            </button>
-          </form>
-        </div>
-
-        <!-- Step 3: Role Form -->
+        <!-- Role Form for New OAuth Users -->
         <div id="step-role" hidden>
           <div class="auth-header">
             <h1>Select Your Account Type</h1>
@@ -158,6 +69,291 @@
               Complete Setup
             </button>
           </form>
+        </div>
+
+        <!-- Password Auth Form View -->
+        <div id="step-auth">
+          <!-- Auth Mode Toggle (Sign In / Create Account) -->
+          <div class="auth-mode-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem;">
+            <button type="button" id="tab-signin" class="btn btn--sm btn--primary" style="flex: 1;" aria-selected="true">
+              Sign In
+            </button>
+            <button type="button" id="tab-register" class="btn btn--sm btn--ghost" style="flex: 1;" aria-selected="false">
+              Create Account
+            </button>
+          </div>
+
+          <div class="auth-header" style="margin-bottom: 1.25rem;">
+            <h1 id="auth-title">Sign In to PENZO</h1>
+            <p id="auth-subtitle">Enter your email or mobile number with your password.</p>
+          </div>
+
+          <!-- Identifier Type Selector (Email / Mobile) -->
+          <div class="form-group" style="margin-bottom: 1.25rem;">
+            <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Sign in with</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" id="type-email-btn" class="btn btn--sm btn--secondary" style="flex: 1;" aria-pressed="true">
+                ✉️ Email Address
+              </button>
+              <button type="button" id="type-mobile-btn" class="btn btn--sm btn--ghost" style="flex: 1;" aria-pressed="false">
+                📱 Mobile (+91)
+              </button>
+            </div>
+          </div>
+
+          <form id="auth-form" novalidate>
+            <!-- Registration-only Role Selection -->
+            <div id="register-role-section" class="form-group" style="display: none; margin-bottom: 1.25rem;">
+              <label class="form-label" style="font-weight: 600;">I am registering as *</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <label class="card card--hover" style="padding: 0.75rem; cursor: pointer; display: flex; gap: 0.5rem; align-items: center; border: 1px solid var(--color-border);">
+                  <input type="radio" name="auth-role" value="CANDIDATE" checked>
+                  <span style="font-size: 0.9rem; font-weight: 600;">Candidate</span>
+                </label>
+                <label class="card card--hover" style="padding: 0.75rem; cursor: pointer; display: flex; gap: 0.5rem; align-items: center; border: 1px solid var(--color-border);">
+                  <input type="radio" name="auth-role" value="VOLUNTEER">
+                  <span style="font-size: 0.9rem; font-weight: 600;">Volunteer</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Registration-only Full Name -->
+            <div id="register-name-section" class="form-group" style="display: none; margin-bottom: 1.25rem;">
+              <label for="auth-name" class="form-label">Full Name</label>
+              <input
+                type="text"
+                id="auth-name"
+                name="name"
+                class="form-input"
+                placeholder="e.g. Ramesh Kumar"
+                autocomplete="name"
+              >
+            </div>
+
+            <!-- Email Field -->
+            <div id="email-field-group" class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="auth-email" class="form-label">Email Address *</label>
+              <input
+                type="email"
+                id="auth-email"
+                name="email"
+                class="form-input"
+                placeholder="name@example.com"
+                autocomplete="email"
+              >
+              <span class="form-hint">Enter your registered email address.</span>
+            </div>
+
+            <!-- Mobile Field -->
+            <div id="mobile-field-group" class="form-group" style="display: none; margin-bottom: 1.25rem;">
+              <label for="auth-mobile" class="form-label">Indian Mobile Number (+91) *</label>
+              <div class="phone-input-group" style="display: flex;">
+                <span class="phone-prefix" style="display: flex; align-items: center; justify-content: center; padding: 0 0.85rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-right: none; border-radius: var(--radius-md) 0 0 var(--radius-md); font-weight: 600; color: var(--color-text); font-size: 0.95rem;">+91</span>
+                <input
+                  type="tel"
+                  id="auth-mobile"
+                  name="mobile"
+                  class="form-input"
+                  placeholder="98765 43210"
+                  autocomplete="tel-national"
+                  style="border-top-left-radius: 0; border-bottom-left-radius: 0;"
+                >
+              </div>
+              <span class="form-hint">Enter 10-digit Indian mobile number starting with 6, 7, 8, or 9.</span>
+            </div>
+
+            <!-- Password Field with Show/Hide Toggle -->
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label for="auth-password" class="form-label" style="margin-bottom: 0;">Password *</label>
+                <button type="button" id="forgot-password-link" style="background: none; border: none; padding: 0; font-size: 0.85rem; color: var(--color-primary, #2563eb); cursor: pointer; text-decoration: underline;">
+                  Forgot Password?
+                </button>
+              </div>
+              <div style="position: relative; display: flex; align-items: center; margin-top: 0.35rem;">
+                <input
+                  type="password"
+                  id="auth-password"
+                  name="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  required
+                  autocomplete="current-password"
+                  style="padding-right: 3rem;"
+                >
+                <button
+                  type="button"
+                  id="toggle-password-btn"
+                  aria-label="Show password"
+                  title="Show / hide password"
+                  style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1.1rem; padding: 0.25rem 0.5rem; display: flex; align-items: center; justify-content: center;"
+                >
+                  <span id="eye-icon">👁️</span>
+                </button>
+              </div>
+
+              <!-- Inline Password Requirements Checklist (Live Feedback for Registration) -->
+              <div id="password-requirements" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.8rem;">
+                <div style="font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Password must include:</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <div id="rule-length" style="color: var(--color-text-muted);">
+                    <span class="rule-icon">○</span> At least 8 characters
+                  </div>
+                  <div id="rule-upper" style="color: var(--color-text-muted);">
+                    <span class="rule-icon">○</span> At least 1 uppercase letter (A-Z)
+                  </div>
+                  <div id="rule-number" style="color: var(--color-text-muted);">
+                    <span class="rule-icon">○</span> At least 1 number (0-9)
+                  </div>
+                  <div id="rule-special" style="color: var(--color-text-muted);">
+                    <span class="rule-icon">○</span> At least 1 special character (!@#$%^&*...)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" id="auth-submit-btn" class="btn btn--primary btn--full" style="margin-top: 0.5rem;">
+              Sign In
+            </button>
+
+            <!-- Google OAuth Section -->
+            <div style="display: flex; align-items: center; margin: 1.5rem 0 1rem; text-align: center;">
+              <hr style="flex: 1; border: none; border-top: 1px solid var(--color-border);" />
+              <span style="padding: 0 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Or</span>
+              <hr style="flex: 1; border: none; border-top: 1px solid var(--color-border);" />
+            </div>
+
+            <a href="/api/auth/google" id="google-login-btn" class="btn btn--outline btn--full" style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; text-decoration: none; font-weight: 500; padding: 0.75rem 1rem;">
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2581h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.615z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.4673-.806 5.9564-2.1805l-2.9087-2.2581c-.8059.54-1.8368.859-3.0477.859-2.344 0-4.3282-1.5831-5.036-3.7104H.9574v2.3318C2.4382 15.9832 5.4818 18 9 18z" fill="#34A853"/>
+                <path d="M3.964 10.71c-.18-.54-.2822-1.1168-.2822-1.71s.1023-1.17.2823-1.71V4.9582H.9573A8.9965 8.9965 0 0 0 0 9c0 1.4523.3477 2.8268.9574 4.0418L3.964 10.71z" fill="#FBBC05"/>
+                <path d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.9205 11.426 0 9 0 5.4818 0 2.4382 2.0168.9574 4.9582L3.964 7.29C4.6718 5.1627 6.656 3.5795 9 3.5795z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </a>
+          </form>
+        </div>
+
+        <!-- Forgot Password View -->
+        <div id="step-forgot" hidden>
+          <div class="auth-header" style="margin-bottom: 1.25rem;">
+            <h1 id="forgot-title">Reset Your Password</h1>
+            <p id="forgot-subtitle">Enter your registered email address to receive a 6-digit verification code.</p>
+          </div>
+
+          <!-- Step 1: Request Code (Email) -->
+          <form id="forgot-email-form" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-email" class="form-label">Email Address *</label>
+              <input
+                type="email"
+                id="forgot-email"
+                name="email"
+                class="form-input"
+                placeholder="name@example.com"
+                autocomplete="email"
+                required
+              >
+              <span class="form-hint">A 6-digit recovery code will be sent if the email is registered.</span>
+            </div>
+
+            <button type="submit" id="forgot-send-btn" class="btn btn--primary btn--full">
+              Send Verification Code
+            </button>
+          </form>
+
+          <!-- Step 2: Verify Code (OTP) -->
+          <form id="forgot-otp-form" style="display: none;" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-otp" class="form-label">6-Digit Verification Code *</label>
+              <input
+                type="text"
+                id="forgot-otp"
+                name="otp"
+                class="form-input"
+                placeholder="123456"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                style="font-size: 1.25rem; letter-spacing: 0.25rem; text-align: center; font-family: monospace;"
+                required
+              >
+              <span class="form-hint">Enter the 6-digit code sent to your email. Expires in 5 minutes.</span>
+            </div>
+
+            <button type="submit" id="forgot-verify-btn" class="btn btn--primary btn--full" style="margin-bottom: 0.75rem;">
+              Verify Code
+            </button>
+
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.5rem;">
+              <button type="button" id="forgot-resend-btn" class="btn btn--ghost btn--sm" disabled>
+                Resend Code (<span id="resend-countdown">60</span>s)
+              </button>
+            </div>
+          </form>
+
+          <!-- Step 3: Set New Password -->
+          <form id="forgot-password-form" style="display: none;" novalidate>
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-new-password" class="form-label">New Password *</label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input
+                  type="password"
+                  id="forgot-new-password"
+                  name="newPassword"
+                  class="form-input"
+                  placeholder="••••••••"
+                  required
+                  autocomplete="new-password"
+                  style="padding-right: 3rem;"
+                >
+                <button
+                  type="button"
+                  id="toggle-forgot-password-btn"
+                  aria-label="Show password"
+                  style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--color-text-muted); font-size: 1.1rem; padding: 0.25rem 0.5rem;"
+                >
+                  👁️
+                </button>
+              </div>
+
+              <div id="forgot-password-requirements" style="margin-top: 0.75rem; padding: 0.75rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 0.8rem;">
+                <div style="font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text);">Password must include:</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                  <div id="forgot-rule-length" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 8 characters</div>
+                  <div id="forgot-rule-upper" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 uppercase letter (A-Z)</div>
+                  <div id="forgot-rule-number" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 number (0-9)</div>
+                  <div id="forgot-rule-special" style="color: var(--color-text-muted);"><span class="rule-icon">○</span> At least 1 special character (!@#$%^&*...)</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="forgot-confirm-password" class="form-label">Confirm New Password *</label>
+              <input
+                type="password"
+                id="forgot-confirm-password"
+                name="confirmPassword"
+                class="form-input"
+                placeholder="••••••••"
+                required
+                autocomplete="new-password"
+              >
+            </div>
+
+            <button type="submit" id="forgot-reset-btn" class="btn btn--primary btn--full">
+              Reset Password
+            </button>
+          </form>
+
+          <!-- Back to Sign In Link -->
+          <div style="text-align: center; margin-top: 1.25rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <button type="button" id="back-to-signin-btn" class="btn btn--ghost btn--sm">
+              ← Back to Sign In
+            </button>
+          </div>
         </div>
 
       </div>

@@ -14,6 +14,7 @@ async function listInterests(volunteerId) {
     const exam = i.examinationId;
     return {
       id: i._id.toString(),
+      examinationId: exam ? exam._id.toString() : i.examinationId?.toString(),
       status: i.status,
       notes: i.notes,
       qualificationsConfirmed: i.qualificationsConfirmed,
@@ -22,6 +23,7 @@ async function listInterests(volunteerId) {
       locationConfirmed: i.locationConfirmed,
       createdAt: i.createdAt,
       updatedAt: i.updatedAt,
+      registeredAt: i.createdAt,
       examination: exam ? {
         id: exam._id.toString(),
         name: exam.name || exam.title,

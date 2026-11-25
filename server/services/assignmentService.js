@@ -23,12 +23,9 @@ async function listAssignments(userId, role) {
     .populate({
       path: 'requestId',
       populate: [
-        { path: 'examinationId', select: 'name title slug authority startsOn locations' },
-        { path: 'candidateId', select: 'mobileE164' },
+        { path: 'examinationId', select: 'name title slug authority startsOn endsOn sessions locations' },
       ],
     })
-    .populate('volunteerId', 'mobileE164 verificationStatus')
-    .populate('candidateId', 'mobileE164')
     .sort({ startsAt: 1 });
 
   return Promise.all(
@@ -36,30 +33,23 @@ async function listAssignments(userId, role) {
       const req = a.requestId;
       const exam = req?.examinationId;
 
-      let candidateName = 'Candidate';
-      let volunteerName = 'Volunteer';
-
-      if (a.candidateId) {
-        const cp = await CandidateProfile.findOne({ userId: a.candidateId._id });
-        if (cp) candidateName = cp.fullName || `${cp.firstName || ''} ${cp.lastName || ''}`.trim() || 'Candidate';
-      }
-
-      if (a.volunteerId) {
-        const vp = await VolunteerProfile.findOne({ userId: a.volunteerId._id });
-        if (vp) volunteerName = vp.fullName || `${vp.firstName || ''} ${vp.lastName || ''}`.trim() || 'Volunteer';
-      }
-
       // 5-day lock calculation
       const startsAtTime = a.startsAt ? new Date(a.startsAt).getTime() : (exam?.startsOn ? new Date(exam.startsOn).getTime() : null);
       const lockDeadlineTime = a.lockDeadline ? new Date(a.lockDeadline).getTime() : (startsAtTime ? startsAtTime - 5 * 24 * 60 * 60 * 1000 : null);
       const isLocked = lockDeadlineTime ? (Date.now() >= lockDeadlineTime) : false;
 
-      return {
+      // Extract session if applicable
+      let session = null;
+      if (exam && exam.sessions && req?.sessionId) {
+        session = exam.sessions.id(req.sessionId) || exam.sessions.find(s => s._id.toString() === req.sessionId.toString());
+      }
+
+      const resObj = {
         id: a._id.toString(),
         requestId: req ? req._id.toString() : null,
         status: a.status,
-        startsAt: a.startsAt,
-        endsAt: a.endsAt,
+        startsAt: session?.startsAt || a.startsAt || exam?.startsOn,
+        endsAt: session?.endsAt || a.endsAt || exam?.endsOn,
         lockDeadline: lockDeadlineTime ? new Date(lockDeadlineTime) : null,
         isLocked,
         venue: req?.venue || null,
@@ -73,19 +63,41 @@ async function listAssignments(userId, role) {
         termsAccepted: a.termsAccepted,
         termsVersion: a.termsVersion,
         termsAcceptedAt: a.termsAcceptedAt,
-        candidateName,
-        volunteerName,
-        candidateMobile: a.candidateId?.mobileE164,
-        volunteerMobile: a.volunteerId?.mobileE164,
         examination: exam ? {
           id: exam._id.toString(),
           name: exam.name || exam.title,
           authority: exam.authority,
           slug: exam.slug,
           startsOn: exam.startsOn,
+          endsOn: exam.endsOn,
           locations: exam.locations,
+          session: session ? {
+            id: session._id.toString(),
+            label: session.label || session.name,
+            startsAt: session.startsAt,
+            endsAt: session.endsAt,
+          } : null,
         } : null,
       };
+
+      // Strict privacy enforcement:
+      // Candidates and volunteers must NOT have access to each other's personal information (name, contact, email, etc.)
+      if (role === 'ADMIN') {
+        let candidateName = 'Candidate';
+        let volunteerName = 'Volunteer';
+        if (a.candidateId) {
+          const cp = await CandidateProfile.findOne({ userId: a.candidateId });
+          if (cp) candidateName = cp.fullName || `${cp.firstName || ''} ${cp.lastName || ''}`.trim() || 'Candidate';
+        }
+        if (a.volunteerId) {
+          const vp = await VolunteerProfile.findOne({ userId: a.volunteerId });
+          if (vp) volunteerName = vp.fullName || `${vp.firstName || ''} ${vp.lastName || ''}`.trim() || 'Volunteer';
+        }
+        resObj.candidateName = candidateName;
+        resObj.volunteerName = volunteerName;
+      }
+
+      return resObj;
     })
   );
 }

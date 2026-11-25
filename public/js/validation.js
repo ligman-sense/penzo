@@ -1,21 +1,27 @@
 'use strict';
 
 export function validateMobile(mobile) {
-  // Support standard E.164 and demo +000 numbers: + followed by 7-15 digits
-  return /^\+\d{7,15}$/.test(String(mobile || '').replace(/\s/g, ''));
+  // Support India (+91) only: +91 followed by 10 digits starting with 6, 7, 8, or 9
+  const cleaned = String(mobile || '').replace(/[\s\-\(\)]/g, '');
+  return /^\+91[6-9]\d{9}$/.test(cleaned);
 }
 
 export function normalizeMobile(countryCode, number) {
-  const trimmed = String(number || '').trim();
+  const trimmed = String(number || '').trim().replace(/[\s\-\(\)]/g, '');
+  if (trimmed.startsWith('+91')) {
+    return trimmed;
+  }
   if (trimmed.startsWith('+')) {
-    return '+' + trimmed.slice(1).replace(/[^0-9]/g, '');
+    return trimmed; // Kept intact so server-side can explicitly reject non-Indian country codes
   }
-  const cleanCC = String(countryCode || '').replace(/[^0-9]/g, '');
-  const cleanNum = trimmed.replace(/[^0-9]/g, '');
-  if (cleanCC && cleanNum.startsWith(cleanCC) && cleanNum.length > cleanCC.length + 5) {
-    return `+${cleanNum}`;
+  const digits = trimmed.replace(/[^0-9]/g, '');
+  if (digits.startsWith('91') && digits.length === 12) {
+    return `+${digits}`;
   }
-  return `+${cleanCC}${cleanNum}`;
+  if (digits.startsWith('0') && digits.length === 11) {
+    return `+91${digits.slice(1)}`;
+  }
+  return `+91${digits}`;
 }
 
 export function validateOtp(otp) {
@@ -28,6 +34,21 @@ export function validateEmail(email) {
 
 export function validateRequired(value) {
   return value != null && String(value).trim() !== '';
+}
+
+export function checkPasswordRules(password) {
+  const pwd = String(password || '');
+  const minLength = pwd.length >= 8;
+  const hasUppercase = /[A-Z]/.test(pwd);
+  const hasNumber = /[0-9]/.test(pwd);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pwd);
+  return {
+    minLength,
+    hasUppercase,
+    hasNumber,
+    hasSpecial,
+    isValid: minLength && hasUppercase && hasNumber && hasSpecial,
+  };
 }
 
 export function showFieldError(field, message) {

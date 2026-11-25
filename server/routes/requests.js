@@ -5,6 +5,7 @@ const { noStore, requireUser, requireRole } = require('../middleware/auth');
 const { listRequests, createRequest, getRequest, updateRequest, cancelRequest } = require('../services/requestService');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok, created } = require('../utils/response');
+const { HttpError } = require('../utils/httpError');
 
 const requestsRouter = Router();
 requestsRouter.use(noStore, requireUser, requireRole('CANDIDATE'));
@@ -50,51 +51,52 @@ requestsRouter.get(
   '/:id/proposed-match',
   asyncHandler(async (req, res) => {
     const MatchProposal = require('../models/MatchProposal');
-    const VolunteerProfile = require('../models/VolunteerProfile');
     const proposal = await MatchProposal.findOne({
       requestId: req.params.id,
       status: { $in: ['ACCEPTED', 'PROPOSED', 'CANDIDATE_CONFIRMED'] },
-    }).populate('volunteerId', 'mobileE164 email verificationStatus');
+    });
 
     if (!proposal) {
       return ok(res, null);
     }
 
-    const vp = await VolunteerProfile.findOne({ userId: proposal.volunteerId._id });
+    // Privacy safeguard: Scribe allocation status only, NO volunteer PII
     ok(res, {
       proposalId: proposal._id.toString(),
       matchReference: proposal.matchReference,
       status: proposal.status,
-      score: proposal.score,
-      adminNote: proposal.adminNote,
-      volunteer: {
-        id: proposal.volunteerId._id.toString(),
-        name: vp?.fullName || (vp?.firstName ? `${vp.firstName} ${vp.lastName || ''}`.trim() : 'Volunteer'),
-        city: vp?.city,
-        languages: vp?.languages || vp?.preferredLanguages || [],
-        subjects: vp?.subjects || [],
-        hasExperience: Boolean(vp?.hasPriorExperience || vp?.hasScribeExperience),
-        isVerified: proposal.volunteerId.verificationStatus === 'VERIFIED',
-        verificationStatus: proposal.volunteerId.verificationStatus || 'UNVERIFIED',
-      },
+      isAllocated: true,
+      adminNote: proposal.adminNote || null,
     });
   })
 );
 
+// Candidate confirmation and rejection endpoints are disabled
 requestsRouter.post(
   '/:id/confirm-match',
-  asyncHandler(async (req, res) => {
-    const { confirmMatch } = require('../services/matchingService');
-    ok(res, await confirmMatch(req.params.id, req.auth.user._id));
+  asyncHandler(async () => {
+    throw HttpError.badRequest('Candidate confirmation of scribe allocation is no longer required or supported.');
   })
 );
 
 requestsRouter.post(
   '/:id/decline-match',
-  asyncHandler(async (req, res) => {
-    const { declineMatch } = require('../services/matchingService');
-    const { reason } = req.body || {};
-    ok(res, await declineMatch(req.params.id, req.auth.user._id, reason));
+  asyncHandler(async () => {
+    throw HttpError.badRequest('Candidate rejection of scribe allocation is no longer required or supported.');
+  })
+);
+
+requestsRouter.post(
+  '/:id/accept-scribe',
+  asyncHandler(async () => {
+    throw HttpError.badRequest('Candidate confirmation of scribe allocation is no longer required or supported.');
+  })
+);
+
+requestsRouter.post(
+  '/:id/decline-scribe',
+  asyncHandler(async () => {
+    throw HttpError.badRequest('Candidate rejection of scribe allocation is no longer required or supported.');
   })
 );
 

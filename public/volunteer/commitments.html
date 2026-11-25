@@ -79,12 +79,24 @@
         <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">Confirmed Commitments</h2>
         <div class="card">
           <div class="card-body">
-            <ul id="commitments-list" style="list-style: none; display: flex; flex-direction: column; gap: 1.25rem; margin: 0; padding: 0;">
-              <li>Loading commitments...</li>
+            <!-- 1. Loading State -->
+            <div id="commitments-loading" class="loading-cell" style="padding: 2rem; text-align: center;">
+              <p>Loading confirmed commitments...</p>
+            </div>
+
+            <!-- 2. Success State: Commitments List -->
+            <ul id="commitments-list" style="list-style: none; display: flex; flex-direction: column; gap: 1.25rem; margin: 0; padding: 0;" hidden>
             </ul>
 
+            <!-- 3. Empty State -->
             <div id="commitments-empty" class="empty-state" hidden>
               <p>No confirmed commitments at this time.</p>
+            </div>
+
+            <!-- 4. Error State with Retry -->
+            <div id="commitments-error" class="error-state" style="padding: 2rem; text-align: center;" hidden>
+              <p id="commitments-error-msg" class="text-error" style="margin-bottom: 1rem;">Failed to load commitments.</p>
+              <button id="commitments-retry-btn" class="btn btn--outline btn--sm">Retry</button>
             </div>
           </div>
         </div>

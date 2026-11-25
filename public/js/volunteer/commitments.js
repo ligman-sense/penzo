@@ -22,6 +22,10 @@ const invitationsCountBadge = document.getElementById('invitations-count-badge')
 
 const listEl  = document.getElementById('commitments-list');
 const emptyEl = document.getElementById('commitments-empty');
+const loadingEl = document.getElementById('commitments-loading');
+const errorEl   = document.getElementById('commitments-error');
+const errorMsgEl = document.getElementById('commitments-error-msg');
+const retryBtn  = document.getElementById('commitments-retry-btn');
 const paginEl = document.getElementById('pagination');
 const filterEl = document.getElementById('status-filter');
 
@@ -74,6 +78,12 @@ const cancelModalSubmit  = document.getElementById('cancel-assignment-submit');
     filterEl.addEventListener('change', () => {
       setQueryParam('status', filterEl.value);
       _page = 1;
+      loadCommitments();
+    });
+  }
+
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
       loadCommitments();
     });
   }
@@ -399,9 +409,19 @@ function openCancelModal(assignmentId, isLocked) {
   }
 }
 
+function setCommitmentsState(state, message = '') {
+  if (loadingEl) loadingEl.hidden = (state !== 'loading');
+  if (listEl)    listEl.hidden    = (state !== 'success');
+  if (emptyEl)   emptyEl.hidden   = (state !== 'empty');
+  if (errorEl)   errorEl.hidden   = (state !== 'error');
+  if (state === 'error' && errorMsgEl) {
+    errorMsgEl.textContent = message || 'Failed to load commitments.';
+  }
+}
+
 // ─── Load Commitments ─────────────────────────────────────────────────────────
 async function loadCommitments() {
-  if (listEl) listEl.innerHTML = '<li class="loading-cell">Loading…</li>';
+  setCommitmentsState('loading');
 
   const params = new URLSearchParams({ page: _page, pageSize: 15 });
   const status = filterEl?.value;
@@ -413,15 +433,12 @@ async function loadCommitments() {
     _totalPages       = res.meta?.totalPages || res.data?.totalPages || 1;
 
     if (!assignments.length) {
-      if (listEl)  listEl.hidden  = true;
-      if (emptyEl) emptyEl.hidden = false;
+      setCommitmentsState('empty');
       if (paginEl) paginEl.innerHTML = '';
       return;
     }
 
-    if (listEl)  listEl.hidden  = false;
-    if (emptyEl) emptyEl.hidden = true;
-
+    setCommitmentsState('success');
     if (listEl) {
       listEl.innerHTML = assignments.map(a => renderCommitmentItem(a)).join('');
 
@@ -436,19 +453,22 @@ async function loadCommitments() {
     if (paginEl) renderPagination(paginEl, { page: _page, totalPages: _totalPages }, goToPage);
 
   } catch (err) {
-    if (listEl) listEl.innerHTML = '<li class="text-error">Failed to load commitments.</li>';
+    setCommitmentsState('error', err.message || 'Failed to load commitments.');
     showError(err.message || 'Could not fetch commitments.');
+  } finally {
+    if (loadingEl) loadingEl.hidden = true;
   }
 }
 
 // ─── Render Commitment Item ───────────────────────────────────────────────────
 function renderCommitmentItem(assignment) {
   const sessions = assignment.examination?.sessions?.map(s =>
-    `<li>${escapeHtml(s.name || s.type)}: ${formatDateTime(s.date)}</li>`
+    `<li>${escapeHtml(s.name || s.type || s.label)}: ${formatDateTime(s.startsAt || s.date)}</li>`
   ).join('') || '';
 
   const venue = assignment.venue || {};
   const isConfirmed = assignment.status === 'CONFIRMED';
+  const examDate = formatDate(assignment.startsAt || assignment.examination?.startsOn);
 
   return `<li class="commitment-item" style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; background: var(--color-surface); flex-wrap: wrap;">
     <div class="commitment-item__info" style="flex: 1; min-width: 280px;">
@@ -462,9 +482,8 @@ function renderCommitmentItem(assignment) {
         ${escapeHtml(assignment.examination?.authority || '')}
       </p>
       <dl class="commitment-item__meta" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin: 0; font-size: 0.875rem;">
-        <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">Exam Date</dt><dd style="margin: 0; font-weight: 600;">${formatDate(assignment.startsAt || assignment.examination?.startsOn)}</dd></div>
-        <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">Candidate Name</dt><dd style="margin: 0; font-weight: 600;">${escapeHtml(assignment.candidateName || 'Candidate')}</dd></div>
-        <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">Candidate Contact</dt><dd style="margin: 0; font-weight: 600;">${escapeHtml(assignment.candidateMobile || 'Shared closer to exam')}</dd></div>
+        <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">Exam Date</dt><dd style="margin: 0; font-weight: 600;">${examDate}</dd></div>
+        <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">Commitment Status</dt><dd style="margin: 0; font-weight: 600; color: var(--color-success, #16a34a);">${isConfirmed ? 'Confirmed Scribe' : assignment.status}</dd></div>
         <div><dt style="color: var(--color-text-muted); font-size: 0.75rem;">City</dt><dd style="margin: 0; font-weight: 600;">${escapeHtml(venue.city || assignment.examination?.locations?.[0]?.city || 'TBD')}</dd></div>
       </dl>
 

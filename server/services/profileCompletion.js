@@ -6,6 +6,7 @@ const CANDIDATE_FIELD_LABELS = {
   city: 'City',
   education: 'Qualification',
   assistanceNeeds: 'Assistance Needs',
+  mobile: 'Mobile Number',
 };
 
 const VOLUNTEER_FIELD_LABELS = {
@@ -13,6 +14,7 @@ const VOLUNTEER_FIELD_LABELS = {
   languages: 'Languages Known',
   subjects: 'Subjects',
   city: 'City',
+  mobile: 'Mobile Number',
 };
 
 function normalizeArray(val) {
@@ -24,10 +26,10 @@ function normalizeArray(val) {
 
 function candidateCompletion(profile, user) {
   const missing = [];
-  const total = 5;
+  const total = 6;
 
   if (!profile) {
-    const all = ['fullName', 'languages', 'city', 'education', 'assistanceNeeds'];
+    const all = ['fullName', 'languages', 'city', 'education', 'assistanceNeeds', 'mobile'];
     return {
       percentage: 0,
       isComplete: false,
@@ -54,6 +56,9 @@ function candidateCompletion(profile, user) {
   const assistance = (profile.assistanceNeeds || profile.disabilityType || '').trim();
   if (!assistance) missing.push('assistanceNeeds');
 
+  const mobile = (user?.mobileE164 || profile.mobile || profile.mobileE164 || '').trim();
+  if (!mobile) missing.push('mobile');
+
   const completed = total - missing.length;
   let percentage = Math.round((completed / total) * 100);
   percentage = Math.max(0, Math.min(100, percentage));
@@ -71,10 +76,10 @@ function candidateCompletion(profile, user) {
 
 function volunteerCompletion(profile, user) {
   const missing = [];
-  const total = 4;
+  const total = 5;
 
   if (!profile) {
-    const all = ['fullName', 'languages', 'subjects', 'city'];
+    const all = ['fullName', 'languages', 'subjects', 'city', 'mobile'];
     return {
       percentage: 0,
       isComplete: false,
@@ -96,6 +101,9 @@ function volunteerCompletion(profile, user) {
 
   const city = (profile.city || profile.address?.city || '').trim();
   if (!city) missing.push('city');
+
+  const mobile = (user?.mobileE164 || profile.mobile || profile.mobileE164 || '').trim();
+  if (!mobile) missing.push('mobile');
 
   const completed = total - missing.length;
   let percentage = Math.round((completed / total) * 100);

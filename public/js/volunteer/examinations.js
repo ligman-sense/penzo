@@ -62,9 +62,9 @@ const loadingEl    = document.getElementById('loading-indicator');
 // ─── Interests Map ────────────────────────────────────────────────────────────
 async function loadMyInterests() {
   try {
-    const { data } = await api.get('/interests');
-    const interests = data.interests || data.items || [];
-    interests.forEach(i => _interests.set(i.examinationId, i.status));
+    const res = await api.get('/interests');
+    const interests = Array.isArray(res.data) ? res.data : (res.data?.interests || res.data?.items || []);
+    interests.forEach(i => _interests.set(i.examinationId || i.examination?.id, i.status));
   } catch {
     // Non-critical — proceed without interest state
   }
@@ -148,8 +148,9 @@ function attachInterestHandlers() {
       setLoading(btn, true, 'Registering…');
 
       try {
-        const { data } = await api.put(`/interests/${examId}`, {});
-        _interests.set(examId, data.interest?.status || 'REGISTERED');
+        const res = await api.put(`/interests/${examId}`, {});
+        const status = res.data?.status || 'ACTIVE';
+        _interests.set(examId, status);
         showSuccess('Interest registered! We\'ll notify you when matched.');
 
         // Update the button in place
