@@ -11,6 +11,7 @@ const otpChallengeSchema = new Schema({
   provider: { type: String, default: 'development' },
   ipAddress: { type: String, default: null },
   sentAt: { type: Date, default: Date.now },
+  resendCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 // TTL index: MongoDB will auto-remove expired documents

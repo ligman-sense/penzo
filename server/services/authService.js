@@ -33,11 +33,12 @@ async function resolveUserName(user) {
 }
 
 function toSessionUser(user, name = null) {
+  const defaultRoleName = user.role === 'VOLUNTEER' ? 'Volunteer' : 'Candidate';
   const primary = user.primaryIdentifier || (user.googleId ? 'GOOGLE' : (user.email ? 'EMAIL' : 'MOBILE'));
   return {
     id: user._id.toString(),
     role: user.role,
-    name: name || user.name || null,
+    name: name || user.name || defaultRoleName,
     primaryIdentifier: primary,
     mobile: user.mobileE164 || null,
     mobileMasked: maskMobile(user.mobileE164),

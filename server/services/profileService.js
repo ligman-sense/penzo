@@ -126,32 +126,34 @@ async function saveProfile(userId, { role, data }) {
   // 1. Email handling
   if (data.email !== undefined) {
     const rawEmail = typeof data.email === 'string' ? data.email.trim() : '';
-    if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
-      throw HttpError.badRequest('Please enter a valid email address.');
-    }
     const cleanEmail = rawEmail.toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
 
-    if (primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE') {
-      if (!cleanEmail) {
+    if (!cleanEmail) {
+      if (primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE') {
         throw HttpError.badRequest('Registered email is your required login identifier and cannot be removed.');
       }
-      if (cleanEmail !== (user.email || '').toLowerCase()) {
-        const msg = user.authProvider === 'GOOGLE'
-          ? 'OAuth account email is managed by Google and cannot be modified.'
-          : 'Registered email login identifier cannot be modified via profile update.';
-        throw HttpError.badRequest(msg);
-      }
+      user.email = null;
     } else {
-      // Mobile-first user updating optional email
-      if (cleanEmail !== (user.email || '').toLowerCase()) {
-        if (cleanEmail) {
+      if (!emailRegex.test(cleanEmail)) {
+        throw HttpError.badRequest('Invalid email address format.');
+      }
+
+      if (primaryIdentifier === 'EMAIL' || user.authProvider === 'GOOGLE') {
+        if (cleanEmail !== (user.email || '').toLowerCase()) {
+          const msg = user.authProvider === 'GOOGLE'
+            ? 'OAuth account email is managed by Google and cannot be modified.'
+            : 'Registered email login identifier cannot be modified via profile update.';
+          throw HttpError.badRequest(msg);
+        }
+      } else {
+        // Mobile-first user updating optional email
+        if (cleanEmail !== (user.email || '').toLowerCase()) {
           const duplicate = await User.findOne({ email: cleanEmail, _id: { $ne: user._id } });
           if (duplicate) {
             throw HttpError.badRequest('This email address is already in use by another account.');
           }
           user.email = cleanEmail;
-        } else {
-          user.email = null;
         }
       }
     }

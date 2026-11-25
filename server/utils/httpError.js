@@ -8,6 +8,7 @@ class HttpError extends Error {
   }
   static badRequest(msg, details) { return new HttpError(400, 'BAD_REQUEST', msg, details); }
   static unauthenticated(msg = 'Please sign in to continue.') { return new HttpError(401, 'UNAUTHENTICATED', msg); }
+  static unauthorized(msg = 'Please sign in to continue.') { return new HttpError(401, 'UNAUTHENTICATED', msg); }
   static forbidden(msg = 'You do not have permission to do that.') { return new HttpError(403, 'FORBIDDEN', msg); }
   static notFound(msg = "We couldn't find what you were looking for.") { return new HttpError(404, 'NOT_FOUND', msg); }
   static tooMany(msg, details) { return new HttpError(429, 'RATE_LIMITED', msg, details); }

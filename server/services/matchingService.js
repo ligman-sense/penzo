@@ -15,7 +15,11 @@ const VerificationRecord = require('../models/VerificationRecord');
 const { writeAudit } = require('./auditService');
 const { notify } = require('./notificationService');
 const { assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
-const { checkVolunteerConflict } = require('../utils/conflictChecker');
+const {
+  checkVolunteerConflict,
+  getExamTimeRange,
+  findVolunteerScheduleConflict,
+} = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
 
 async function generateMatchReference() {
@@ -495,14 +499,28 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
   }
 
   // Populate examinationId on request if needed
-  await request.populate('examinationId');
-  const exam = request.examinationId;
+  if (!request.populated('examinationId')) {
+    await request.populate('examinationId');
+  }
+  const exam = request.examinationId || (await Examination.findById(request.examinationId));
   let session = null;
   if (exam && exam.sessions && request.sessionId) {
     session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
   }
 
-  // Double booking prevention check
+  const { startsAt: rangeStartsAt, endsAt: rangeEndsAt } = getExamTimeRange(exam, session);
+  if (rangeStartsAt && rangeEndsAt) {
+    const scheduleConflict = await findVolunteerScheduleConflict(volunteerId, {
+      startsAt: rangeStartsAt,
+      endsAt: rangeEndsAt,
+      excludeProposalId: proposal._id,
+    });
+    if (scheduleConflict.hasConflict) {
+      throw HttpError.conflict('Cannot accept invitation: You have a scheduling conflict with an existing confirmed assignment or accepted invitation.');
+    }
+  }
+
+  // Double booking prevention check with travel buffer
   const conflict = await checkVolunteerConflict(volunteerId, exam, session);
   if (conflict.hasConflict) {
     throw HttpError.conflict(conflict.message);
@@ -662,6 +680,18 @@ async function confirmMatch(requestId, candidateId) {
     if (session) {
       startsAt = session.startsAt || session.date || startsAt;
       endsAt = session.endsAt || session.date || endsAt;
+    }
+  }
+
+  // Prevent volunteer schedule conflict at final assignment confirmation
+  if (startsAt && endsAt) {
+    const scheduleConflict = await findVolunteerScheduleConflict(volunteerId, {
+      startsAt,
+      endsAt,
+      excludeProposalId: proposal._id,
+    });
+    if (scheduleConflict.hasConflict && scheduleConflict.conflictType === 'CONFIRMED_ASSIGNMENT') {
+      throw HttpError.conflict('Cannot confirm assignment: The volunteer has a scheduling conflict with another confirmed assignment.');
     }
   }
 

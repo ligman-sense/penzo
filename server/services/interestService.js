@@ -2,7 +2,11 @@
 
 const VolunteerInterest = require('../models/VolunteerInterest');
 const Examination = require('../models/Examination');
-const { checkVolunteerConflict } = require('../utils/conflictChecker');
+const {
+  checkVolunteerConflict,
+  getExamTimeRange,
+  findVolunteerScheduleConflict,
+} = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
 
 async function listInterests(volunteerId) {
@@ -43,6 +47,15 @@ async function setInterest(volunteerId, examinationId, data) {
     throw HttpError.notFound('Published examination not found.');
   }
 
+  // Prevent double-booking if volunteer already has a confirmed assignment during this examination
+  const { startsAt, endsAt } = getExamTimeRange(exam);
+  if (startsAt && endsAt) {
+    const scheduleConflict = await findVolunteerScheduleConflict(volunteerId, { startsAt, endsAt });
+    if (scheduleConflict.hasConflict && scheduleConflict.conflictType === 'CONFIRMED_ASSIGNMENT') {
+      throw HttpError.conflict('Cannot register interest: You already have a confirmed scribe assignment during this examination schedule.');
+    }
+  }
+
   // Check for conflicts with existing confirmed assignments
   let targetSession = null;
   if (data?.sessionId && exam.sessions) {
@@ -53,7 +66,7 @@ async function setInterest(volunteerId, examinationId, data) {
 
   const conflict = await checkVolunteerConflict(volunteerId, exam, targetSession);
   if (conflict.hasConflict) {
-    throw HttpError.conflict(conflict.message);
+    throw HttpError.conflict('Cannot register interest: You already have a confirmed scribe assignment during this examination schedule.');
   }
 
   const interest = await VolunteerInterest.findOneAndUpdate(
