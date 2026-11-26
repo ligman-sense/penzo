@@ -115,13 +115,17 @@ async function loadVerifications() {
         if (v.status === 'REJECTED') statusClass = 'badge--red';
         if (v.status === 'REQUIRES_CORRECTION') statusClass = 'badge--orange';
 
+        const displayName = (v.user?.name && v.user.name !== '(Not specified)' && v.user.name !== '(Name not provided)')
+          ? v.user.name
+          : (v.user?.email || v.user?.mobile || 'User');
+
         return `
           <tr>
             <td>
-              <strong>${escapeHtml(v.user?.name || 'Unknown')}</strong>
-              <div style="font-size: 0.8rem; color: var(--color-text-muted);">${escapeHtml(v.user?.mobile || '')}</div>
+              <strong>${escapeHtml(displayName)}</strong>
+              <div style="font-size: 0.8rem; color: var(--color-text-muted);">${escapeHtml(v.user?.mobile || v.user?.email || '')}</div>
             </td>
-            <td><span class="badge ${roleBadge}">${role}</span></td>
+            <td><span class="badge ${roleBadge}">${escapeHtml(role)}</span></td>
             <td><strong>${escapeHtml(kindLabel)}</strong></td>
             <td>${formatDate(v.createdAt)}</td>
             <td><span class="badge ${statusClass}">${escapeHtml(v.status)}</span></td>
@@ -244,17 +248,37 @@ async function openReviewModal(recordId, triggerBtn = null) {
   }
 }
 
+function formatAssistanceNeeds(needs, disabilityType, description) {
+  const parts = [];
+  if (disabilityType) parts.push(`Type: ${disabilityType}`);
+  if (description) parts.push(`Description: ${description}`);
+  if (typeof needs === 'string' && needs.trim()) {
+    if (needs !== disabilityType) parts.push(`Details: ${needs.trim()}`);
+  } else if (Array.isArray(needs) && needs.length > 0) {
+    parts.push(`Needs: ${needs.join(', ')}`);
+  } else if (needs && typeof needs === 'object') {
+    const formatted = Object.entries(needs)
+      .filter(([_, v]) => Boolean(v))
+      .map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${v === true ? 'Yes' : v}`)
+      .join(', ');
+    if (formatted) parts.push(`Needs: ${formatted}`);
+  }
+  return parts.length > 0 ? parts.join('\n') : 'None recorded';
+}
+
 function renderModalContent(record) {
   const user = record.user || {};
   const profile = user.profile || {};
   const isCandidate = user.role === 'CANDIDATE';
 
+  const resolvedName = user.name || profile.fullName || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || user.email || user.mobile || 'User Profile';
+
   const nameEl = document.getElementById('modal-user-name');
-  if (nameEl) nameEl.textContent = profile.fullName || (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}`.trim() : 'User Profile');
+  if (nameEl) nameEl.textContent = resolvedName;
 
   const roleBadge = document.getElementById('modal-role-badge');
   if (roleBadge) {
-    roleBadge.textContent = user.role;
+    roleBadge.textContent = user.role || 'USER';
     roleBadge.className = `badge ${isCandidate ? 'badge--blue' : 'badge--teal'}`;
   }
 
@@ -273,7 +297,7 @@ function renderModalContent(record) {
     ? `<div style="margin-top: 1.5rem;">
         <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem;">Verification History</h4>
         <ul style="font-size: 0.85rem; color: var(--color-text-muted); padding-left: 1.25rem;">
-          ${record.history.map(h => `
+          ${record.history.map((h) => `
             <li>
               <strong>${escapeHtml(h.toStatus)}</strong> on ${formatDate(h.timestamp)}
               ${h.reason ? `— <em>${escapeHtml(h.reason)}</em>` : ''}
@@ -283,7 +307,49 @@ function renderModalContent(record) {
       </div>`
     : '';
 
+  // All verification checks for this user
+  const allChecks = record.allVerifications || [];
+  const checksHtml = allChecks.length > 0
+    ? `<div style="margin-bottom: 1.25rem;">
+        <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem; color: var(--color-text);">All Verification Checks for this User</h4>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          ${allChecks.map((c) => {
+            const kindTitle = c.kind === 'ASSISTANCE_NEED' ? 'Assistance & Disability' : (c.kind === 'IDENTITY' ? 'Identity Verification' : c.kind);
+            let badgeCls = 'badge--yellow';
+            if (c.status === 'VERIFIED') badgeCls = 'badge--green';
+            if (c.status === 'REJECTED') badgeCls = 'badge--red';
+            if (c.status === 'REQUIRES_CORRECTION') badgeCls = 'badge--orange';
+            return `<span class="badge ${badgeCls}" style="font-size: 0.8rem; padding: 4px 8px;">${escapeHtml(kindTitle)}: ${escapeHtml(c.status)}</span>`;
+          }).join('')}
+        </div>
+      </div>`
+    : '';
+
+  // Submitted documents list
+  const docs = record.documents || [];
+  const docsHtml = docs.length > 0
+    ? `<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        ${docs.map((d) => `
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--color-surface-2); padding: 0.6rem 0.8rem; border-radius: 4px; font-size: 0.85rem;">
+            <div>
+              <strong>${escapeHtml(d.originalName || d.kind || 'Document')}</strong>
+              <span style="color: var(--color-text-muted); font-size: 0.75rem; margin-left: 0.5rem;">(${escapeHtml(d.kind)})</span>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted);">${formatDate(d.uploadedAt)} ${d.sizeBytes ? '• ' + Math.round(d.sizeBytes / 1024) + ' KB' : ''}</div>
+            </div>
+            <span class="badge badge--green">Uploaded</span>
+          </div>
+        `).join('')}
+      </div>`
+    : `<p style="font-size: 0.85rem; color: var(--color-text-muted); margin: 0; background: var(--color-surface-2); padding: 0.6rem 0.8rem; border-radius: 4px;">
+        No file attachments uploaded. Verification verified via institutional registration and profile details.
+      </p>`;
+
+  const assistanceDisplay = formatAssistanceNeeds(profile.assistanceNeeds, profile.disabilityType, profile.disabilityDescription);
+
   bodyContent.innerHTML = `
+    <!-- Verification Checks Summary -->
+    ${checksHtml}
+
     <!-- Profile Completion Status -->
     <div style="background-color: var(--color-surface-2); padding: 1rem; border-radius: 6px; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
       <div>
@@ -298,12 +364,13 @@ function renderModalContent(record) {
     <!-- Personal & Contact Details -->
     <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem; color: var(--color-text);">Contact &amp; Personal Info</h4>
     <div class="grid grid-cols-2" style="gap: 0.75rem; font-size: 0.9rem; margin-bottom: 1.25rem;">
-      <div><strong>Full Name:</strong> ${escapeHtml(profile.fullName || '(Not provided)')}</div>
+      <div><strong>Full Name:</strong> ${escapeHtml(resolvedName)}</div>
       <div><strong>Verified Mobile:</strong> ${escapeHtml(user.mobile || '(None)')}</div>
       <div><strong>Email:</strong> ${escapeHtml(user.email || '(None)')}</div>
       <div><strong>Date of Birth:</strong> ${profile.dateOfBirth ? formatDate(profile.dateOfBirth) : '—'}</div>
       <div><strong>Gender:</strong> ${escapeHtml(profile.gender || '—')}</div>
       <div><strong>Location:</strong> ${escapeHtml([profile.city, profile.state, profile.pincode].filter(Boolean).join(', ') || '—')}</div>
+      ${isCandidate && profile.emergencyContactPhone ? `<div><strong>Emergency Contact:</strong> ${escapeHtml(profile.emergencyContactName ? `${profile.emergencyContactName} (${profile.emergencyContactPhone})` : profile.emergencyContactPhone)}</div>` : ''}
     </div>
 
     <!-- Role-Specific Details -->
@@ -316,8 +383,8 @@ function renderModalContent(record) {
         <div><strong>Preferred Exam City:</strong> ${escapeHtml(profile.preferredExamCity || profile.city || '—')}</div>
         <div style="grid-column: span 2;">
           <strong>Disability &amp; Assistance Requirements:</strong>
-          <p style="background: var(--color-surface-2); padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem; font-size: 0.85rem;">
-            ${escapeHtml(profile.assistanceNeeds || profile.disabilityType || 'None recorded')}
+          <p style="background: var(--color-surface-2); padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem; font-size: 0.85rem; white-space: pre-line;">
+            ${escapeHtml(assistanceDisplay)}
           </p>
         </div>
       ` : `
@@ -325,7 +392,14 @@ function renderModalContent(record) {
         <div><strong>Service Radius:</strong> ${escapeHtml(String(profile.serviceRadiusKm || 25))} km</div>
         <div><strong>Service Regions:</strong> ${escapeHtml(Array.isArray(profile.serviceLocations) ? profile.serviceLocations.join(', ') : profile.serviceLocations || profile.city || '—')}</div>
         <div><strong>Prior Scribe Experience:</strong> ${profile.hasPriorExperience || profile.hasScribeExperience ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Yes, has prior experience' : 'New volunteer'}</div>
+        ${profile.bio ? `<div style="grid-column: span 2;"><strong>Bio:</strong> <p style="background: var(--color-surface-2); padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem; font-size: 0.85rem;">${escapeHtml(profile.bio)}</p></div>` : ''}
       `}
+    </div>
+
+    <!-- Submitted Documents Section -->
+    <h4 style="margin-bottom: 0.5rem; font-size: 0.95rem; color: var(--color-text);">Submitted Documents &amp; Proofs</h4>
+    <div style="margin-bottom: 1.25rem;">
+      ${docsHtml}
     </div>
 
     ${historyHtml}
