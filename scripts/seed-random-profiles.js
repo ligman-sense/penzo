@@ -354,6 +354,11 @@ async function main() {
       verificationStatus: 'VERIFIED',
     });
 
+    await VerificationRecord.create([
+      { userId: user._id, kind: 'IDENTITY', status: 'VERIFIED', reviewedAt: now },
+      { userId: user._id, kind: 'ASSISTANCE_NEED', status: 'VERIFIED', reviewedAt: now },
+    ]);
+
     createdCandidates.push({
       rollNo: rec.rollNo,
       name,
@@ -417,6 +422,10 @@ async function main() {
       completionPercentage: 100,
       verificationStatus: 'VERIFIED',
     });
+
+    await VerificationRecord.create([
+      { userId: user._id, kind: 'IDENTITY', status: 'VERIFIED', reviewedAt: now },
+    ]);
 
     createdVolunteers.push({
       rollNo: rec.rollNo,
