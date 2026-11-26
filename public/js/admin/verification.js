@@ -289,7 +289,7 @@ function renderModalContent(record) {
       <div>
         <span style="font-weight: 600; font-size: 0.9rem;">Profile Completion Status: <strong>${completionPct}%</strong></span>
         <div style="font-size: 0.8rem; color: var(--color-text-muted);">
-          ${user.profileComplete ? '✓ All mandatory profile details completed' : '⚠️ Profile is incomplete'}
+          ${user.profileComplete ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> All mandatory profile details completed' : '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Profile is incomplete'}
         </div>
       </div>
       <span class="badge ${user.profileComplete ? 'badge--green' : 'badge--yellow'}">${user.profileComplete ? 'Ready for Verification' : 'Incomplete Profile'}</span>
@@ -324,7 +324,7 @@ function renderModalContent(record) {
         <div><strong>Subjects Comfortable Scribing:</strong> ${escapeHtml(Array.isArray(profile.subjects) ? profile.subjects.join(', ') : profile.subjects || '—')}</div>
         <div><strong>Service Radius:</strong> ${escapeHtml(String(profile.serviceRadiusKm || 25))} km</div>
         <div><strong>Service Regions:</strong> ${escapeHtml(Array.isArray(profile.serviceLocations) ? profile.serviceLocations.join(', ') : profile.serviceLocations || profile.city || '—')}</div>
-        <div><strong>Prior Scribe Experience:</strong> ${profile.hasPriorExperience || profile.hasScribeExperience ? '✓ Yes, has prior experience' : 'New volunteer'}</div>
+        <div><strong>Prior Scribe Experience:</strong> ${profile.hasPriorExperience || profile.hasScribeExperience ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Yes, has prior experience' : 'New volunteer'}</div>
       `}
     </div>
 

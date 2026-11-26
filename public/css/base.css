@@ -6,74 +6,100 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ─── Chase Summer Core Tokens ────────────────────────────────────────── */
-  --color-navy: #172B54;               /* Deep navy: structure, contrast, headings */
-  --color-navy-surface: #223A68;       /* Warm navy surface */
-  --color-navy-hover: #101E3B;         /* Deeper navy on hover */
-  --color-golden: #FFD17A;             /* Golden yellow: radiant accent, highlight */
-  --color-golden-light: #FFF1D2;       /* Light golden wash */
-  --color-apricot: #FFB35F;            /* Apricot: warm transition & badge accent */
-  --color-apricot-light: #FFEAD4;      /* Soft apricot wash */
-  --color-orange: #F28A1B;             /* Action orange: primary buttons & CTAs */
-  --color-orange-hover: #DD770E;       /* Action orange hover */
-  --color-orange-active: #C26305;      /* Action orange active */
-  --color-offwhite: #FFF9F0;           /* Warm off-white: page background & readable surface */
-  --color-pale-blue: #DCE5EF;          /* Pale blue-gray: structural neutral & light badge */
-  --color-muted-text: #596579;         /* Muted text: secondary notes, timestamps */
+  /* ─── PENZO Restrained Warm Palette (Ivory, Espresso, Terracotta, Ochre, Sage) ─── */
+  --color-ivory: #FFFDF9;              /* Pure ivory: light canvas & readable surfaces */
+  --color-ivory-warm: #FAF4EB;         /* Warm ivory wash */
+  --color-ivory-surface: #F4EDE2;      /* Elevated ivory surface */
+
+  --color-espresso: #231713;           /* Deep rich espresso: structure, contrast, headings */
+  --color-espresso-surface: #35251F;   /* Warm espresso surface */
+  --color-espresso-hover: #160E0A;     /* Deeper espresso on hover */
+  --color-espresso-light: #4A362C;     /* Mid espresso tone */
+
+  --color-terracotta: #C85027;         /* Action terracotta: primary buttons & CTAs */
+  --color-terracotta-hover: #B0431E;   /* Terracotta hover */
+  --color-terracotta-active: #943414;  /* Terracotta active */
+  --color-terracotta-light: #FCECE6;   /* Soft terracotta tint */
+
+  --color-ochre: #D48B28;              /* Warm golden ochre: radiant accent, highlight */
+  --color-ochre-light: #FBF1DF;        /* Soft ochre wash */
+  --color-ochre-hover: #BE791E;        /* Ochre hover */
+
+  --color-sage: #4E7859;               /* Muted sage: verified, positive status */
+  --color-sage-light: #EEF4F0;         /* Sage wash background */
+  --color-sage-border: #BFD6C4;        /* Sage border */
+
+  --color-stone: #E5D9CB;              /* Warm stone border */
+  --color-stone-strong: #CFBFAD;       /* Accessible input border */
+  --color-muted-text: #735F53;         /* Warm muted stone-espresso: secondary notes, timestamps */
 
   /* ─── Semantic Theme Mappings (Light Mode) ────────────────────────────── */
-  --color-primary: #172B54;            /* Primary brand: Deep navy */
-  --color-primary-light: #223A68;
-  --color-primary-hover: #0F1D38;
+  --color-primary: #231713;            /* Primary brand: Deep espresso */
+  --color-primary-light: #35251F;
+  --color-primary-hover: #160E0A;
 
-  --color-secondary: #F28A1B;          /* Primary interactive CTA: Action orange */
-  --color-secondary-light: #FFB35F;
-  --color-secondary-hover: #DD770E;
+  --color-secondary: #C85027;          /* Primary interactive CTA: Terracotta */
+  --color-secondary-light: #E0714B;
+  --color-secondary-hover: #B0431E;
 
-  --color-accent: #FFD17A;             /* Warm golden highlight */
-  --color-accent-hover: #FFB35F;
-  --color-action: #F28A1B;             /* Direct action orange */
-  --color-action-hover: #DD770E;
+  --color-accent: #D48B28;             /* Warm ochre highlight */
+  --color-accent-hover: #BE791E;
+  --color-action: #C85027;             /* Direct action terracotta */
+  --color-action-hover: #B0431E;
+
+  /* Legacy aliases mapped cleanly to warm palette */
+  --color-navy: #231713;
+  --color-navy-surface: #35251F;
+  --color-navy-hover: #160E0A;
+  --color-golden: #D48B28;
+  --color-golden-light: #FBF1DF;
+  --color-apricot: #E0714B;
+  --color-apricot-light: #FCECE6;
+  --color-orange: #C85027;
+  --color-orange-hover: #B0431E;
+  --color-orange-active: #943414;
+  --color-offwhite: #FAF4EB;
+  --color-pale-blue: #F0E8DD;
 
   /* Surfaces & Backgrounds */
-  --color-bg: #FFF9F0;                 /* Warm off-white canvas */
-  --color-surface: #FFFFFF;            /* Clean card/modal surface */
-  --color-surface-2: #FFF4E5;          /* Warm golden/apricot wash */
-  --color-surface-3: #F8ECE0;          /* Subtle table header & card footer */
-  --color-surface-hover: #FDF1E2;      /* Gentle warm hover */
-  --color-surface-navy: #172B54;       /* Deep navy surface for hero & headers */
-  --color-border: #E8DCCF;             /* Warm, organic border */
-  --color-border-strong: #D4C3B0;      /* Accessible input border */
+  --color-bg: #FAF4EB;                 /* Warm ivory canvas */
+  --color-surface: #FFFDF9;            /* Clean card/modal surface */
+  --color-surface-2: #F4EDE2;          /* Warm ivory/ochre wash */
+  --color-surface-3: #ECE2D4;          /* Subtle table header & card footer */
+  --color-surface-hover: #EFE6D8;      /* Gentle warm ivory hover */
+  --color-surface-navy: #231713;       /* Deep espresso surface for hero & headers */
+  --color-border: #E5D9CB;             /* Warm stone border */
+  --color-border-strong: #CFBFAD;      /* Accessible input border */
 
   /* Typography */
-  --color-text: #172B54;               /* Deep navy text for highest legibility */
-  --color-text-secondary: #3D4C63;     /* Mid navy-slate */
-  --color-text-muted: #596579;         /* Reference muted token */
-  --color-text-inverse: #FFF9F0;       /* Warm off-white on navy */
-  --color-text-accent: #D4710A;        /* Warm orange accent text */
+  --color-text: #231713;               /* Deep espresso text for highest legibility */
+  --color-text-secondary: #523F34;     /* Mid espresso */
+  --color-text-muted: #735F53;         /* Muted espresso stone */
+  --color-text-inverse: #FFFDF9;       /* Warm ivory on espresso */
+  --color-text-accent: #C85027;        /* Warm terracotta accent text */
 
-  /* Functional Status Colors (Tuned to Warm Editorial Palette) */
-  --color-success: #1E7E34;
-  --color-success-bg: #EDF7EE;
-  --color-success-border: #B7E4C4;
-  --color-warning: #D97706;
-  --color-warning-bg: #FFF8E6;
-  --color-warning-border: #FFD17A;
-  --color-error: #D32F2F;
-  --color-error-bg: #FDF2F2;
-  --color-error-border: #F8C4C4;
-  --color-info: #172B54;
-  --color-info-bg: #EEF3FA;
-  --color-info-border: #DCE5EF;
+  /* Functional Status Colors */
+  --color-success: #4E7859;            /* Muted sage */
+  --color-success-bg: #EEF4F0;
+  --color-success-border: #BFD6C4;
+  --color-warning: #C27814;            /* Warm ochre */
+  --color-warning-bg: #FAF0E0;
+  --color-warning-border: #E8C58C;
+  --color-error: #B83226;              /* Earthy terracotta red */
+  --color-error-bg: #FBEFEB;
+  --color-error-border: #F1BFB8;
+  --color-info: #735F53;               /* Warm stone */
+  --color-info-bg: #F5EFEB;
+  --color-info-border: #DDD1C6;
 
   /* Focus & Warm Elevation */
-  --color-focus: #F28A1B;
-  --color-focus-ring: rgba(242, 138, 27, 0.32);
-  --shadow-sm: 0 1px 3px rgba(23, 43, 84, 0.06), 0 1px 2px rgba(23, 43, 84, 0.04);
-  --shadow-md: 0 4px 14px rgba(23, 43, 84, 0.08), 0 2px 4px rgba(23, 43, 84, 0.04);
-  --shadow-lg: 0 12px 30px rgba(23, 43, 84, 0.12), 0 4px 8px rgba(23, 43, 84, 0.05);
-  --shadow-warm: 0 8px 24px rgba(242, 138, 27, 0.24);
-  --shadow-navy: 0 10px 28px rgba(23, 43, 84, 0.28);
+  --color-focus: #C85027;
+  --color-focus-ring: rgba(200, 80, 39, 0.28);
+  --shadow-sm: 0 1px 3px rgba(35, 23, 19, 0.05), 0 1px 2px rgba(35, 23, 19, 0.03);
+  --shadow-md: 0 4px 14px rgba(35, 23, 19, 0.07), 0 2px 4px rgba(35, 23, 19, 0.04);
+  --shadow-lg: 0 12px 30px rgba(35, 23, 19, 0.10), 0 4px 8px rgba(35, 23, 19, 0.04);
+  --shadow-warm: 0 8px 24px rgba(200, 80, 39, 0.20);
+  --shadow-navy: 0 10px 28px rgba(35, 23, 19, 0.22);
 
   /* Geometry & Radii */
   --radius-xs: 4px;
@@ -104,55 +130,110 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* ─── Chase Summer Dark Mode ─────────────────────────────────────────────── */
+/* ─── Warm Dark Mode (Roasted Espresso, Ochre, Ivory, Sage) ─────────────── */
 [data-theme="dark"] {
-  --color-primary: #FFD17A;            /* Golden yellow highlights on navy */
-  --color-primary-light: #FFE8B2;
-  --color-primary-hover: #FFB35F;
+  --color-primary: #D48B28;            /* Ochre highlights on dark espresso */
+  --color-primary-light: #EBB058;
+  --color-primary-hover: #E0714B;
 
-  --color-secondary: #F28A1B;          /* Action orange stays prominent */
-  --color-secondary-light: #FFB35F;
-  --color-secondary-hover: #DE7709;
+  --color-secondary: #DE6A40;          /* Terracotta interactive accent */
+  --color-secondary-light: #EFA080;
+  --color-secondary-hover: #C85027;
 
-  --color-accent: #FFD17A;
-  --color-accent-hover: #FFB35F;
-  --color-action: #F28A1B;
-  --color-action-hover: #DE7709;
+  --color-accent: #D48B28;
+  --color-accent-hover: #EBB058;
+  --color-action: #DE6A40;
+  --color-action-hover: #C85027;
 
-  /* Deep Navy Night Surfaces */
-  --color-bg: #0C1629;                 /* Deepest night navy */
-  --color-surface: #172B54;            /* Deep navy card surface */
-  --color-surface-2: #223A68;          /* Warm navy elevated surface */
-  --color-surface-3: #2A4476;          /* Header & table surface */
-  --color-surface-hover: #2B4678;      /* Interactive hover */
-  --color-surface-navy: #0F1D38;
-  --color-border: #2B4476;             /* Navy surface border */
-  --color-border-strong: #3D5A94;
+  /* Legacy aliases in dark mode */
+  --color-navy: #FAF4EB;
+  --color-navy-surface: #2E201B;
+  --color-navy-hover: #EBB058;
+  --color-golden: #D48B28;
+  --color-golden-light: rgba(212, 139, 40, 0.15);
+  --color-apricot: #DE6A40;
+  --color-apricot-light: rgba(222, 106, 64, 0.15);
+  --color-orange: #DE6A40;
+  --color-orange-hover: #C85027;
+  --color-orange-active: #B0431E;
+  --color-offwhite: #FAF4EB;
+  --color-pale-blue: #3D2C24;
+
+  /* Deep Roasted Espresso Surfaces */
+  --color-bg: #150E0B;                 /* Deepest warm roasted espresso */
+  --color-surface: #221713;            /* Rich dark espresso card surface */
+  --color-surface-2: #2E201B;          /* Elevated warm espresso surface */
+  --color-surface-3: #3B2B24;          /* Header & table surface */
+  --color-surface-hover: #372821;      /* Interactive hover */
+  --color-surface-navy: #19100D;
+  --color-border: #3D2C24;             /* Warm espresso border */
+  --color-border-strong: #543D32;
 
   /* Dark Typography */
-  --color-text: #FFF9F0;               /* Warm off-white */
-  --color-text-secondary: #DCE5EF;     /* Pale blue-gray */
-  --color-text-muted: #8E9FB8;         /* Soft slate */
-  --color-text-inverse: #172B54;
-  --color-text-accent: #FFD17A;
+  --color-text: #FAF4EB;               /* Ivory on dark */
+  --color-text-secondary: #D8CCC0;     /* Muted ivory stone */
+  --color-text-muted: #A39184;         /* Soft warm stone */
+  --color-text-inverse: #231713;
+  --color-text-accent: #D48B28;
 
   /* Dark Mode Status */
-  --color-success: #34D399;
-  --color-success-bg: rgba(52, 211, 153, 0.15);
-  --color-success-border: rgba(52, 211, 153, 0.3);
-  --color-warning: #FBBF24;
-  --color-warning-bg: rgba(251, 191, 36, 0.15);
-  --color-warning-border: rgba(251, 191, 36, 0.3);
-  --color-error: #F87171;
-  --color-error-bg: rgba(248, 113, 113, 0.15);
-  --color-error-border: rgba(248, 113, 113, 0.3);
-  --color-info: #93C5FD;
-  --color-info-bg: rgba(147, 197, 253, 0.15);
-  --color-info-border: rgba(147, 197, 253, 0.3);
+  --color-success: #6AA57A;            /* Muted sage */
+  --color-success-bg: rgba(106, 165, 122, 0.16);
+  --color-success-border: rgba(106, 165, 122, 0.35);
+  --color-warning: #EBB058;            /* Warm ochre */
+  --color-warning-bg: rgba(235, 176, 88, 0.16);
+  --color-warning-border: rgba(235, 176, 88, 0.35);
+  --color-error: #E56353;              /* Terracotta red */
+  --color-error-bg: rgba(229, 99, 83, 0.16);
+  --color-error-border: rgba(229, 99, 83, 0.35);
+  --color-info: #A39184;               /* Warm stone */
+  --color-info-bg: rgba(163, 145, 132, 0.16);
+  --color-info-border: rgba(163, 145, 132, 0.35);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Glass Styling Utilities ────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 253, 249, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 217, 203, 0.7);
+}
+
+.glass--card {
+  background: rgba(255, 253, 249, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(229, 217, 203, 0.8);
+  box-shadow: 0 10px 30px rgba(35, 23, 19, 0.08);
+}
+
+.glass--hero {
+  background: rgba(255, 253, 249, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(212, 139, 40, 0.4);
+  box-shadow: 0 16px 44px rgba(35, 23, 19, 0.18);
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(36, 27, 22, 0.85) !important;
+  border-color: rgba(61, 44, 36, 0.7);
+}
+
+[data-theme="dark"] .glass--card {
+  background: rgba(36, 27, 22, 0.88);
+  border-color: rgba(84, 61, 50, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .glass--hero {
+  background: rgba(34, 23, 19, 0.90);
+  border-color: rgba(212, 139, 40, 0.35);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.65);
 }
 
 /* ─── Global Reset & Base Typography ─────────────────────────────────────── */
@@ -160,6 +241,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 html {

@@ -188,7 +188,7 @@ function renderInvitationCard(inv) {
 
         ${venue.centreName ? `
           <div style="margin-top: 0.75rem; padding: 0.75rem; background: var(--color-surface-2); border-radius: 4px; font-size: 0.85rem;">
-            <strong style="display: block; margin-bottom: 0.2rem; color: var(--color-primary);">📍 Exact Examination Centre Venue:</strong>
+            <strong style="display: block; margin-bottom: 0.2rem; color: var(--color-primary);"><svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Exact Examination Centre Venue:</strong>
             <div style="font-weight: 600;">${escapeHtml(venue.centreName)}</div>
             <div style="color: var(--color-text-secondary); margin-top: 0.15rem;">
               ${escapeHtml([venue.address, venue.area, venue.city, venue.state, venue.pincode].filter(Boolean).join(', '))}
@@ -223,7 +223,7 @@ function openAgreementModal(proposalId) {
         <h4 style="margin: 0 0 0.25rem; color: var(--color-primary); font-size: 1rem;">${escapeHtml(exam.name || 'Examination')}</h4>
         <div style="color: var(--color-text-muted); margin-bottom: 0.5rem;">Date: <strong>${formatDate(exam.startsOn)}</strong> | Language: <strong>${escapeHtml(req.language || 'Any')}</strong></div>
         <div style="padding: 0.5rem; background: var(--color-surface); border-radius: 4px; border: 1px solid var(--color-border);">
-          <strong style="display: block; font-size: 0.85rem;">📍 Examination Centre:</strong>
+          <strong style="display: block; font-size: 0.85rem;"><svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Examination Centre:</strong>
           <div style="font-weight: 600;">${escapeHtml(venue.centreName || 'Centre Name Pending')}</div>
           <div style="font-size: 0.8rem; color: var(--color-text-secondary);">${escapeHtml([venue.address, venue.area, venue.city, venue.state, venue.pincode].filter(Boolean).join(', '))}</div>
         </div>
@@ -476,7 +476,7 @@ function renderCommitmentItem(assignment) {
         <h3 class="commitment-item__exam" style="margin: 0; font-size: 1.15rem;">
           ${escapeHtml(assignment.examination?.name || 'Examination Session')}
         </h3>
-        ${assignment.isLocked ? '<span class="badge badge--red" style="font-size: 0.75rem;">🔒 Commitment Locked (5-Day Rule)</span>' : ''}
+        ${assignment.isLocked ? '<span class="badge badge--red" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Commitment Locked (5-Day Rule)</span>' : ''}
       </div>
       <p class="commitment-item__authority" style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: var(--color-text-muted);">
         ${escapeHtml(assignment.examination?.authority || '')}
@@ -489,7 +489,7 @@ function renderCommitmentItem(assignment) {
 
       ${venue.centreName ? `
         <div style="margin-top: 0.75rem; padding: 0.65rem 0.85rem; background: var(--color-surface-2); border-radius: 4px; font-size: 0.85rem;">
-          <strong style="color: var(--color-primary); display: block; margin-bottom: 0.2rem;">📍 Exact Examination Centre Venue:</strong>
+          <strong style="color: var(--color-primary); display: block; margin-bottom: 0.2rem;"><svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Exact Examination Centre Venue:</strong>
           <div style="font-weight: 600;">${escapeHtml(venue.centreName)}</div>
           <div style="color: var(--color-text-secondary); font-size: 0.8rem;">
             ${escapeHtml([venue.address, venue.area, venue.city, venue.state, venue.pincode].filter(Boolean).join(', '))}

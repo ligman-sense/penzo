@@ -11,6 +11,7 @@ let _page       = 1;
 let _totalPages = 1;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
+const tableWrap = document.getElementById('interests-table-wrap');
 const listEl    = document.getElementById('interests-list');
 const emptyEl   = document.getElementById('interests-empty');
 const errorEl   = document.getElementById('interests-error');
@@ -42,9 +43,9 @@ const paginEl   = document.getElementById('pagination');
 
 // ─── Load Interests ───────────────────────────────────────────────────────────
 async function loadInterests() {
+  if (tableWrap) tableWrap.hidden = false;
   if (listEl) {
-    listEl.hidden = false;
-    listEl.innerHTML = '<li class="loading-cell">Loading your interests…</li>';
+    listEl.innerHTML = '<tr><td colspan="6" class="loading-cell text-center" style="padding: 2.5rem;">Loading your interests…</td></tr>';
   }
   if (emptyEl) emptyEl.hidden = true;
   if (errorEl) errorEl.hidden = true;
@@ -55,16 +56,16 @@ async function loadInterests() {
     _totalPages     = res.meta?.totalPages || res.data?.totalPages || 1;
 
     if (!interests.length) {
-      if (listEl)  listEl.hidden  = true;
-      if (emptyEl) emptyEl.hidden = false;
-      if (errorEl) errorEl.hidden = true;
-      if (paginEl) paginEl.innerHTML = '';
+      if (tableWrap) tableWrap.hidden = true;
+      if (emptyEl)   emptyEl.hidden   = false;
+      if (errorEl)   errorEl.hidden   = true;
+      if (paginEl)   paginEl.innerHTML = '';
       return;
     }
 
-    if (listEl)  listEl.hidden  = false;
-    if (emptyEl) emptyEl.hidden = true;
-    if (errorEl) errorEl.hidden = true;
+    if (tableWrap) tableWrap.hidden = false;
+    if (emptyEl)   emptyEl.hidden   = true;
+    if (errorEl)   errorEl.hidden   = true;
 
     if (listEl) {
       listEl.innerHTML = interests.map(i => renderInterestItem(i)).join('');
@@ -74,8 +75,8 @@ async function loadInterests() {
     if (paginEl) renderPagination(paginEl, { page: _page, totalPages: _totalPages }, goToPage);
 
   } catch (err) {
-    if (listEl)  listEl.hidden  = true;
-    if (emptyEl) emptyEl.hidden = true;
+    if (tableWrap) tableWrap.hidden = true;
+    if (emptyEl)   emptyEl.hidden   = true;
     if (errorEl) {
       errorEl.hidden = false;
       if (errorMsgEl) errorMsgEl.textContent = err.message || 'Could not fetch interests.';
@@ -84,30 +85,36 @@ async function loadInterests() {
   }
 }
 
-// ─── Render Interest Item ─────────────────────────────────────────────────────
+// ─── Render Interest Item (Aligned Table Rows) ────────────────────────────────
 function renderInterestItem(interest) {
-  const examId = interest.examinationId || interest.examination?.id;
+  const examId = interest.examinationId || interest.examination?.id || interest.examination?._id;
   const canWithdraw = !['CONFIRMED', 'COMPLETED', 'WITHDRAWN'].includes(interest.status);
 
-  return `<li class="interest-item" data-interest-id="${escapeHtml(examId)}">
-    <div class="interest-item__info">
-      <strong class="interest-item__exam">${escapeHtml(interest.examination?.name || 'Unknown Exam')}</strong>
-      <span class="interest-item__authority">${escapeHtml(interest.examination?.authority || '')}</span>
-      <dl class="interest-item__meta">
-        <div><dt>Exam Date</dt><dd>${formatDate(interest.examination?.startsOn)}</dd></div>
-        <div><dt>Registered On</dt><dd>${formatDate(interest.registeredAt || interest.createdAt)}</dd></div>
-      </dl>
-    </div>
-    <div class="interest-item__actions">
+  return `<tr data-interest-id="${escapeHtml(examId || '')}">
+    <td data-label="Examination">
+      <strong style="color: var(--color-text); font-size: 0.95rem;">${escapeHtml(interest.examination?.name || 'Unknown Exam')}</strong>
+    </td>
+    <td data-label="Authority" style="color: var(--color-text-secondary); font-size: 0.88rem;">
+      ${escapeHtml(interest.examination?.authority || '—')}
+    </td>
+    <td data-label="Exam Date" style="white-space: nowrap; font-size: 0.88rem;">
+      ${formatDate(interest.examination?.startsOn)}
+    </td>
+    <td data-label="Registered On" style="white-space: nowrap; color: var(--color-text-muted); font-size: 0.85rem;">
+      ${formatDate(interest.registeredAt || interest.createdAt)}
+    </td>
+    <td data-label="Status">
       ${renderStatusBadge(interest.status)}
+    </td>
+    <td data-label="Action" style="text-align: right; white-space: nowrap;">
       ${canWithdraw ? `
-        <button class="btn btn--danger btn--sm withdraw-btn" 
-                data-exam-id="${escapeHtml(examId)}"
+        <button type="button" class="btn btn--danger btn--sm withdraw-btn" 
+                data-exam-id="${escapeHtml(examId || '')}"
                 aria-label="Withdraw interest for ${escapeHtml(interest.examination?.name || '')}">
           Withdraw
-        </button>` : ''}
-    </div>
-  </li>`;
+        </button>` : '<span style="font-size: 0.85rem; color: var(--color-text-muted);">—</span>'}
+    </td>
+  </tr>`;
 }
 
 // ─── Withdraw Handlers ────────────────────────────────────────────────────────

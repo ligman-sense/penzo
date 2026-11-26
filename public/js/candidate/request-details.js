@@ -87,25 +87,25 @@ function renderRequest(req, match) {
 
   if (isConfirmed) {
     matchSectionHtml = `
-      <section class="card" style="border-left: 4px solid var(--color-success, #16a34a); margin-bottom: 1.5rem; background: var(--color-surface);">
-        <div class="card-body" style="padding: 1.25rem;">
+      <section class="card" style="border-left: 4px solid var(--color-success); margin-bottom: 1.75rem; background: var(--color-surface); box-shadow: var(--shadow-sm);">
+        <div class="card-body" style="padding: 1.5rem 1.75rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <span class="badge badge--success">✓ Scribe Allocated & Confirmed</span>
+            <span class="badge badge--success"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Scribe Allocated &amp; Confirmed</span>
           </div>
-          <h2 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">
+          <h2 style="margin: 0 0 0.4rem 0; font-size: 1.35rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">
             Scribe Allocated
           </h2>
-          <p style="margin: 0; font-size: 0.9rem; color: var(--color-text-muted);">
+          <p style="margin: 0; font-size: 0.925rem; color: var(--color-text-secondary); line-height: 1.5;">
             A qualified volunteer scribe has been allocated and confirmed for your examination assistance.
           </p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem; font-size: 0.875rem;">
-            <div>
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Allocation Status</span>
-              <strong style="color: var(--color-success, #16a34a);">Confirmed</strong>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.25rem;">
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+              <span style="color: var(--color-text-muted); display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.25rem;">Allocation Status</span>
+              <strong style="color: var(--color-success); font-size: 1rem;">Confirmed</strong>
             </div>
-            <div>
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.75rem;">Coordination</span>
-              <strong>Facilitated via PENZO</strong>
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+              <span style="color: var(--color-text-muted); display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.25rem;">Coordination</span>
+              <strong style="font-size: 1rem; color: var(--color-text);">Facilitated via PENZO</strong>
             </div>
           </div>
         </div>
@@ -113,12 +113,12 @@ function renderRequest(req, match) {
     `;
   } else if (isMatchProposed) {
     matchSectionHtml = `
-      <div class="card" style="border-left: 4px solid var(--color-warning, #d97706); margin-bottom: 1.5rem; background: var(--color-surface); padding: 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-          <span class="badge badge--amber">Match Proposed</span>
+      <div class="card" style="border-left: 4px solid var(--color-warning); margin-bottom: 1.75rem; background: var(--color-surface); padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <span class="badge badge--ochre">Match Proposed</span>
         </div>
-        <h3 style="margin: 0; font-size: 1.1rem;">Awaiting Volunteer Acceptance</h3>
-        <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);">
+        <h3 style="margin: 0 0 0.35rem 0; font-size: 1.2rem; font-family: var(--font-display); font-weight: 800;">Awaiting Volunteer Acceptance</h3>
+        <p style="margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.5;">
           Our administrative team has matched your request with an eligible volunteer. We will update your status as soon as the volunteer accepts.
         </p>
       </div>
@@ -128,7 +128,7 @@ function renderRequest(req, match) {
   detailContainer.innerHTML = `
     ${matchSectionHtml}
 
-    <section class="detail-card" aria-label="Request Details" style="margin-bottom: 1.5rem;">
+    <section class="detail-card" aria-label="Request Details" style="margin-bottom: 1.75rem;">
       <header class="detail-card__header">
         <div>
           <h1 class="detail-card__title">${escapeHtml(req.examination?.name || 'Exam Request')}</h1>
@@ -147,22 +147,22 @@ function renderRequest(req, match) {
       </dl>
 
       ${req.venue && req.venue.centreName ? `
-        <div style="margin-top: 1.25rem; padding: 1rem; background: var(--color-bg-secondary, rgba(0,0,0,0.02)); border: 1px solid var(--color-border); border-radius: 6px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <strong style="font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
-              <span>📍</span> Examination Centre Venue
+        <div style="margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+            <strong style="font-size: 1rem; display: flex; align-items: center; gap: 0.4rem; color: var(--color-terracotta);">
+              <svg class="icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Examination Centre Venue
             </strong>
             ${req.venue.confirmed 
-              ? '<span class="badge badge--success" style="font-size: 0.75rem;">✓ Venue Confirmed by Admin</span>'
+              ? '<span class="badge badge--success" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Venue Confirmed by Admin</span>'
               : '<span class="badge badge--amber" style="font-size: 0.75rem;">Pending Admin Confirmation</span>'
             }
           </div>
-          <p style="margin: 0.25rem 0; font-weight: 600; font-size: 0.95rem;">${escapeHtml(req.venue.centreName)}</p>
-          <p style="margin: 0.25rem 0; color: var(--color-text-secondary); font-size: 0.875rem;">
+          <p style="margin: 0.35rem 0; font-weight: 700; font-size: 1.05rem; color: var(--color-text);">${escapeHtml(req.venue.centreName)}</p>
+          <p style="margin: 0.25rem 0; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.5;">
             ${escapeHtml([req.venue.address, req.venue.area, req.venue.city, req.venue.state, req.venue.pincode].filter(Boolean).join(', '))}
           </p>
-          ${req.venue.landmark ? `<p style="margin: 0.25rem 0; font-size: 0.85rem; color: var(--color-text-muted);"><strong>Landmark:</strong> ${escapeHtml(req.venue.landmark)}</p>` : ''}
-          ${req.venue.mapLink ? `<p style="margin: 0.25rem 0; font-size: 0.85rem;"><a href="${escapeHtml(req.venue.mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: underline;">View on Google Maps ↗</a></p>` : ''}
+          ${req.venue.landmark ? `<p style="margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--color-text-muted);"><strong>Landmark:</strong> ${escapeHtml(req.venue.landmark)}</p>` : ''}
+          ${req.venue.mapLink ? `<p style="margin: 0.5rem 0 0; font-size: 0.875rem;"><a href="${escapeHtml(req.venue.mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-terracotta); font-weight: 600; text-decoration: underline;">View on Google Maps ↗</a></p>` : ''}
         </div>
       ` : ''}
 

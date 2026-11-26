@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#123463"/><path d="M9 23 21 9l2 2L11 25l-3 .5z" fill="#44cdc0"/><circle cx="23.5" cy="8.5" r="2" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="7" fill="#231713" stroke="#D48B28" stroke-width="1"/>
+  <!-- Open Book Base -->
+  <path d="M5 21.5C8 20 12 20 16 21.5C20 20 24 20 27 21.5V11C24 9.5 20 9.5 16 11C12 9.5 8 9.5 5 11V21.5Z" fill="#FAF5EE"/>
+  <path d="M16 11V21.5" stroke="#D48B28" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M7.5 14C9.5 13.5 12.5 13.5 14.5 14" stroke="#735F53" stroke-width="0.8" stroke-linecap="round"/>
+  <path d="M7.5 16.5C9.5 16 12.5 16 14.5 16.5" stroke="#735F53" stroke-width="0.8" stroke-linecap="round"/>
+  <!-- Scribe Pencil across book -->
+  <g transform="rotate(-35 18 15)">
+    <rect x="16" y="5" width="3.5" height="15" rx="0.5" fill="#C85027"/>
+    <rect x="17.2" y="5" width="1.1" height="15" fill="#E26D44"/>
+    <rect x="16" y="5" width="3.5" height="2.2" fill="#D48B28"/>
+    <rect x="16" y="3.5" width="3.5" height="1.8" rx="0.8" fill="#FAF5EE"/>
+    <polygon points="16,20 19.5,20 17.75,23.5" fill="#FAF5EE"/>
+    <polygon points="17.2,22.4 18.3,22.4 17.75,23.5" fill="#231713"/>
+  </g>
+</svg>

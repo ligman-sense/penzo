@@ -80,10 +80,10 @@ async function loadDashboardStats() {
 
 function renderStats(container, data) {
   const stats = [
-    { label: 'Total Requests',  value: data.totalRequests  ?? 0, icon: '📋' },
-    { label: 'Active Requests', value: data.activeRequests ?? 0, icon: '🔄' },
-    { label: 'Confirmed',       value: data.confirmed      ?? 0, icon: '✅' },
-    { label: 'Completed',       value: data.completed      ?? 0, icon: '🎓' },
+    { label: 'Total Requests',  value: data.totalRequests  ?? 0, icon: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>' },
+    { label: 'Active Requests', value: data.activeRequests ?? 0, icon: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>' },
+    { label: 'Confirmed',       value: data.confirmed      ?? 0, icon: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' },
+    { label: 'Completed',       value: data.completed      ?? 0, icon: '<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>' },
   ];
 
   container.innerHTML = stats.map(s => `

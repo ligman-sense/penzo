@@ -12,24 +12,26 @@
   padding-right: var(--spacing-5);
 }
 
-/* ─── Site Header ────────────────────────────────────────────────────────── */
+/* ─── Site Header (Refined Warm Glass) ───────────────────────────────────── */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 100;
   height: var(--nav-height);
-  background-color: var(--color-surface);
+  background-color: rgba(255, 253, 249, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 2px 10px rgba(23, 43, 84, 0.04);
+  box-shadow: 0 2px 12px rgba(35, 23, 19, 0.04);
   display: flex;
   align-items: center;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 [data-theme="dark"] .site-header {
-  background-color: var(--color-surface);
+  background-color: rgba(34, 23, 19, 0.88);
   border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
 .site-header .container {
@@ -47,7 +49,7 @@
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 900;
-  color: var(--color-navy);
+  color: var(--color-espresso);
   text-decoration: none;
   letter-spacing: -0.04em;
   flex-shrink: 0;
@@ -64,19 +66,19 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  background: var(--color-orange);
+  background: var(--color-terracotta);
   border-radius: var(--radius-full);
   margin-left: 4px;
-  box-shadow: 0 0 8px rgba(242, 138, 27, 0.5);
+  box-shadow: 0 0 8px rgba(200, 80, 39, 0.45);
 }
 
 [data-theme="dark"] .brand-logo {
-  color: var(--color-offwhite);
+  color: var(--color-ivory);
 }
 
 .brand-logo:hover {
   text-decoration: none;
-  color: var(--color-orange);
+  color: var(--color-terracotta);
 }
 
 /* ─── Main Navigation Links ──────────────────────────────────────────────── */
@@ -97,7 +99,7 @@
 }
 
 .nav-link:hover, .nav-link.active, .nav-link[aria-current="page"] {
-  color: var(--color-navy);
+  color: var(--color-espresso);
   text-decoration: none;
 }
 
@@ -108,18 +110,18 @@
   left: 0;
   right: 0;
   height: 2.5px;
-  background: var(--color-orange);
+  background: var(--color-terracotta);
   border-radius: var(--radius-full);
 }
 
 [data-theme="dark"] .nav-link {
-  color: var(--color-pale-blue);
+  color: var(--color-text-secondary);
 }
 
 [data-theme="dark"] .nav-link:hover,
 [data-theme="dark"] .nav-link.active,
 [data-theme="dark"] .nav-link[aria-current="page"] {
-  color: var(--color-golden);
+  color: var(--color-ochre);
 }
 
 .header-actions {
@@ -211,32 +213,32 @@
 
 .sidebar-link:hover {
   background-color: var(--color-surface-hover);
-  color: var(--color-navy);
+  color: var(--color-espresso);
   text-decoration: none;
   transform: translateX(2px);
 }
 
 .sidebar-link.active, .sidebar-link[aria-current="page"] {
   background-color: var(--color-surface-2);
-  color: var(--color-orange);
+  color: var(--color-terracotta);
   font-weight: 700;
-  border-left: 3px solid var(--color-orange);
+  border-left: 3px solid var(--color-terracotta);
 }
 
 [data-theme="dark"] .sidebar-link {
-  color: var(--color-pale-blue);
+  color: var(--color-text-secondary);
 }
 
 [data-theme="dark"] .sidebar-link:hover {
   background-color: var(--color-surface-2);
-  color: var(--color-offwhite);
+  color: var(--color-ivory);
 }
 
 [data-theme="dark"] .sidebar-link.active,
 [data-theme="dark"] .sidebar-link[aria-current="page"] {
-  background-color: rgba(242, 138, 27, 0.15);
-  color: var(--color-golden);
-  border-left-color: var(--color-orange);
+  background-color: rgba(222, 106, 64, 0.15);
+  color: var(--color-ochre);
+  border-left-color: var(--color-terracotta);
 }
 
 .sidebar-footer {
@@ -255,12 +257,12 @@
   width: 100%;
 }
 
-/* ─── Site Footer (Warm Editorial Navy) ─────────────────────────────────── */
+/* ─── Site Footer (Warm Espresso & Ochre) ────────────────────────────────── */
 .site-footer {
   margin-top: auto;
-  background-color: var(--color-navy);
-  color: var(--color-pale-blue);
-  border-top: 3px solid var(--color-golden);
+  background-color: var(--color-espresso);
+  color: #D8CCC0;
+  border-top: 3px solid var(--color-ochre);
   padding: var(--spacing-12) 0 var(--spacing-8);
   font-size: 0.9rem;
 }

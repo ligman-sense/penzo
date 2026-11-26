@@ -115,7 +115,7 @@ function renderVolunteerExamCard(exam) {
   if (interestStatus === 'WITHDRAWN') {
     actionBtn = `<button class="btn btn--secondary btn--sm interest-btn" data-exam-id="${exam.id}">Re-express Interest</button>`;
   } else if (interestStatus) {
-    actionBtn = `<span class="badge badge--green interest-status" data-exam-id="${exam.id}">Interest Registered ✓</span>`;
+    actionBtn = `<span class="badge badge--green interest-status" data-exam-id="${exam.id}"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Interest Registered</span>`;
   } else {
     actionBtn = `<button class="btn btn--secondary btn--sm interest-btn" data-exam-id="${exam.id}">I'm Interested</button>`;
   }
@@ -157,7 +157,7 @@ function attachInterestHandlers() {
         const statusEl = document.createElement('span');
         statusEl.className = 'badge badge--green interest-status';
         statusEl.dataset.examId = examId;
-        statusEl.textContent = 'Interest Registered ✓';
+        statusEl.textContent = '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Interest Registered';
         btn.replaceWith(statusEl);
       } catch (err) {
         showError(err.message || 'Failed to register interest.');

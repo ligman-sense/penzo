@@ -497,7 +497,7 @@ async function openMatchingModal(requestId, triggerBtn = null) {
         venueStatus.innerHTML = `
           <div style="background: rgba(22, 163, 74, 0.08); border: 1px solid var(--color-success, #16a34a); padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong style="color: var(--color-success, #16a34a);">✓ Examination Venue Confirmed:</strong>
+              <strong style="color: var(--color-success, #16a34a);"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Examination Venue Confirmed:</strong>
               <span style="color: var(--color-text); margin-left: 0.25rem;">${escapeHtml(venue.centreName || '')}, ${escapeHtml(venue.city || r.city || '')}</span>
             </div>
             <span class="badge badge--green" style="font-size: 0.75rem;">Ready for Volunteer Invitation</span>
@@ -507,7 +507,7 @@ async function openMatchingModal(requestId, triggerBtn = null) {
         venueStatus.innerHTML = `
           <div style="background: rgba(217, 119, 6, 0.08); border: 1px solid var(--color-warning, #d97706); padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <strong style="color: var(--color-warning, #d97706);">⚠️ Examination Venue Pending Confirmation:</strong>
+              <strong style="color: var(--color-warning, #d97706);"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Examination Venue Pending Confirmation:</strong>
               <span style="color: var(--color-text); margin-left: 0.25rem;">${escapeHtml(venue.centreName || 'No centre specified')} (${escapeHtml(venue.city || r.city || 'City pending')})</span>
             </div>
             <button type="button" class="btn btn--sm btn--primary confirm-venue-btn" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
@@ -615,7 +615,7 @@ function renderUnifiedVolunteerCard(v, req, venueConfirmed) {
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <h4 style="margin: 0; font-size: 1.1rem;">${escapeHtml(v.volunteerName)}</h4>
             <span class="badge ${v.isVerified ? 'badge--green' : 'badge--yellow'}">${escapeHtml(v.verificationStatus || (v.isVerified ? 'VERIFIED' : 'PENDING'))}</span>
-            <span class="badge badge--teal" style="font-size: 0.75rem;">Expressed Interest in Same Exam ✓</span>
+            <span class="badge badge--teal" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Expressed Interest in Same Exam</span>
           </div>
           <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.25rem;">
             ${escapeHtml(v.volunteerMobile)} | Location: ${escapeHtml(v.volunteerCity)}
@@ -630,18 +630,18 @@ function renderUnifiedVolunteerCard(v, req, venueConfirmed) {
       <!-- Compatibility Comparison Matrix -->
       <div style="background-color: var(--color-surface-2); padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.75rem;">
         <div class="grid grid-cols-4" style="gap: 0.5rem;">
-          <div><strong>Exam Match:</strong> <span style="color: var(--color-success);">✓ Same Exam</span></div>
-          <div><strong>Schedule:</strong> <span style="${m.timeMatch ? 'color: var(--color-success);' : ''}">${m.timeMatch ? '✓ Compatible' : '⚠️ General'}</span></div>
-          <div><strong>Location:</strong> <span style="${m.locationMatch ? 'color: var(--color-success);' : ''}">${m.locationMatch ? '✓ Same City' : '⚠️ Travel'}</span></div>
-          <div><strong>Language:</strong> <span style="${m.languageMatch ? 'color: var(--color-success);' : ''}">${m.languageMatch ? '✓ Match' : '⚠️ Other'}</span></div>
+          <div><strong>Exam Match:</strong> <span style="color: var(--color-success);"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same Exam</span></div>
+          <div><strong>Schedule:</strong> <span style="${m.timeMatch ? 'color: var(--color-success);' : ''}">${m.timeMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Compatible' : 'General'}</span></div>
+          <div><strong>Location:</strong> <span style="${m.locationMatch ? 'color: var(--color-success);' : ''}">${m.locationMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same City' : 'Travel'}</span></div>
+          <div><strong>Language:</strong> <span style="${m.languageMatch ? 'color: var(--color-success);' : ''}">${m.languageMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Match' : 'Other'}</span></div>
         </div>
       </div>
 
       <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
         <div><strong>Languages:</strong> ${escapeHtml(v.languages.join(', ') || '—')} | <strong>Subjects:</strong> ${escapeHtml(v.subjects.join(', ') || 'General')}</div>
-        ${v.hasExperience ? '<div style="color: var(--color-success); margin-top: 0.25rem;">✓ Has prior examination scribe experience</div>' : ''}
-        ${v.blockingReason ? `<div style="color: var(--color-error, #dc2626); font-weight: 600; margin-top: 0.35rem;">⛔ ${escapeHtml(v.blockingReason)}</div>` : ''}
-        ${!v.isVerified ? `<div style="color: #f97316; font-size: 0.85rem; margin-top: 0.25rem;">⚠️ Verification Pending: Admin justification will be required upon proposal</div>` : ''}
+        ${v.hasExperience ? '<div style="color: var(--color-success); margin-top: 0.25rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Has prior examination scribe experience</div>' : ''}
+        ${v.blockingReason ? `<div style="color: var(--color-error, #dc2626); font-weight: 600; margin-top: 0.35rem;">${escapeHtml(v.blockingReason)}</div>` : ''}
+        ${!v.isVerified ? `<div style="color: #f97316; font-size: 0.85rem; margin-top: 0.25rem;">Verification Pending: Admin justification will be required upon proposal</div>` : ''}
       </div>
 
       <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;">
@@ -673,7 +673,7 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
   const r = activeMatchesData.request;
   const overrideAlertHtml = isOverride
     ? `<div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid var(--color-error, #ef4444); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; color: var(--color-error, #b91c1c);">
-        <strong>⚠️ Administrative Override Required:</strong> This volunteer requires review (${escapeHtml(selectedVolunteer.blockingReason || selectedVolunteer.verificationStatus || 'Pending verification')}). An administrative justification is mandatory below to send this proposal.
+        <strong>Administrative Override Required:</strong> This volunteer requires review (${escapeHtml(selectedVolunteer.blockingReason || selectedVolunteer.verificationStatus || 'Pending verification')}). An administrative justification is mandatory below to send this proposal.
       </div>`
     : '';
 
@@ -695,7 +695,7 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
         <div>
           <strong>${escapeHtml(selectedVolunteer.volunteerName)}</strong>
           <div style="font-size: 0.85rem; color: var(--color-text-muted);">${escapeHtml(selectedVolunteer.volunteerCity)} | ${escapeHtml(selectedVolunteer.languages.join(', '))}</div>
-          ${selectedVolunteer.blockingReason ? `<div style="color: var(--color-error); font-size: 0.8rem; margin-top: 0.2rem;">⚠️ ${escapeHtml(selectedVolunteer.blockingReason)}</div>` : ''}
+          ${selectedVolunteer.blockingReason ? `<div style="color: var(--color-error); font-size: 0.8rem; margin-top: 0.2rem;">${escapeHtml(selectedVolunteer.blockingReason)}</div>` : ''}
         </div>
         <div style="text-align: right;">
           <span class="badge ${isOverride ? 'badge--yellow' : 'badge--green'}">Score: ${selectedVolunteer.score}%</span>
@@ -828,7 +828,7 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
             <div>
               <h4 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
-                <span>📍</span> Exact Examination Venue
+                <svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Exact Examination Venue
               </h4>
               <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--color-text-muted);">
                 Venue must be confirmed by administrator before sending volunteer invitations.
@@ -836,8 +836,8 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
             </div>
             <div>
               ${req.venue?.confirmed 
-                ? '<span class="badge badge--green">✓ Venue Confirmed</span>' 
-                : '<span class="badge badge--yellow">⚠️ Pending Confirmation</span>'
+                ? '<span class="badge badge--green"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Venue Confirmed</span>' 
+                : '<span class="badge badge--yellow">Pending Confirmation</span>'
               }
             </div>
           </div>
@@ -899,7 +899,7 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
             </button>
             ${!req.venue?.confirmed ? `
               <button type="button" id="btn-confirm-venue-detail" class="btn btn--sm btn--primary">
-                ✓ Confirm Venue
+                <svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Confirm Venue
               </button>
             ` : ''}
           </div>
@@ -1009,7 +1009,7 @@ async function openVolunteerDetailModal(volunteerUserId, triggerBtn = null) {
             <div><strong>Mobile:</strong> ${escapeHtml(u.mobile || u.mobileE164 || '—')}</div>
             <div><strong>Email:</strong> ${escapeHtml(u.email || '—')}</div>
             <div><strong>City / Location:</strong> ${escapeHtml([vp.city, vp.state, vp.pincode].filter(Boolean).join(', ') || '—')}</div>
-            <div><strong>Profile Complete:</strong> ${u.profileComplete ? '✓ Yes (100%)' : 'Incomplete'}</div>
+            <div><strong>Profile Complete:</strong> ${u.profileComplete ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Yes (100%)' : 'Incomplete'}</div>
           </div>
         </div>
 
@@ -1018,7 +1018,7 @@ async function openVolunteerDetailModal(volunteerUserId, triggerBtn = null) {
           <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem;">
             <div><strong>Languages Known:</strong> ${escapeHtml(Array.isArray(vp.languages) ? vp.languages.join(', ') : vp.languages || '—')}</div>
             <div><strong>Subject Areas:</strong> ${escapeHtml(Array.isArray(vp.subjects) ? vp.subjects.join(', ') : vp.subjects || 'General')}</div>
-            <div><strong>Prior Experience:</strong> ${vp.hasPriorExperience || vp.hasScribeExperience ? '✓ Yes, experienced scribe' : 'New volunteer'}</div>
+            <div><strong>Prior Experience:</strong> ${vp.hasPriorExperience || vp.hasScribeExperience ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Yes, experienced scribe' : 'New volunteer'}</div>
             ${vp.scribeExperienceDetails ? `<div><strong style="color: var(--color-text-muted);">Experience Note:</strong> ${escapeHtml(vp.scribeExperienceDetails)}</div>` : ''}
           </div>
         </div>
