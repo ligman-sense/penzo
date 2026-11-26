@@ -618,45 +618,45 @@ function renderUnifiedVolunteerCard(v, req, venueConfirmed) {
   }
 
   return `
-    <div class="card" style="border: 1px solid var(--color-border); padding: 1.25rem; background: var(--color-surface);">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem;">
+    <div class="card" style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; background: var(--color-surface); box-shadow: var(--shadow-sm);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <h4 style="margin: 0; font-size: 1.1rem;">${escapeHtml(v.volunteerName)}</h4>
+            <h4 style="margin: 0; font-size: 1.15rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">${escapeHtml(v.volunteerName)}</h4>
             <span class="badge ${v.isVerified ? 'badge--green' : 'badge--yellow'}">${escapeHtml(v.verificationStatus || (v.isVerified ? 'VERIFIED' : 'PENDING'))}</span>
-            <span class="badge badge--teal" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Expressed Interest in Same Exam</span>
+            <span class="badge badge--teal" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Expressed Interest</span>
           </div>
-          <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.25rem;">
-            ${escapeHtml(v.volunteerMobile)} | Location: ${escapeHtml(v.volunteerCity)}
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.35rem; display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+            <span><strong style="color: var(--color-text);">Mobile:</strong> ${escapeHtml(v.volunteerMobile)}</span>
+            <span>&bull;</span>
+            <span><strong style="color: var(--color-text);">City:</strong> ${escapeHtml(v.volunteerCity)}</span>
           </div>
         </div>
-        <div style="text-align: right;">
-          <div style="font-size: 1.4rem; font-weight: 700; color: var(--color-primary);">${v.score}%</div>
-          <small style="color: var(--color-text-muted);">Compatibility</small>
+        <div style="text-align: right; min-width: 90px;">
+          <div style="font-size: 1.45rem; font-weight: 800; color: var(--color-primary); line-height: 1;">${v.score}%</div>
+          <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.04em;">Compatibility</span>
         </div>
       </div>
 
       <!-- Compatibility Comparison Matrix -->
-      <div style="background-color: var(--color-surface-2); padding: 0.75rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 0.75rem;">
-        <div class="grid grid-cols-4" style="gap: 0.5rem;">
-          <div><strong>Exam Match:</strong> <span style="color: var(--color-success);"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same Exam</span></div>
-          <div><strong>Schedule:</strong> <span style="${m.timeMatch ? 'color: var(--color-success);' : ''}">${m.timeMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Compatible' : 'General'}</span></div>
-          <div><strong>Location:</strong> <span style="${m.locationMatch ? 'color: var(--color-success);' : ''}">${m.locationMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same City' : 'Travel'}</span></div>
-          <div><strong>Language:</strong> <span style="${m.languageMatch ? 'color: var(--color-success);' : ''}">${m.languageMatch ? '<svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Match' : 'Other'}</span></div>
-        </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; margin: 0.85rem 0; background: var(--color-surface-2); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); font-size: 0.825rem;">
+        <div><strong>Exam Match:</strong> <span style="color: var(--color-success); font-weight: 600;"><svg class="icon" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same Exam</span></div>
+        <div><strong>Schedule:</strong> <span style="${m.timeMatch ? 'color: var(--color-success); font-weight: 600;' : ''}">${m.timeMatch ? '<svg class="icon" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Compatible' : 'General'}</span></div>
+        <div><strong>Location:</strong> <span style="${m.locationMatch ? 'color: var(--color-success); font-weight: 600;' : ''}">${m.locationMatch ? '<svg class="icon" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Same City' : 'Travel'}</span></div>
+        <div><strong>Language:</strong> <span style="${m.languageMatch ? 'color: var(--color-success); font-weight: 600;' : ''}">${m.languageMatch ? '<svg class="icon" aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Match' : 'Other'}</span></div>
       </div>
 
-      <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
-        <div><strong>Languages:</strong> ${escapeHtml(v.languages.join(', ') || '—')} | <strong>Subjects:</strong> ${escapeHtml(v.subjects.join(', ') || 'General')}</div>
-        ${v.hasExperience ? '<div style="color: var(--color-success); margin-top: 0.25rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Has prior examination scribe experience</div>' : ''}
-        ${v.blockingReason ? `<div style="color: var(--color-error, #dc2626); font-weight: 600; margin-top: 0.35rem;">${escapeHtml(v.blockingReason)}</div>` : ''}
-        ${!v.isVerified ? `<div style="color: #f97316; font-size: 0.85rem; margin-top: 0.25rem;">Verification Pending: Admin justification will be required upon proposal</div>` : ''}
+      <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; line-height: 1.45;">
+        <div><strong style="color: var(--color-text);">Languages:</strong> ${escapeHtml(v.languages.join(', ') || '—')} &nbsp;|&nbsp; <strong style="color: var(--color-text);">Subjects:</strong> ${escapeHtml(v.subjects.join(', ') || 'General')}</div>
+        ${v.hasExperience ? '<div style="color: var(--color-success); margin-top: 0.35rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Has prior examination scribe experience</div>' : ''}
+        ${v.blockingReason ? `<div style="color: var(--color-error); font-weight: 600; margin-top: 0.35rem;">${escapeHtml(v.blockingReason)}</div>` : ''}
+        ${!v.isVerified ? `<div style="color: var(--color-ochre); font-size: 0.825rem; font-weight: 600; margin-top: 0.35rem;">Verification Pending: Administrative justification will be required upon proposal.</div>` : ''}
       </div>
 
-      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;">
-        ${!venueConfirmed ? '<span style="font-size: 0.8rem; color: var(--color-error, #dc2626);">Venue must be confirmed to propose</span>' : ''}
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; padding-top: 0.85rem; border-top: 1px solid var(--color-border); margin-top: 0.75rem; flex-wrap: wrap;">
+        ${!venueConfirmed ? '<span style="font-size: 0.8rem; color: var(--color-error); font-weight: 600;">Venue must be confirmed before proposing</span>' : ''}
         <button type="button" class="btn btn--primary btn--sm propose-btn" data-vol-id="${v.volunteerId}" data-is-override="${isPendingReview ? 'true' : 'false'}" ${btnDisabled ? `disabled title="${escapeHtml(btnTitle)}"` : ''}>
-          Propose
+          Proceed with Volunteer &rarr;
         </button>
       </div>
     </div>`;
@@ -681,43 +681,63 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
 
   const r = activeMatchesData.request;
   const overrideAlertHtml = isOverride
-    ? `<div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid var(--color-error, #ef4444); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; color: var(--color-error, #b91c1c);">
-        <strong>Administrative Override Required:</strong> This volunteer requires review (${escapeHtml(selectedVolunteer.blockingReason || selectedVolunteer.verificationStatus || 'Pending verification')}). An administrative justification is mandatory below to send this proposal.
+    ? `<div style="background-color: rgba(239, 68, 68, 0.08); border: 1.5px solid var(--color-error); padding: 0.85rem 1.15rem; border-radius: var(--radius-md); font-size: 0.875rem; color: var(--color-error); line-height: 1.45;">
+        <strong style="display: block; margin-bottom: 0.2rem;">Administrative Override Required:</strong>
+        This volunteer requires review (${escapeHtml(selectedVolunteer.blockingReason || selectedVolunteer.verificationStatus || 'Pending verification')}). An administrative justification is mandatory below to send this proposal.
       </div>`
     : '';
 
   confirmBody.innerHTML = `
     ${overrideAlertHtml}
-    <div style="background-color: var(--color-surface-2); padding: 1rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 1rem;">
-      <h4 style="margin: 0 0 0.5rem; color: var(--color-primary);">${escapeHtml(r.examination.name)}</h4>
-      <div class="grid grid-cols-2" style="gap: 0.5rem; font-size: 0.85rem;">
-        <div><strong>Candidate Request:</strong> ${escapeHtml(r.reference)}</div>
-        <div><strong>Exam Date:</strong> ${r.examination.startsOn ? formatDate(r.examination.startsOn) : 'TBD'}</div>
-        <div><strong>Session / Time:</strong> ${escapeHtml(r.session?.label || (r.examination.startsOn ? formatDateTime(r.examination.startsOn) : 'General Session'))}</div>
-        <div><strong>Exam Centre Venue:</strong> ${escapeHtml(r.venue?.centreName ? (r.venue.centreName + (r.venue.city ? ', ' + r.venue.city : '')) : (r.city || 'Exam Centre'))}</div>
-        <div><strong>Preferred Language:</strong> ${escapeHtml(r.language || 'Any')}</div>
-        <div><strong>City / Location:</strong> ${escapeHtml(r.city || '—')}</div>
+    <!-- Examination & Request Summary -->
+    <div style="background-color: var(--color-surface-2); padding: 1.15rem 1.35rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.04em;">Target Examination</span>
+          <h4 style="margin: 0.15rem 0 0; color: var(--color-primary); font-family: var(--font-display); font-size: 1.15rem; font-weight: 800;">${escapeHtml(r.examination.name)}</h4>
+        </div>
+        <span class="badge badge--blue" style="font-size: 0.75rem;">Request: ${escapeHtml(r.reference)}</span>
+      </div>
+      <div class="grid grid-cols-2" style="gap: 0.75rem; font-size: 0.85rem; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px dashed var(--color-border);">
+        <div><span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; display: block;">Exam Date:</span> <strong style="color: var(--color-text);">${r.examination.startsOn ? formatDate(r.examination.startsOn) : 'TBD'}</strong></div>
+        <div><span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; display: block;">Session / Time:</span> <strong style="color: var(--color-text);">${escapeHtml(r.session?.label || (r.examination.startsOn ? formatDateTime(r.examination.startsOn) : 'General Session'))}</strong></div>
+        <div><span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; display: block;">Exam Centre Venue:</span> <strong style="color: var(--color-text);">${escapeHtml(r.venue?.centreName ? (r.venue.centreName + (r.venue.city ? ', ' + r.venue.city : '')) : (r.city || 'Exam Centre'))}</strong></div>
+        <div><span style="color: var(--color-text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; display: block;">Required Language:</span> <strong style="color: var(--color-text);">${escapeHtml(r.language || 'Any')}</strong></div>
       </div>
     </div>
 
-    <div style="border: 1px solid var(--color-border); padding: 1rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 1rem;">
-      <h4 style="margin: 0 0 0.5rem;">Selected Volunteer</h4>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+    <!-- Selected Volunteer Summary -->
+    <div style="border: 1px solid var(--color-border); padding: 1.15rem 1.35rem; border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+      <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--color-text-muted); letter-spacing: 0.04em;">Selected Volunteer Candidate</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem; flex-wrap: wrap; gap: 0.5rem;">
         <div>
-          <strong>${escapeHtml(selectedVolunteer.volunteerName)}</strong>
-          <div style="font-size: 0.85rem; color: var(--color-text-muted);">${escapeHtml(selectedVolunteer.volunteerCity)} | ${escapeHtml(selectedVolunteer.languages.join(', '))}</div>
-          ${selectedVolunteer.blockingReason ? `<div style="color: var(--color-error); font-size: 0.8rem; margin-top: 0.2rem;">${escapeHtml(selectedVolunteer.blockingReason)}</div>` : ''}
+          <h4 style="margin: 0; font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; color: var(--color-espresso);">${escapeHtml(selectedVolunteer.volunteerName)}</h4>
+          <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.2rem;">
+            ${escapeHtml(selectedVolunteer.volunteerCity)} &bull; ${escapeHtml(selectedVolunteer.languages.join(', '))}
+          </div>
+          ${selectedVolunteer.blockingReason ? `<div style="color: var(--color-error); font-size: 0.8rem; font-weight: 600; margin-top: 0.25rem;">${escapeHtml(selectedVolunteer.blockingReason)}</div>` : ''}
         </div>
         <div style="text-align: right;">
-          <span class="badge ${isOverride ? 'badge--yellow' : 'badge--green'}">Score: ${selectedVolunteer.score}%</span>
+          <span class="badge ${isOverride ? 'badge--yellow' : 'badge--green'}" style="font-size: 0.8rem; font-weight: 700;">Score: ${selectedVolunteer.score}%</span>
         </div>
       </div>
     </div>
 
-    <p style="font-size: 0.85rem; color: var(--color-text-muted);">
-      Upon confirmation, an invitation will be immediately delivered to the volunteer's portal with reporting details. The candidate will receive matching coordination details upon confirmation.
-    </p>
+    <!-- Privacy Note -->
+    <div style="background: rgba(30, 64, 175, 0.05); border-left: 3px solid var(--color-primary); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.825rem; color: var(--color-text); line-height: 1.5;">
+      Upon confirmation, an invitation will be immediately delivered to the volunteer's portal with reporting details. The candidate will receive matching coordination details upon confirmation. Personal contact information remains confidential.
+    </div>
   `;
+
+  // Pre-fill reporting details if empty
+  const repTimeInput = document.getElementById('propose-reporting-time');
+  const repMeetInput = document.getElementById('propose-meeting-point');
+  if (repTimeInput && !repTimeInput.value) {
+    repTimeInput.value = '08:30 AM';
+  }
+  if (repMeetInput && !repMeetInput.value) {
+    repMeetInput.value = r.venue?.centreName ? `Main Entrance – ${r.venue.centreName}` : 'Main Entrance – Help Desk';
+  }
 
   const overrideGroup = document.getElementById('propose-override-group');
   const overrideInput = document.getElementById('propose-override-justification');
