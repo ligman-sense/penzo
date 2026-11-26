@@ -221,6 +221,16 @@ async function findPotentialMatches(requestId) {
   if (exam.sessions && request.sessionId) {
     session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
   }
+  if (!session && exam.sessions?.length === 1) {
+    session = exam.sessions[0];
+  }
+
+  // Backend exclusion: Find volunteers who previously had a cancelled/withdrawn assignment for THIS particular request
+  const withdrawnAssignments = await ConfirmedAssignment.find({
+    requestId,
+    status: 'CANCELLED',
+  }).select('volunteerId');
+  const withdrawnVolunteerIds = new Set(withdrawnAssignments.map((a) => a.volunteerId.toString()));
 
   // 1. CRITICAL: Query volunteer interests for the SAME examination
   const interests = await VolunteerInterest.find({
@@ -234,6 +244,11 @@ async function findPotentialMatches(requestId) {
   for (const interest of interests) {
     const vol = interest.volunteerId;
     if (!vol || vol.role !== 'VOLUNTEER' || vol.status !== 'ACTIVE' || !vol.profileComplete) {
+      continue;
+    }
+
+    // Backend exclusion: Exclude volunteer who previously withdrew from this specific request
+    if (withdrawnVolunteerIds.has(vol._id.toString())) {
       continue;
     }
 
@@ -294,15 +309,23 @@ async function findPotentialMatches(requestId) {
       examination: {
         id: exam._id.toString(),
         name: exam.name || exam.title,
-        authority: exam.authority,
-        startsOn: exam.startsOn,
+        authority: exam.authority || exam.conductingBody || '',
+        startsOn: exam.startsOn || session?.startsAt || null,
+        endsOn: exam.endsOn || session?.endsAt || null,
       },
       session: session ? {
         id: session._id.toString(),
         name: session.name || session.label || 'Main Session',
+        label: session.label || session.name || 'Main Session',
         startsAt: session.startsAt,
         endsAt: session.endsAt,
-      } : null,
+      } : (exam.startsOn ? {
+        id: 'default',
+        name: 'General Session',
+        label: 'General Session',
+        startsAt: exam.startsOn,
+        endsAt: exam.endsOn || exam.startsOn,
+      } : null),
     },
     eligible,
     requiresReview,
@@ -341,6 +364,16 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
   });
   if (!interest) {
     throw HttpError.badRequest('Volunteer has not expressed interest in this examination.');
+  }
+
+  // Backend exclusion: Verify volunteer did not withdraw from this specific request
+  const previouslyWithdrawn = await ConfirmedAssignment.findOne({
+    requestId,
+    volunteerId,
+    status: 'CANCELLED',
+  });
+  if (previouslyWithdrawn) {
+    throw HttpError.badRequest('This volunteer previously withdrew from this request and cannot be allocated as a replacement.');
   }
 
   // Ensure request can transition to MATCH_PROPOSED
@@ -1012,6 +1045,16 @@ async function allocateScribe(requestId, volunteerId, { reportingTime, meetingPo
 
   if (!request.venue || !request.venue.confirmed) {
     throw HttpError.badRequest('Cannot finalize allocation: Examination venue must be confirmed before allocating a volunteer.');
+  }
+
+  // Backend exclusion: Verify volunteer did not withdraw from this specific request
+  const previouslyWithdrawn = await ConfirmedAssignment.findOne({
+    requestId,
+    volunteerId,
+    status: 'CANCELLED',
+  });
+  if (previouslyWithdrawn) {
+    throw HttpError.badRequest('This volunteer previously withdrew from this request and cannot be allocated as a replacement.');
   }
 
   const exam = request.examinationId;

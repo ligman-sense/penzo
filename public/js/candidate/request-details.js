@@ -191,6 +191,20 @@ function renderRequest(req, match) {
         </div>
       </section>
     `;
+  } else if (req.status === 'REPLACEMENT_REQUIRED') {
+    matchSectionHtml = `
+      <div class="card" style="border-left: 4px solid var(--color-warning, #d97706); margin-bottom: 1.75rem; background: var(--color-surface); padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <span class="badge badge--yellow" style="font-weight: 700;">Replacement Needed</span>
+        </div>
+        <h3 style="margin: 0 0 0.4rem 0; font-size: 1.25rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">
+          Replacement Scribe in Progress
+        </h3>
+        <p style="margin: 0; font-size: 0.925rem; color: var(--color-text); line-height: 1.6;">
+          Your allocated scribe has withdrawn from the examination commitment. The administrator will arrange a replacement scribe, and you will be notified once a new allocation is confirmed. We are sorry for the inconvenience.
+        </p>
+      </div>
+    `;
   } else if (isMatchProposed) {
     matchSectionHtml = `
       <div class="card" style="border-left: 4px solid var(--color-warning); margin-bottom: 1.75rem; background: var(--color-surface); padding: 1.5rem 1.75rem; box-shadow: var(--shadow-sm);">
