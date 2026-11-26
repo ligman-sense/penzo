@@ -21,7 +21,7 @@ async function listRequests({ page = 1, pageSize = 20, status, search, examinati
 
   const [items, total] = await Promise.all([
     ScribeRequest.find(query)
-      .populate('examinationId', 'name title')
+      .populate('examinationId')
       .populate('candidateId', 'mobileE164')
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
@@ -36,6 +36,18 @@ async function listRequests({ page = 1, pageSize = 20, status, search, examinati
         const cp = await CandidateProfile.findOne({ userId: r.candidateId._id }).select('fullName');
         candidateName = cp?.fullName;
       }
+
+      const exam = r.examinationId;
+      let session = null;
+      if (exam && exam.sessions && r.sessionId) {
+        session = exam.sessions.id(r.sessionId) || exam.sessions.find((s) => s._id.toString() === r.sessionId.toString());
+      }
+      if (!session && exam?.sessions?.length === 1) {
+        session = exam.sessions[0];
+      }
+
+      const examStartsOn = exam?.startsOn || session?.startsAt || null;
+
       return {
         id: r._id.toString(),
         reference: r.reference,
@@ -44,10 +56,25 @@ async function listRequests({ page = 1, pageSize = 20, status, search, examinati
         language: r.language,
         city: r.city,
         createdAt: r.createdAt,
-        examination: r.examinationId ? {
-          id: r.examinationId._id.toString(),
-          name: r.examinationId.name || r.examinationId.title,
+        examination: exam ? {
+          id: exam._id.toString(),
+          name: exam.name || exam.title,
+          authority: exam.authority || exam.conductingBody || '',
+          startsOn: examStartsOn,
         } : null,
+        session: session ? {
+          id: session._id.toString(),
+          name: session.name || session.label || 'Main Session',
+          label: session.label || session.name || 'Main Session',
+          startsAt: session.startsAt,
+          endsAt: session.endsAt,
+        } : (examStartsOn ? {
+          id: 'default',
+          name: 'General Session',
+          label: 'General Session',
+          startsAt: examStartsOn,
+          endsAt: exam?.endsOn || examStartsOn,
+        } : null),
         candidate: {
           id: r.candidateId ? r.candidateId._id.toString() : null,
           name: candidateName || '(Unknown)',
@@ -87,10 +114,14 @@ async function getRequest(id) {
   if (exam && exam.sessions && r.sessionId) {
     session = exam.sessions.id(r.sessionId) || exam.sessions.find(s => s._id.toString() === r.sessionId.toString());
   }
+  if (!session && exam?.sessions?.length === 1) {
+    session = exam.sessions[0];
+  }
 
-    const activeConfirmed = assignments.find((a) => a.status === 'CONFIRMED');
+  const examStartsOn = exam?.startsOn || session?.startsAt || null;
+  const activeConfirmed = assignments.find((a) => a.status === 'CONFIRMED');
 
-    return {
+  return {
     id: r._id.toString(),
     reference: r.reference,
     status: r.status,
@@ -105,17 +136,24 @@ async function getRequest(id) {
     examination: exam ? {
       id: exam._id.toString(),
       name: exam.name || exam.title,
-      authority: exam.authority,
+      authority: exam.authority || exam.conductingBody || '',
       slug: exam.slug,
-      startsOn: exam.startsOn,
-      endsOn: exam.endsOn,
+      startsOn: examStartsOn,
+      endsOn: exam.endsOn || session?.endsAt || null,
     } : null,
     session: session ? {
       id: session._id.toString(),
-      label: session.label || session.name,
+      name: session.name || session.label || 'Main Session',
+      label: session.label || session.name || 'Main Session',
       startsAt: session.startsAt,
       endsAt: session.endsAt,
-    } : null,
+    } : (examStartsOn ? {
+      id: 'default',
+      name: 'General Session',
+      label: 'General Session',
+      startsAt: examStartsOn,
+      endsAt: exam?.endsOn || examStartsOn,
+    } : null),
     candidate: r.candidateId ? {
       id: r.candidateId._id.toString(),
       name: candidateProfile?.fullName || 'Candidate',

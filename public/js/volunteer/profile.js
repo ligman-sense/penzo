@@ -287,7 +287,7 @@ function fillForm(profile, responseData = {}) {
       emailInput.style.backgroundColor = 'var(--color-surface-2)';
       if (emailBadge) {
         emailBadge.className = 'badge badge--primary';
-        emailBadge.textContent = contactInfo.authProvider === 'GOOGLE' ? 'Google Login (Required)' : 'Login Identifier (Required)';
+        emailBadge.textContent = 'Required';
       }
       if (emailHint) {
         emailHint.textContent = contactInfo.authProvider === 'GOOGLE'

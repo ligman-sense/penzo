@@ -43,12 +43,21 @@ const paginEl   = document.getElementById('pagination');
 
 // ─── Load Interests ───────────────────────────────────────────────────────────
 async function loadInterests() {
-  if (tableWrap) tableWrap.hidden = false;
+  if (tableWrap) {
+    tableWrap.hidden = false;
+    tableWrap.style.display = '';
+  }
   if (listEl) {
     listEl.innerHTML = '<tr><td colspan="6" class="loading-cell text-center" style="padding: 2.5rem;">Loading your interests…</td></tr>';
   }
-  if (emptyEl) emptyEl.hidden = true;
-  if (errorEl) errorEl.hidden = true;
+  if (emptyEl) {
+    emptyEl.hidden = true;
+    emptyEl.style.display = 'none';
+  }
+  if (errorEl) {
+    errorEl.hidden = true;
+    errorEl.style.display = 'none';
+  }
 
   try {
     const res = await api.get(`/interests?page=${_page}&pageSize=15`);
@@ -56,16 +65,34 @@ async function loadInterests() {
     _totalPages     = res.meta?.totalPages || res.data?.totalPages || 1;
 
     if (!interests.length) {
-      if (tableWrap) tableWrap.hidden = true;
-      if (emptyEl)   emptyEl.hidden   = false;
-      if (errorEl)   errorEl.hidden   = true;
-      if (paginEl)   paginEl.innerHTML = '';
+      if (tableWrap) {
+        tableWrap.hidden = true;
+        tableWrap.style.display = 'none';
+      }
+      if (emptyEl) {
+        emptyEl.hidden = false;
+        emptyEl.style.display = 'block';
+      }
+      if (errorEl) {
+        errorEl.hidden = true;
+        errorEl.style.display = 'none';
+      }
+      if (paginEl) paginEl.innerHTML = '';
       return;
     }
 
-    if (tableWrap) tableWrap.hidden = false;
-    if (emptyEl)   emptyEl.hidden   = true;
-    if (errorEl)   errorEl.hidden   = true;
+    if (tableWrap) {
+      tableWrap.hidden = false;
+      tableWrap.style.display = '';
+    }
+    if (emptyEl) {
+      emptyEl.hidden = true;
+      emptyEl.style.display = 'none';
+    }
+    if (errorEl) {
+      errorEl.hidden = true;
+      errorEl.style.display = 'none';
+    }
 
     if (listEl) {
       listEl.innerHTML = interests.map(i => renderInterestItem(i)).join('');
@@ -75,10 +102,17 @@ async function loadInterests() {
     if (paginEl) renderPagination(paginEl, { page: _page, totalPages: _totalPages }, goToPage);
 
   } catch (err) {
-    if (tableWrap) tableWrap.hidden = true;
-    if (emptyEl)   emptyEl.hidden   = true;
+    if (tableWrap) {
+      tableWrap.hidden = true;
+      tableWrap.style.display = 'none';
+    }
+    if (emptyEl) {
+      emptyEl.hidden = true;
+      emptyEl.style.display = 'none';
+    }
     if (errorEl) {
       errorEl.hidden = false;
+      errorEl.style.display = 'block';
       if (errorMsgEl) errorMsgEl.textContent = err.message || 'Could not fetch interests.';
     }
     showError(err.message || 'Could not fetch interests.');

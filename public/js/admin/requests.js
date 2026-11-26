@@ -3,7 +3,7 @@
 import { api } from '../api.js';
 import { requireAdmin, adminLogout } from '../auth.js';
 import { showError, showSuccess } from '../notifications.js';
-import { formatDate, formatDateTime, renderPagination, renderStatusBadge, escapeHtml, debounce, setLoading } from '../utils.js';
+import { formatDate, formatDateTime, formatTime, computeDefaultReportingTime, renderPagination, renderStatusBadge, escapeHtml, debounce, setLoading } from '../utils.js';
 import { registerModal, openModal, closeModal, closeAllModals } from '../modal.js';
 
 let currentTab = 'requests';
@@ -140,7 +140,10 @@ async function loadRequests() {
               <div><strong>${escapeHtml(r.examination?.name || 'Exam')}</strong></div>
               <small style="color: var(--color-text-muted);">${escapeHtml(r.examination?.authority || '')}</small>
             </td>
-            <td>${r.examination?.startsOn ? formatDate(r.examination.startsOn) : '—'}</td>
+            <td>
+              <div><strong>${(r.session?.startsAt || r.examination?.startsOn) ? formatDate(r.session?.startsAt || r.examination?.startsOn) : '—'}</strong></div>
+              ${r.session?.name ? `<small style="color: var(--color-text-muted); display: block;">${escapeHtml(r.session.name)}</small>` : ''}
+            </td>
             <td>
               <div>${escapeHtml(r.city || '—')}</div>
               <small style="color: var(--color-text-muted);">${escapeHtml(r.language || 'Any')}</small>
@@ -149,7 +152,11 @@ async function loadRequests() {
             <td>
               <div style="display:flex; gap:0.4rem; flex-wrap: wrap;">
                 <button type="button" class="btn btn--outline btn--sm view-req-btn" data-id="${r.id}">View Request</button>
-                ${canFindVolunteers ? `<button type="button" class="btn btn--secondary btn--sm find-vol-btn" data-id="${r.id}">Find Volunteers</button>` : ''}
+                ${canFindVolunteers ? (
+                  r.status === 'REPLACEMENT_REQUIRED'
+                    ? `<button type="button" class="btn btn--primary btn--sm find-vol-btn" data-id="${r.id}" style="background-color: var(--color-terracotta);">Find Replacement</button>`
+                    : `<button type="button" class="btn btn--secondary btn--sm find-vol-btn" data-id="${r.id}">Find Volunteers</button>`
+                ) : ''}
                 ${r.status === 'SUBMITTED' ? `<button type="button" class="btn btn--outline btn--sm status-btn" data-id="${r.id}" data-to="PENDING_REVIEW">Review</button>` : ''}
                 ${['SUBMITTED', 'PENDING_REVIEW', 'AWAITING_VOLUNTEER'].includes(r.status) ? `<button type="button" class="btn btn--danger btn--sm status-btn" data-id="${r.id}" data-to="REJECTED">Reject</button>` : ''}
               </div>
@@ -571,12 +578,17 @@ async function openMatchingModal(requestId, triggerBtn = null) {
 
     if (allVolunteers.length === 0) {
       if (unifiedContainer) {
+        const isReplacementMode = r.status === 'REPLACEMENT_REQUIRED';
         unifiedContainer.innerHTML = `
-          <div class="empty-state" style="padding: 1.5rem; background: var(--color-surface); border: 1px dashed var(--color-border); border-radius: 6px; text-align: center;">
-            <p style="font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem;">No suitable volunteers are currently available for this examination.</p>
-            <small style="color: var(--color-text-muted);">
-              Volunteers must express interest for this examination (${escapeHtml(r.examination.name)}) to appear in the matching list.
-            </small>
+          <div class="empty-state" style="padding: 2rem 1.5rem; background: var(--color-surface); border: 1.5px dashed var(--color-border); border-radius: var(--radius-md); text-align: center;">
+            <p style="font-size: 1.05rem; font-weight: 700; color: var(--color-espresso); margin-bottom: 0.5rem;">
+              ${isReplacementMode ? 'No eligible replacement volunteers currently available.' : 'No suitable volunteers currently available for this examination.'}
+            </p>
+            <p style="color: var(--color-text-secondary); font-size: 0.9rem; max-width: 520px; margin: 0 auto; line-height: 1.5;">
+              ${isReplacementMode
+                ? 'Volunteers who previously withdrew from this request are strictly excluded from replacement matching. The request remains pending for replacement until another eligible volunteer expresses interest.'
+                : `Volunteers must express interest for this examination (${escapeHtml(r.examination.name)}) to appear in the matching list.`}
+            </p>
           </div>`;
       }
     } else {
@@ -729,11 +741,12 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
     </div>
   `;
 
-  // Pre-fill reporting details if empty
+  // Pre-fill reporting details dynamically (1 hour before exam session start time)
   const repTimeInput = document.getElementById('propose-reporting-time');
   const repMeetInput = document.getElementById('propose-meeting-point');
-  if (repTimeInput && !repTimeInput.value) {
-    repTimeInput.value = '08:30 AM';
+  const sessionStartsAt = r.session?.startsAt || r.examination?.startsOn;
+  if (repTimeInput && (!repTimeInput.value || repTimeInput.value === '08:30 AM')) {
+    repTimeInput.value = computeDefaultReportingTime(sessionStartsAt);
   }
   if (repMeetInput && !repMeetInput.value) {
     repMeetInput.value = r.venue?.centreName ? `Main Entrance – ${r.venue.centreName}` : 'Main Entrance – Help Desk';

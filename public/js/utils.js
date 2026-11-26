@@ -27,6 +27,39 @@ export function formatDateTime(dateStr) {
   });
 }
 
+export function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+export function computeDefaultReportingTime(sessionStartsAt) {
+  if (!sessionStartsAt) return '08:30 AM';
+  const examDate = new Date(sessionStartsAt);
+  if (isNaN(examDate.getTime())) return '08:30 AM';
+  // 1 hour before examination session starts
+  const repDate = new Date(examDate.getTime() - 60 * 60 * 1000);
+  const timePart = repDate.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+  // Handle date changes if reporting time falls on previous day
+  const examDateStr = examDate.toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' });
+  const repDateStr = repDate.toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' });
+  if (examDateStr !== repDateStr) {
+    return `${timePart} (${repDateStr})`;
+  }
+  return timePart;
+}
+
 export function timeAgo(dateStr) {
   const date = new Date(dateStr);
   const now = new Date();

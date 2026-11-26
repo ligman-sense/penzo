@@ -185,9 +185,10 @@ async function cancelAssignment(assignmentId, userId, role, data = {}) {
         await notify({
           userId: req.candidateId,
           type: 'VOLUNTEER_CANCELLED_EMERGENCY',
-          title: 'URGENT: Scribe Replacement Required',
-          body: `Your assigned volunteer has reported an emergency (${data.reason}) and cannot attend. Our administrative team has been urgently alerted to coordinate an emergency replacement for ${examName}.`,
+          title: 'Scribe Allocation Update - Replacement in Progress',
+          body: 'Your allocated scribe has withdrawn from the examination commitment. The administrator will arrange a replacement scribe, and you will be notified once a new allocation is confirmed. We are sorry for the inconvenience.',
           linkPath: `/candidate/request-details.html?id=${req._id}`,
+          requestId: req._id,
         });
 
         // Notify Admin (Urgent priority)
@@ -213,25 +214,26 @@ async function cancelAssignment(assignmentId, userId, role, data = {}) {
 
       if (req) {
         const prevStatus = req.status;
-        req.status = 'AWAITING_VOLUNTEER';
+        req.status = 'REPLACEMENT_REQUIRED';
         await req.save();
 
         await RequestStatusHistory.create({
           requestId: req._id,
           fromStatus: prevStatus,
-          toStatus: 'AWAITING_VOLUNTEER',
+          toStatus: 'REPLACEMENT_REQUIRED',
           actorType: 'VOLUNTEER',
           actorUserId: userId,
-          reason: `Volunteer cancelled commitment before 5-day lock: ${data.reason || 'Standard cancellation'}`,
+          reason: `Volunteer cancelled commitment: ${data.reason || 'Standard cancellation'}`,
         });
 
         // Notify Candidate
         await notify({
           userId: req.candidateId,
           type: 'VOLUNTEER_CANCELLED',
-          title: 'Volunteer Cancellation - Re-matching in Progress',
-          body: `Your assigned volunteer has withdrawn from ${examName}. Your request has returned to the matching queue for another volunteer.`,
+          title: 'Scribe Allocation Update - Replacement in Progress',
+          body: 'Your allocated scribe has withdrawn from the examination commitment. The administrator will arrange a replacement scribe, and you will be notified once a new allocation is confirmed. We are sorry for the inconvenience.',
           linkPath: `/candidate/request-details.html?id=${req._id}`,
+          requestId: req._id,
         });
 
         // Notify Admin
