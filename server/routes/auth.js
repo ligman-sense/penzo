@@ -21,7 +21,7 @@ const {
   fetchGoogleUserInfo,
   authenticateWithGoogle,
 } = require('../services/googleAuthService');
-const { revokeSession } = require('../services/sessionService');
+const { revokeSession, revokeAllUserSessions } = require('../services/sessionService');
 const { normalizeAndValidateIndianMobile } = require('../utils/phoneValidator');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { ok } = require('../utils/response');
@@ -210,7 +210,9 @@ authRouter.post(
       currentPassword,
       newPassword,
     });
-    ok(res, { success: true, message: 'Password updated successfully.' });
+    // Revoke any other sessions on other devices
+    await revokeAllUserSessions(req.auth.user._id, req.auth.session?._id);
+    ok(res, { success: true, message: 'Password updated successfully.', csrfToken: req.auth.csrfToken });
   })
 );
 
@@ -224,7 +226,9 @@ authRouter.post(
       currentPassword,
       newPassword,
     });
-    ok(res, { success: true, message: 'Password updated successfully.' });
+    // Revoke any other sessions on other devices
+    await revokeAllUserSessions(req.auth.user._id, req.auth.session?._id);
+    ok(res, { success: true, message: 'Password updated successfully.', csrfToken: req.auth.csrfToken });
   })
 );
 

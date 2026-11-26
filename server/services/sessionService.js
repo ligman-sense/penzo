@@ -100,13 +100,14 @@ async function revokeSession(token) {
 }
 
 /**
- * Revoke all sessions for a given userId.
+ * Revoke all active sessions for a given userId, optionally excluding a specific sessionId.
  */
-async function revokeAllUserSessions(userId) {
-  await Session.updateMany(
-    { userId, revokedAt: null, expiresAt: { $gt: new Date() } },
-    { revokedAt: new Date() }
-  );
+async function revokeAllUserSessions(userId, exceptSessionId = null) {
+  const query = { userId, revokedAt: null, expiresAt: { $gt: new Date() } };
+  if (exceptSessionId) {
+    query._id = { $ne: exceptSessionId };
+  }
+  await Session.updateMany(query, { revokedAt: new Date() });
 }
 
 /**

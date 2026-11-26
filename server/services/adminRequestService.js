@@ -9,13 +9,14 @@ const { writeAudit } = require('./auditService');
 const { notify } = require('./notificationService');
 const { assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
 const { HttpError } = require('../utils/httpError');
+const { escapeRegex } = require('../utils/regex');
 
 async function listRequests({ page = 1, pageSize = 20, status, search, examinationId } = {}) {
   const query = {};
   if (status) query.status = status;
   if (examinationId) query.examinationId = examinationId;
-  if (search) {
-    query.reference = new RegExp(search, 'i');
+  if (search && typeof search === 'string' && search.trim()) {
+    query.reference = new RegExp(escapeRegex(search.trim()), 'i');
   }
 
   const [items, total] = await Promise.all([

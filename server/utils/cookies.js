@@ -14,7 +14,12 @@ function setSessionCookie(res, name, token, expiresAt) {
 }
 
 function clearSessionCookie(res, name) {
-  res.clearCookie(name, { httpOnly: true, sameSite: 'lax', path: '/' });
+  res.clearCookie(name, {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
 }
 
 module.exports = { USER_COOKIE, ADMIN_COOKIE, setSessionCookie, clearSessionCookie };

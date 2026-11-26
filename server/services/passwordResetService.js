@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const PasswordResetChallenge = require('../models/PasswordResetChallenge');
 const { sendPasswordResetOtp } = require('./emailService');
+const { revokeAllUserSessions } = require('./sessionService');
 const { hashPassword, validatePasswordPolicy } = require('../utils/password');
 const { HttpError } = require('../utils/httpError');
 const env = require('../config/env');
@@ -207,7 +208,10 @@ async function completePasswordReset({ rawEmail, resetToken, newPassword }) {
     { $set: { used: true } }
   );
 
-  // Invalidate existing sessions in MongoDB if session collection exists
+  // Revoke all active user sessions upon password reset for security
+  await revokeAllUserSessions(user._id);
+
+  // Invalidate any legacy session records in MongoDB if present
   try {
     const sessionCollection = mongoose.connection.collection('sessions');
     if (sessionCollection) {
@@ -219,7 +223,7 @@ async function completePasswordReset({ rawEmail, resetToken, newPassword }) {
       });
     }
   } catch (err) {
-    // Session collection cleanup non-critical
+    // Non-critical cleanup
   }
 
   return {

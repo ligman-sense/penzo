@@ -19,8 +19,8 @@ adminAuthRouter.post(
   adminLoginLimiter,
   asyncHandler(async (req, res) => {
     const { email, password } = req.body || {};
-    if (!email || !password) {
-      throw HttpError.badRequest('Email and password are required.');
+    if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
+      throw HttpError.badRequest('Valid email and password are required.');
     }
 
     const previous = req.cookies?.[ADMIN_COOKIE];
@@ -53,7 +53,6 @@ adminAuthRouter.get('/session', requireAdmin, (req, res) => {
 
 adminAuthRouter.post(
   '/logout',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const token = req.cookies?.[ADMIN_COOKIE];
     if (typeof token === 'string') await revokeSession(token);

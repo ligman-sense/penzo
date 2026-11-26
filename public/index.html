@@ -150,6 +150,7 @@
           <ul class="footer-links">
             <li><a href="/privacy.html">Privacy Notice</a></li>
             <li><a href="/terms.html">Terms of Service</a></li>
+            <li><button type="button" id="cookie-settings-btn" class="footer-cookie-btn">Cookie Settings</button></li>
           </ul>
         </div>
       </div>
@@ -161,7 +162,43 @@
     </div>
   </footer>
 
+  <!-- Accessible Cookie Consent Banner (Chase Summer Warm Editorial) -->
+  <aside id="cookie-consent-banner" class="cookie-banner" role="region" aria-labelledby="cookie-banner-title" hidden>
+    <div class="cookie-banner__container">
+      <div class="cookie-banner__content">
+        <div class="cookie-banner__illustration" aria-hidden="true">
+          <svg class="cookie-icon-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" width="40" height="40">
+            <circle cx="32" cy="32" r="28" fill="#FFB35F" stroke="#E2790E" stroke-width="2.5" />
+            <circle cx="32" cy="32" r="23" fill="#FFD17A" fill-opacity="0.55" />
+            <circle cx="23" cy="21" r="3.5" fill="#4A2612" />
+            <circle cx="38" cy="20" r="3" fill="#4A2612" />
+            <circle cx="43" cy="33" r="3.5" fill="#4A2612" />
+            <circle cx="31" cy="34" r="4" fill="#4A2612" />
+            <circle cx="21" cy="41" r="3.5" fill="#4A2612" />
+            <circle cx="35" cy="45" r="3" fill="#4A2612" />
+            <circle cx="16" cy="28" r="1.5" fill="#C26305" />
+            <circle cx="48" cy="24" r="1.5" fill="#C26305" />
+            <circle cx="27" cy="49" r="1.5" fill="#C26305" />
+          </svg>
+        </div>
+        <div class="cookie-banner__text-block">
+          <h2 id="cookie-banner-title" class="cookie-banner__heading">Cookie Preferences</h2>
+          <p class="cookie-banner__description">
+            PENZO uses essential cookies to keep your sign-in sessions secure and protect against cross-site request forgery.
+            We do not use advertising or third-party tracking cookies. Optional preferences are only saved if you accept them.
+            Rejecting optional cookies will never affect your examination requests, sign-in, or security features.
+          </p>
+        </div>
+      </div>
+      <div class="cookie-banner__actions">
+        <button type="button" id="cookie-accept-all-btn" class="btn btn--primary btn--sm">Accept all</button>
+        <button type="button" id="cookie-reject-btn" class="btn btn--secondary btn--sm">Reject optional cookies</button>
+      </div>
+    </div>
+  </aside>
+
   <script type="module" src="/js/theme.js"></script>
   <script type="module" src="/js/navigation.js"></script>
+  <script type="module" src="/js/cookieConsent.js"></script>
 </body>
 </html>

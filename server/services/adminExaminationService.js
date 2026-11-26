@@ -4,12 +4,13 @@ const Examination = require('../models/Examination');
 const { HttpError } = require('../utils/httpError');
 const { slugify, canMoveExam, publishBlockers } = require('./examinationRules');
 const { writeAudit } = require('./auditService');
+const { escapeRegex } = require('../utils/regex');
 
 async function listExaminations({ page = 1, pageSize = 20, status, search } = {}) {
   const query = {};
   if (status) query.status = status;
-  if (search) {
-    const reg = new RegExp(search, 'i');
+  if (search && typeof search === 'string' && search.trim()) {
+    const reg = new RegExp(escapeRegex(search.trim()), 'i');
     query.$or = [{ name: reg }, { title: reg }, { authority: reg }];
   }
 

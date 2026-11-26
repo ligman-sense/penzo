@@ -8,13 +8,14 @@ const { writeAudit } = require('./auditService');
 const { notify } = require('./notificationService');
 const { HttpError } = require('../utils/httpError');
 const { syncUserVerification } = require('./profileService');
+const { escapeRegex } = require('../utils/regex');
 
 async function listUsers({ page = 1, pageSize = 20, role, status, search } = {}) {
   const query = {};
   if (role) query.role = role;
   if (status) query.status = status;
-  if (search) {
-    const reg = new RegExp(search, 'i');
+  if (search && typeof search === 'string' && search.trim()) {
+    const reg = new RegExp(escapeRegex(search.trim()), 'i');
     query.$or = [{ mobileE164: reg }, { email: reg }];
   }
 
@@ -154,16 +155,16 @@ async function listVerifications({ page = 1, pageSize = 20, status, role, kind, 
   if ((role && role !== 'ALL') || search) {
     const userQuery = {};
     if (role && role !== 'ALL') userQuery.role = role;
-    if (search) {
-      const reg = new RegExp(search, 'i');
+    if (search && typeof search === 'string' && search.trim()) {
+      const reg = new RegExp(escapeRegex(search.trim()), 'i');
       userQuery.$or = [{ mobileE164: reg }, { email: reg }];
     }
     const matchingUsers = await User.find(userQuery).select('_id');
     const userIds = matchingUsers.map((u) => u._id);
 
     // Also search candidate and volunteer profile names
-    if (search) {
-      const reg = new RegExp(search, 'i');
+    if (search && typeof search === 'string' && search.trim()) {
+      const reg = new RegExp(escapeRegex(search.trim()), 'i');
       const [cpUsers, vpUsers] = await Promise.all([
         CandidateProfile.find({ $or: [{ fullName: reg }, { firstName: reg }, { lastName: reg }] }).select('userId'),
         VolunteerProfile.find({ $or: [{ fullName: reg }, { firstName: reg }, { lastName: reg }] }).select('userId'),

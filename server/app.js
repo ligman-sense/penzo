@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const path = require('path');
 const env = require('./config/env');
-const { attachSession, originGuard } = require('./middleware/auth');
+const { attachSession, originGuard, isTrustedOrigin } = require('./middleware/auth');
 const { apiRouter } = require('./routes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { notFound } = require('./middleware/notFound');
@@ -16,18 +16,44 @@ function createApp() {
   const app = express();
   app.disable('x-powered-by');
 
+  // Hardened Content Security Policy and security headers
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Allow simple local dev without complex CSP restrictions for static files
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          frameAncestors: ["'none'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'", 'https://accounts.google.com'],
+        },
+      },
       crossOriginEmbedderPolicy: false,
     })
   );
 
+  // Strict CORS: only reflect allowed origins; untrusted cross-origins are denied
   app.use(
-    cors({
-      origin: true,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    cors((req, callback) => {
+      const origin = req.get('origin');
+      if (!origin || isTrustedOrigin(origin, req)) {
+        callback(null, {
+          origin: true,
+          credentials: true,
+          methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+          allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'Authorization'],
+        });
+      } else {
+        callback(null, {
+          origin: false,
+          credentials: false,
+        });
+      }
     })
   );
 

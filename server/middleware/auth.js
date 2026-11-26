@@ -93,15 +93,72 @@ function requireCsrf(req, res, next) {
   next();
 }
 
+/**
+ * Validate Origin or Referer against server host and configured allowlists.
+ */
+function isTrustedOrigin(headerValue, req) {
+  if (!headerValue) return true;
+  if (headerValue === 'null') return false; // Sandboxed frame or opaque origin
+
+  try {
+    const parsed = new URL(headerValue);
+    const originHost = parsed.host.toLowerCase();
+    const reqHost = (req.get('host') || '').toLowerCase();
+
+    // 1. Same-origin match against current Host header
+    if (reqHost && originHost === reqHost) {
+      return true;
+    }
+
+    // 2. Explicitly configured allowed origins in environment
+    const allowed = (env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (allowed.includes(parsed.origin.toLowerCase()) || allowed.includes(originHost)) {
+      return true;
+    }
+
+    // 3. In non-production, permit localhost and 127.0.0.1
+    if (env.NODE_ENV !== 'production') {
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function originGuard(req, res, next) {
   const method = req.method.toUpperCase();
+  // Safe HTTP methods do not mutate server state
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next();
 
-  // Basic origin check in production
-  if (env.NODE_ENV === 'production') {
-    const origin = req.get('origin') || req.get('referer');
-    // If present, verify host match
+  const origin = req.get('origin');
+  const referer = req.get('referer');
+
+  // Reject untrusted Origin header
+  if (origin && !isTrustedOrigin(origin, req)) {
+    return next(new HttpError(403, 'FORBIDDEN_ORIGIN', 'Cross-origin request rejected: untrusted Origin.'));
   }
+
+  // Reject untrusted Referer header when Origin is absent
+  if (!origin && referer && !isTrustedOrigin(referer, req)) {
+    return next(new HttpError(403, 'FORBIDDEN_ORIGIN', 'Cross-origin request rejected: untrusted Referer.'));
+  }
+
+  // In production, block cross-site fetch if sec-fetch-site indicates cross-site
+  if (env.NODE_ENV === 'production' && !origin && !referer) {
+    const secFetchSite = req.get('sec-fetch-site');
+    if (secFetchSite && !['same-origin', 'same-site', 'none'].includes(secFetchSite)) {
+      return next(new HttpError(403, 'FORBIDDEN_ORIGIN', 'Cross-site request rejected.'));
+    }
+  }
+
   next();
 }
 
@@ -113,5 +170,6 @@ module.exports = {
   optionalUser,
   requireRole,
   requireCsrf,
+  isTrustedOrigin,
   originGuard,
 };

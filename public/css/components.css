@@ -695,6 +695,161 @@
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ─── Accessible Cookie Consent Banner (Chase Summer Warm Editorial) ───────── */
+.cookie-banner {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: calc(100% - 2.5rem);
+  max-width: 960px;
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-apricot);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px rgba(23, 43, 84, 0.18), 0 2px 8px rgba(242, 138, 27, 0.12);
+  z-index: 1100;
+  padding: 1.25rem 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cookie-banner--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.cookie-banner__container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.cookie-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.cookie-banner__illustration {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-golden);
+  box-shadow: 0 2px 6px rgba(242, 138, 27, 0.15);
+}
+
+.cookie-banner__text-block {
+  flex: 1;
+}
+
+.cookie-banner__heading {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.01em;
+}
+
+.cookie-banner__description {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.footer-cookie-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.footer-cookie-btn:hover {
+  color: var(--color-orange);
+}
+
+.footer-cookie-btn:focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Dark mode cookie banner */
+[data-theme="dark"] .cookie-banner {
+  background-color: #1A2844;
+  border-color: rgba(255, 179, 95, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .cookie-banner__heading {
+  color: var(--color-golden);
+}
+
+[data-theme="dark"] .cookie-banner__description {
+  color: var(--color-pale-blue);
+}
+
+[data-theme="dark"] .cookie-banner__illustration {
+  background-color: rgba(255, 209, 122, 0.12);
+  border-color: var(--color-apricot);
+}
+
+/* Responsive: mobile layout */
+@media (max-width: 768px) {
+  .cookie-banner {
+    bottom: 0.75rem;
+    width: calc(100% - 1.5rem);
+    padding: 1rem 1.15rem;
+  }
+
+  .cookie-banner__container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .cookie-banner__content {
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+
+  .cookie-banner__illustration {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cookie-banner__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .cookie-banner__actions .btn {
+    width: 100%;
+  }
+}
+
 /* ─── Reduced Motion ─────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .progress-bar-fill,
@@ -703,7 +858,8 @@
   .skeleton,
   .toast,
   .modal,
-  .card {
+  .card,
+  .cookie-banner {
     transition: none !important;
     animation: none !important;
     transform: none !important;

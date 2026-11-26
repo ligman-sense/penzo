@@ -21,6 +21,7 @@ const {
   findVolunteerScheduleConflict,
 } = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
+const { escapeRegex } = require('../utils/regex');
 
 async function generateMatchReference() {
   const year = new Date().getFullYear();
@@ -820,8 +821,8 @@ async function listAllVolunteerInterests({ page = 1, pageSize = 20, examinationI
   const query = {};
   if (examinationId) query.examinationId = examinationId;
 
-  if (search) {
-    const reg = new RegExp(search, 'i');
+  if (search && typeof search === 'string' && search.trim()) {
+    const reg = new RegExp(escapeRegex(search.trim()), 'i');
     const matchingExams = await Examination.find({ $or: [{ name: reg }, { title: reg }, { authority: reg }] }).select('_id');
     const examIds = matchingExams.map((e) => e._id);
 

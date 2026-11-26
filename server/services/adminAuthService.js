@@ -32,9 +32,9 @@ async function adminLogin(email, password, { ip, userAgent } = {}) {
 
   const correct = await verifyPassword(password, admin.passwordHash);
   if (!correct) {
-    const failures = (admin.failedLoginCount || 0) + 1;
+    const failures = (admin.failedLoginAttempts || 0) + 1;
     const lock = failures >= MAX_FAILED_LOGINS;
-    admin.failedLoginCount = lock ? 0 : failures;
+    admin.failedLoginAttempts = lock ? 0 : failures;
     admin.lockedUntil = lock ? new Date(now.getTime() + LOCK_MINUTES * 60_000) : null;
     await admin.save();
 
@@ -48,7 +48,7 @@ async function adminLogin(email, password, { ip, userAgent } = {}) {
     throw HttpError.invalidCredentials();
   }
 
-  admin.failedLoginCount = 0;
+  admin.failedLoginAttempts = 0;
   admin.lockedUntil = null;
   admin.lastLoginAt = now;
   await admin.save();

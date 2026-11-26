@@ -38,6 +38,7 @@ const env = {
   PASSWORD_RESET_OTP_EXPIRY: parseInt(process.env.PASSWORD_RESET_OTP_EXPIRY || '300', 10),
   PASSWORD_RESET_MAX_ATTEMPTS: parseInt(process.env.PASSWORD_RESET_MAX_ATTEMPTS || '5', 10),
   PASSWORD_RESET_RESEND_COOLDOWN: parseInt(process.env.PASSWORD_RESET_RESEND_COOLDOWN || '60', 10),
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || '',
 };
 
 module.exports = env;

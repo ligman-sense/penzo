@@ -2,20 +2,21 @@
 
 const mongoose = require('mongoose');
 const Examination = require('../models/Examination');
+const { escapeRegex } = require('../utils/regex');
 const { HttpError } = require('../utils/httpError');
 
 async function listPublicExaminations({ search, authority, region, page = 1, pageSize = 12 } = {}) {
   const query = { status: 'PUBLISHED' };
 
-  if (search) {
-    const regex = new RegExp(search, 'i');
+  if (search && typeof search === 'string' && search.trim()) {
+    const regex = new RegExp(escapeRegex(search.trim()), 'i');
     query.$or = [{ name: regex }, { title: regex }, { authority: regex }, { description: regex }];
   }
-  if (authority) {
-    query.authority = new RegExp(authority, 'i');
+  if (authority && typeof authority === 'string' && authority.trim()) {
+    query.authority = new RegExp(escapeRegex(authority.trim()), 'i');
   }
-  if (region) {
-    query['locations.city'] = new RegExp(region, 'i');
+  if (region && typeof region === 'string' && region.trim()) {
+    query['locations.city'] = new RegExp(escapeRegex(region.trim()), 'i');
   }
 
   const [items, total] = await Promise.all([
