@@ -22,6 +22,7 @@ const {
 } = require('../utils/conflictChecker');
 const { HttpError } = require('../utils/httpError');
 const { escapeRegex } = require('../utils/regex');
+const { generateAllocationId } = require('../utils/allocationId');
 
 async function generateMatchReference() {
   const year = new Date().getFullYear();
@@ -312,9 +313,17 @@ async function findPotentialMatches(requestId) {
 /**
  * Administrator proposes a match between candidate request and interested volunteer.
  */
-async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, isOverride, overrideJustification } = {}) {
+async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, isOverride, overrideJustification, reportingTime, meetingPoint, reportingInstructions } = {}) {
   const request = await ScribeRequest.findById(requestId).populate('examinationId');
   if (!request) throw HttpError.notFound('Scribe request not found.');
+
+  // Validate mandatory reporting details
+  if (!reportingTime || typeof reportingTime !== 'string' || !reportingTime.trim()) {
+    throw HttpError.badRequest('Reporting time is required before finalizing or proposing an allocation.');
+  }
+  if (!meetingPoint || typeof meetingPoint !== 'string' || !meetingPoint.trim()) {
+    throw HttpError.badRequest('Meeting point is required before finalizing or proposing an allocation.');
+  }
 
   const volunteer = await User.findById(volunteerId);
   if (!volunteer || volunteer.role !== 'VOLUNTEER' || volunteer.status !== 'ACTIVE') {
@@ -428,6 +437,9 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
     isOverride: Boolean(isOverride),
     overrideJustification: overrideJustification?.trim() || null,
     adminNote: adminNote || null,
+    reportingTime: reportingTime.trim(),
+    meetingPoint: meetingPoint.trim(),
+    reportingInstructions: reportingInstructions ? reportingInstructions.trim() : null,
     status: 'PROPOSED',
     reviewedById: adminId,
     invitedAt: new Date(),
@@ -443,7 +455,7 @@ async function proposeMatch(requestId, volunteerId, adminNote, { adminId, ip, is
     toStatus: 'MATCH_PROPOSED',
     actorType: 'ADMIN',
     actorAdminId: adminId,
-    reason: `Match proposed with volunteer ${volProfile.fullName || 'Volunteer'} (${matchRef})${isOverride ? ' [OVERRIDE]' : ''}. ${adminNote || ''}`.trim(),
+    reason: `Match proposed with volunteer ${volProfile.fullName || 'Volunteer'} (${matchRef})${isOverride ? ' [OVERRIDE]' : ''}. Reporting Time: ${reportingTime.trim()}, Meeting Point: ${meetingPoint.trim()}. ${adminNote || ''}`.trim(),
   });
 
   // Notify Volunteer
@@ -550,12 +562,17 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
 
   // Create ConfirmedAssignment in MongoDB with duplicate active protection
   let assignment;
+  const allocationId = await generateAllocationId();
   try {
     assignment = await ConfirmedAssignment.create({
       requestId: request._id,
       matchProposalId: proposal._id,
       candidateId: request.candidateId,
       volunteerId,
+      allocationId,
+      reportingTime: proposal.reportingTime || null,
+      meetingPoint: proposal.meetingPoint || null,
+      reportingInstructions: proposal.reportingInstructions || null,
       startsAt,
       endsAt,
       lockDeadline,
@@ -574,6 +591,7 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
   }
 
   const prevStatus = request.status;
+  const isReplacement = prevStatus === 'REPLACEMENT_REQUIRED';
   request.status = 'CONFIRMED';
   await request.save();
 
@@ -583,7 +601,7 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
     toStatus: 'CONFIRMED',
     actorType: 'VOLUNTEER',
     actorUserId: volunteerId,
-    reason: 'Volunteer accepted the scribe invitation. Assignment is automatically confirmed.',
+    reason: `Volunteer accepted the scribe invitation. Assignment confirmed with Allocation ID: ${allocationId}.`,
   });
 
   const examName = exam ? (exam.name || exam.title) : 'Examination';
@@ -593,17 +611,21 @@ async function acceptInvitation(proposalId, volunteerId, termsData = {}) {
     userId: volunteerId,
     type: 'ASSIGNMENT_CONFIRMED',
     title: 'Assignment Confirmed! ✅',
-    body: `Your scribe assignment for ${examName} is officially confirmed! Thank you for supporting the candidate.`,
+    body: `Your scribe commitment has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID (${allocationId}) to identify your assigned candidate or seek assistance from an authorized examination coordinator, where available.`,
     linkPath: '/volunteer/commitments.html',
+    requestId: request._id,
   });
 
   // Notify Candidate (Privacy-safe: no volunteer personal details)
   await notify({
     userId: request.candidateId,
-    type: 'SCRIBE_ALLOCATED',
-    title: 'Scribe Assistance Confirmed! ✅',
-    body: `A qualified scribe has been allocated and confirmed for your examination: ${examName}. View details in your dashboard.`,
+    type: isReplacement ? 'REPLACEMENT_ALLOCATED' : 'SCRIBE_ALLOCATED',
+    title: isReplacement ? 'Replacement Scribe Confirmed! ✅' : 'Scribe Assistance Confirmed! ✅',
+    body: isReplacement
+      ? `A replacement scribe allocation has been confirmed for your examination: ${examName}. Allocation ID: ${allocationId}. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID to identify your assigned scribe.`
+      : `Your scribe allocation has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID (${allocationId}) to identify your assigned scribe or seek assistance from an authorized examination coordinator, where available.`,
     linkPath: `/candidate/request-details.html?id=${request._id}`,
+    requestId: request._id,
   });
 
   return { proposal, request, assignment };
@@ -714,12 +736,17 @@ async function confirmMatch(requestId, candidateId) {
 
   // Create ConfirmedAssignment in MongoDB with duplicate active protection
   let assignment;
+  const allocationId = await generateAllocationId();
   try {
     assignment = await ConfirmedAssignment.create({
       requestId,
       matchProposalId: proposal._id,
       candidateId,
       volunteerId,
+      allocationId,
+      reportingTime: proposal.reportingTime || null,
+      meetingPoint: proposal.meetingPoint || null,
+      reportingInstructions: proposal.reportingInstructions || null,
       startsAt,
       endsAt,
       lockDeadline,
@@ -913,9 +940,21 @@ async function listAllMatches({ page = 1, pageSize = 20, status } = {}) {
         volProfile = await VolunteerProfile.findOne({ userId: m.volunteerId._id });
       }
 
+      let activeAssignment = null;
+      if (['ACCEPTED', 'CONFIRMED', 'CANDIDATE_CONFIRMED'].includes(m.status) && m.requestId?._id) {
+        activeAssignment = await ConfirmedAssignment.findOne({
+          requestId: m.requestId._id,
+          status: 'CONFIRMED',
+        }).select('allocationId reportingTime meetingPoint reportingInstructions');
+      }
+
       return {
         id: m._id.toString(),
         reference: m.matchReference,
+        allocationId: activeAssignment?.allocationId || null,
+        reportingTime: activeAssignment?.reportingTime || m.reportingTime || null,
+        meetingPoint: activeAssignment?.meetingPoint || m.meetingPoint || null,
+        reportingInstructions: activeAssignment?.reportingInstructions || m.reportingInstructions || null,
         status: m.status,
         score: m.score,
         scoreBreakdown: m.scoreBreakdown,
@@ -948,10 +987,168 @@ async function listAllMatches({ page = 1, pageSize = 20, status } = {}) {
   return { items: mapped, total };
 }
 
+/**
+ * Super-Admin directly finalizes and confirms scribe allocation with mandatory reporting details
+ */
+async function allocateScribe(requestId, volunteerId, { reportingTime, meetingPoint, reportingInstructions, adminNote, isOverride, overrideJustification } = {}, { adminId, ip } = {}) {
+  const request = await ScribeRequest.findById(requestId).populate('examinationId');
+  if (!request) throw HttpError.notFound('Scribe request not found.');
+
+  const volunteer = await User.findById(volunteerId);
+  if (!volunteer || volunteer.role !== 'VOLUNTEER' || volunteer.status !== 'ACTIVE') {
+    throw HttpError.badRequest('Selected volunteer is not active.');
+  }
+
+  const volProfile = await VolunteerProfile.findOne({ userId: volunteerId });
+  if (!volProfile) throw HttpError.notFound('Volunteer profile not found.');
+
+  // Validate mandatory reporting details
+  if (!reportingTime || typeof reportingTime !== 'string' || !reportingTime.trim()) {
+    throw HttpError.badRequest('Reporting time is required before finalizing allocation.');
+  }
+  if (!meetingPoint || typeof meetingPoint !== 'string' || !meetingPoint.trim()) {
+    throw HttpError.badRequest('Meeting point is required before finalizing allocation.');
+  }
+
+  if (!request.venue || !request.venue.confirmed) {
+    throw HttpError.badRequest('Cannot finalize allocation: Examination venue must be confirmed before allocating a volunteer.');
+  }
+
+  const exam = request.examinationId;
+  let session = null;
+  if (exam.sessions && request.sessionId) {
+    session = exam.sessions.id(request.sessionId) || exam.sessions.find((s) => s._id.toString() === request.sessionId.toString());
+  }
+
+  const conflict = await checkVolunteerConflict(volunteerId, exam, session);
+  if (conflict.hasConflict) {
+    throw HttpError.conflict('Cannot allocate volunteer: Volunteer has an overlapping confirmed examination assignment.');
+  }
+
+  const matchRef = await generateMatchReference();
+  let proposal = await MatchProposal.findOne({ requestId, volunteerId });
+  if (!proposal) {
+    proposal = await MatchProposal.create({
+      requestId,
+      volunteerId,
+      candidateId: request.candidateId,
+      examinationId: exam._id,
+      matchReference: matchRef,
+      adminNote: adminNote || null,
+      reportingTime: reportingTime.trim(),
+      meetingPoint: meetingPoint.trim(),
+      reportingInstructions: reportingInstructions ? reportingInstructions.trim() : null,
+      status: 'ACCEPTED',
+      reviewedById: adminId,
+      invitedAt: new Date(),
+      respondedAt: new Date(),
+      isOverride: Boolean(isOverride),
+      overrideJustification: overrideJustification?.trim() || null,
+    });
+  } else {
+    proposal.status = 'ACCEPTED';
+    proposal.reportingTime = reportingTime.trim();
+    proposal.meetingPoint = meetingPoint.trim();
+    proposal.reportingInstructions = reportingInstructions ? reportingInstructions.trim() : null;
+    await proposal.save();
+  }
+
+  let startsAt = exam?.startsOn || null;
+  let endsAt = exam?.endsOn || null;
+  if (session) {
+    startsAt = session.startsAt || session.date || startsAt;
+    endsAt = session.endsAt || session.date || endsAt;
+  }
+  let lockDeadline = null;
+  if (startsAt) {
+    lockDeadline = new Date(new Date(startsAt).getTime() - 5 * 24 * 60 * 60 * 1000);
+  }
+  const isLocked = lockDeadline ? (new Date() >= lockDeadline) : false;
+
+  const allocationId = await generateAllocationId();
+  let assignment;
+  try {
+    assignment = await ConfirmedAssignment.create({
+      requestId: request._id,
+      matchProposalId: proposal._id,
+      candidateId: request.candidateId,
+      volunteerId,
+      allocationId,
+      reportingTime: reportingTime.trim(),
+      meetingPoint: meetingPoint.trim(),
+      reportingInstructions: reportingInstructions ? reportingInstructions.trim() : null,
+      startsAt,
+      endsAt,
+      lockDeadline,
+      isLocked,
+      termsAccepted: true,
+      termsVersion: '1.0',
+      termsAcceptedAt: new Date(),
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+    });
+  } catch (err) {
+    if (err.code === 11000 || err.message?.includes('E11000')) {
+      throw HttpError.conflict('An active confirmed scribe assignment already exists for this request.');
+    }
+    throw err;
+  }
+
+  const prevStatus = request.status;
+  const isReplacement = prevStatus === 'REPLACEMENT_REQUIRED';
+  request.status = 'CONFIRMED';
+  await request.save();
+
+  await RequestStatusHistory.create({
+    requestId: request._id,
+    fromStatus: prevStatus,
+    toStatus: 'CONFIRMED',
+    actorType: 'ADMIN',
+    actorAdminId: adminId,
+    reason: `Scribe allocated & confirmed by Administrator. Allocation ID: ${allocationId}. Reporting Time: ${reportingTime.trim()}, Meeting Point: ${meetingPoint.trim()}`,
+  });
+
+  const examName = exam ? (exam.name || exam.title) : 'Examination';
+
+  // Notify Volunteer
+  await notify({
+    userId: volunteerId,
+    type: 'ASSIGNMENT_CONFIRMED',
+    title: 'Assignment Confirmed! ✅',
+    body: `Your scribe commitment has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID (${allocationId}) to identify your assigned candidate or seek assistance from an authorized examination coordinator, where available.`,
+    linkPath: '/volunteer/commitments.html',
+    requestId: request._id,
+  });
+
+  // Notify Candidate
+  await notify({
+    userId: request.candidateId,
+    type: isReplacement ? 'REPLACEMENT_ALLOCATED' : 'SCRIBE_ALLOCATED',
+    title: isReplacement ? 'Replacement Scribe Confirmed! ✅' : 'Scribe Assistance Confirmed! ✅',
+    body: isReplacement
+      ? `A replacement scribe allocation has been confirmed for your examination: ${examName}. Allocation ID: ${allocationId}. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID to identify your assigned scribe.`
+      : `Your scribe allocation has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID (${allocationId}) to identify your assigned scribe or seek assistance from an authorized examination coordinator, where available.`,
+    linkPath: `/candidate/request-details.html?id=${request._id}`,
+    requestId: request._id,
+  });
+
+  await writeAudit({
+    adminId,
+    action: 'allocation.confirm',
+    entityType: 'ConfirmedAssignment',
+    entityId: assignment._id,
+    details: { requestId, volunteerId, allocationId, reportingTime: reportingTime.trim(), meetingPoint: meetingPoint.trim() },
+    ip,
+  });
+
+  return { request, proposal, assignment };
+}
+
 module.exports = {
   scoreVolunteer,
   findPotentialMatches,
   proposeMatch,
+  allocateScribe,
   acceptInvitation,
   declineInvitation,
   confirmMatch,

@@ -26,6 +26,7 @@ const {
   updateRequestStatus,
   updateRequestVenue,
   confirmRequestVenue,
+  updateReportingDetails,
 } = require('../services/adminRequestService');
 const { getDashboardMetrics, getReports } = require('../services/adminReportService');
 const {
@@ -45,6 +46,7 @@ const {
 const {
   findPotentialMatches,
   proposeMatch,
+  allocateScribe,
   listAllVolunteerInterests,
   listAllMatches,
 } = require('../services/matchingService');
@@ -267,8 +269,59 @@ adminRouter.get(
 adminRouter.post(
   '/requests/:id/propose-match',
   asyncHandler(async (req, res) => {
-    const { volunteerId, note, isOverride, overrideJustification } = req.body;
-    created(res, await proposeMatch(req.params.id, volunteerId, note, { adminId: req.auth.admin._id, ip: req.ip, isOverride, overrideJustification }));
+    const { volunteerId, note, isOverride, overrideJustification, reportingTime, meetingPoint, reportingInstructions } = req.body;
+    created(res, await proposeMatch(req.params.id, volunteerId, note, {
+      adminId: req.auth.admin._id,
+      ip: req.ip,
+      isOverride,
+      overrideJustification,
+      reportingTime,
+      meetingPoint,
+      reportingInstructions,
+    }));
+  })
+);
+
+adminRouter.post(
+  '/requests/:id/allocate',
+  asyncHandler(async (req, res) => {
+    const { volunteerId, note, isOverride, overrideJustification, reportingTime, meetingPoint, reportingInstructions } = req.body;
+    created(res, await allocateScribe(req.params.id, volunteerId, {
+      reportingTime,
+      meetingPoint,
+      reportingInstructions,
+      adminNote: note,
+      isOverride,
+      overrideJustification,
+    }, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.patch(
+  '/requests/:id/reporting-details',
+  asyncHandler(async (req, res) => {
+    ok(res, await updateReportingDetails(req.params.id, req.body, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.put(
+  '/requests/:id/reporting-details',
+  asyncHandler(async (req, res) => {
+    ok(res, await updateReportingDetails(req.params.id, req.body, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.patch(
+  '/assignments/:id/reporting-details',
+  asyncHandler(async (req, res) => {
+    ok(res, await updateReportingDetails(req.params.id, req.body, { adminId: req.auth.admin._id, ip: req.ip }));
+  })
+);
+
+adminRouter.put(
+  '/assignments/:id/reporting-details',
+  asyncHandler(async (req, res) => {
+    ok(res, await updateReportingDetails(req.params.id, req.body, { adminId: req.auth.admin._id, ip: req.ip }));
   })
 );
 

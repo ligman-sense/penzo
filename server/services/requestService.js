@@ -3,8 +3,10 @@
 const mongoose = require('mongoose');
 const ScribeRequest = require('../models/ScribeRequest');
 const RequestStatusHistory = require('../models/RequestStatusHistory');
+const ConfirmedAssignment = require('../models/ConfirmedAssignment');
 const Examination = require('../models/Examination');
 const User = require('../models/User');
+const { generateAllocationId } = require('../utils/allocationId');
 const { HttpError } = require('../utils/httpError');
 const { canEdit, canCancel, assertTransition, REQUEST_STATUS_LABEL } = require('./requestStateMachine');
 const { notify } = require('./notificationService');
@@ -59,15 +61,21 @@ async function listRequests(candidateId, scope = 'all') {
     .populate('examinationId', 'name title slug authority locations sessions startsOn endsOn')
     .sort({ createdAt: -1 });
 
-  return items.map((r) => {
+  return Promise.all(items.map(async (r) => {
     const exam = r.examinationId;
     let session = null;
     if (exam && exam.sessions && r.sessionId) {
       session = exam.sessions.id(r.sessionId) || exam.sessions.find(s => s._id.toString() === r.sessionId.toString());
     }
+    let allocationId = null;
+    if (r.status === 'CONFIRMED') {
+      const a = await ConfirmedAssignment.findOne({ requestId: r._id, status: 'CONFIRMED' }).select('allocationId');
+      allocationId = a?.allocationId || null;
+    }
     return {
       id: r._id.toString(),
       reference: r.reference,
+      allocationId,
       status: r.status,
       statusLabel: REQUEST_STATUS_LABEL[r.status] || r.status,
       language: r.language,
@@ -91,7 +99,7 @@ async function listRequests(candidateId, scope = 'all') {
         endsAt: session.endsAt,
       } : null,
     };
-  });
+  }));
 }
 
 async function createRequest(candidateId, data) {
@@ -198,11 +206,33 @@ async function getRequest(candidateId, requestId) {
     session = exam.sessions.id(request.sessionId) || exam.sessions.find(s => s._id.toString() === request.sessionId.toString());
   }
 
+  // Fetch confirmed allocation details if confirmed (Privacy safe: no volunteer personal data)
+  let activeAssignment = null;
+  if (request.status === 'CONFIRMED') {
+    activeAssignment = await ConfirmedAssignment.findOne({
+      requestId: request._id,
+      status: 'CONFIRMED',
+    });
+    if (activeAssignment && !activeAssignment.allocationId) {
+      activeAssignment.allocationId = await generateAllocationId();
+      await activeAssignment.save();
+    }
+  }
+
   return {
     id: request._id.toString(),
     reference: request.reference,
     status: request.status,
     statusLabel: REQUEST_STATUS_LABEL[request.status] || request.status,
+    allocation: activeAssignment ? {
+      allocationId: activeAssignment.allocationId,
+      status: activeAssignment.status,
+      reportingTime: activeAssignment.reportingTime || null,
+      meetingPoint: activeAssignment.meetingPoint || null,
+      reportingInstructions: activeAssignment.reportingInstructions || null,
+      reportingDetailsUpdatedAt: activeAssignment.reportingDetailsUpdatedAt || null,
+      confirmedAt: activeAssignment.confirmedAt,
+    } : null,
     language: request.language,
     city: request.city,
     venue: request.venue || null,
@@ -280,6 +310,31 @@ async function cancelRequest(candidateId, requestId, reason) {
   request.cancelReason = reason || null;
   await request.save();
 
+  // If there was an active confirmed allocation, cancel it and notify volunteer
+  const activeAssignment = await ConfirmedAssignment.findOne({
+    requestId: request._id,
+    status: 'CONFIRMED',
+  });
+  if (activeAssignment) {
+    activeAssignment.status = 'CANCELLED';
+    activeAssignment.cancelledAt = new Date();
+    activeAssignment.cancelledBy = candidateId;
+    activeAssignment.cancelReason = reason || 'Request cancelled by candidate';
+    await activeAssignment.save();
+
+    await request.populate('examinationId');
+    const examName = request.examinationId?.name || request.examinationId?.title || 'Examination';
+
+    await notify({
+      userId: activeAssignment.volunteerId,
+      type: 'ASSIGNMENT_CANCELLED',
+      title: 'Scribe Assignment Cancelled',
+      body: `The scribe allocation for ${examName} has been cancelled by the candidate. Your commitment is released.`,
+      linkPath: '/volunteer/commitments.html',
+      requestId: request._id,
+    });
+  }
+
   await RequestStatusHistory.create({
     requestId: request._id,
     fromStatus: prevStatus,
@@ -287,6 +342,15 @@ async function cancelRequest(candidateId, requestId, reason) {
     actorType: 'CANDIDATE',
     actorUserId: candidateId,
     reason: reason || 'Cancelled by candidate',
+  });
+
+  await notify({
+    userId: candidateId,
+    type: 'REQUEST_CANCELLED',
+    title: 'Request Cancelled',
+    body: `Your scribe request (${request.reference}) has been cancelled.`,
+    linkPath: '/candidate/requests.html',
+    requestId: request._id,
   });
 
   return getRequest(candidateId, requestId);

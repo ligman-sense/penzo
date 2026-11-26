@@ -74,10 +74,20 @@ requestsRouter.get(
       return ok(res, null);
     }
 
+    const ConfirmedAssignment = require('../models/ConfirmedAssignment');
+    const assignment = await ConfirmedAssignment.findOne({
+      requestId: req.params.id,
+      status: 'CONFIRMED',
+    });
+
     // Privacy safeguard: Scribe allocation status only, NO volunteer PII
     ok(res, {
       proposalId: proposal._id.toString(),
       matchReference: proposal.matchReference,
+      allocationId: assignment?.allocationId || null,
+      reportingTime: assignment?.reportingTime || proposal.reportingTime || null,
+      meetingPoint: assignment?.meetingPoint || proposal.meetingPoint || null,
+      reportingInstructions: assignment?.reportingInstructions || proposal.reportingInstructions || null,
       status: proposal.status,
       isAllocated: true,
       adminNote: proposal.adminNote || null,

@@ -88,7 +88,9 @@ async function getRequest(id) {
     session = exam.sessions.id(r.sessionId) || exam.sessions.find(s => s._id.toString() === r.sessionId.toString());
   }
 
-  return {
+    const activeConfirmed = assignments.find((a) => a.status === 'CONFIRMED');
+
+    return {
     id: r._id.toString(),
     reference: r.reference,
     status: r.status,
@@ -105,6 +107,8 @@ async function getRequest(id) {
       name: exam.name || exam.title,
       authority: exam.authority,
       slug: exam.slug,
+      startsOn: exam.startsOn,
+      endsOn: exam.endsOn,
     } : null,
     session: session ? {
       id: session._id.toString(),
@@ -142,14 +146,35 @@ async function getRequest(id) {
       compatibility: p.compatibility,
       hasBlockingFailure: p.hasBlockingFailure,
       volunteerId: p.volunteerId?._id.toString(),
+      reportingTime: p.reportingTime || null,
+      meetingPoint: p.meetingPoint || null,
+      reportingInstructions: p.reportingInstructions || null,
     })),
     assignments: assignments.map((a) => ({
       id: a._id.toString(),
+      allocationId: a.allocationId || null,
+      reportingTime: a.reportingTime || null,
+      meetingPoint: a.meetingPoint || null,
+      reportingInstructions: a.reportingInstructions || null,
+      reportingDetailsUpdatedAt: a.reportingDetailsUpdatedAt || null,
       status: a.status,
       startsAt: a.startsAt,
       endsAt: a.endsAt,
       volunteerId: a.volunteerId?._id.toString(),
+      confirmedAt: a.confirmedAt,
     })),
+    activeAssignment: activeConfirmed ? {
+      id: activeConfirmed._id.toString(),
+      allocationId: activeConfirmed.allocationId || null,
+      reportingTime: activeConfirmed.reportingTime || null,
+      meetingPoint: activeConfirmed.meetingPoint || null,
+      reportingInstructions: activeConfirmed.reportingInstructions || null,
+      reportingDetailsUpdatedAt: activeConfirmed.reportingDetailsUpdatedAt || null,
+      status: activeConfirmed.status,
+      startsAt: activeConfirmed.startsAt,
+      endsAt: activeConfirmed.endsAt,
+      volunteerId: activeConfirmed.volunteerId?._id?.toString() || activeConfirmed.volunteerId?.toString(),
+    } : null,
   };
 }
 
@@ -160,7 +185,31 @@ async function updateRequestStatus(id, toStatus, reason, { adminId, ip } = {}) {
   assertTransition(request.status, toStatus);
   const prevStatus = request.status;
   request.status = toStatus;
-  if (toStatus === 'CANCELLED') request.cancelReason = reason || null;
+  if (toStatus === 'CANCELLED') {
+    request.cancelReason = reason || null;
+
+    // Release any active confirmed assignment
+    const activeAssignment = await ConfirmedAssignment.findOne({ requestId: id, status: 'CONFIRMED' });
+    if (activeAssignment) {
+      activeAssignment.status = 'CANCELLED';
+      activeAssignment.cancelledAt = new Date();
+      activeAssignment.cancelledBy = adminId;
+      activeAssignment.cancelReason = reason || 'Cancelled by administrator';
+      await activeAssignment.save();
+
+      await request.populate('examinationId');
+      const examName = request.examinationId?.name || request.examinationId?.title || 'Examination';
+
+      await notify({
+        userId: activeAssignment.volunteerId,
+        type: 'ASSIGNMENT_CANCELLED',
+        title: 'Scribe Assignment Cancelled',
+        body: `The scribe allocation for ${examName} has been cancelled by an administrator. Reason: ${reason || 'Administrative decision'}.`,
+        linkPath: '/volunteer/commitments.html',
+        requestId: id,
+      });
+    }
+  }
   await request.save();
 
   await RequestStatusHistory.create({
@@ -277,10 +326,98 @@ async function confirmRequestVenue(id, { adminId, ip } = {}) {
   return updateRequestVenue(id, { confirmed: true }, { adminId, ip });
 }
 
+/**
+ * Super-Admin updates reporting details post-confirmation
+ */
+async function updateReportingDetails(id, reportingData, { adminId, ip } = {}) {
+  const { reportingTime, meetingPoint, reportingInstructions } = reportingData || {};
+
+  if (!reportingTime || typeof reportingTime !== 'string' || !reportingTime.trim()) {
+    throw HttpError.badRequest('Reporting time is required.');
+  }
+  if (!meetingPoint || typeof meetingPoint !== 'string' || !meetingPoint.trim()) {
+    throw HttpError.badRequest('Meeting point is required.');
+  }
+
+  // id can be requestId or assignmentId
+  let assignment = await ConfirmedAssignment.findOne({ requestId: id, status: 'CONFIRMED' });
+  if (!assignment) {
+    assignment = await ConfirmedAssignment.findById(id);
+  }
+  if (!assignment) {
+    throw HttpError.notFound('Active confirmed scribe assignment not found.');
+  }
+
+  const request = await ScribeRequest.findById(assignment.requestId).populate('examinationId');
+  if (!request) throw HttpError.notFound('Associated scribe request not found.');
+
+  const exam = request.examinationId;
+  const examName = exam ? (exam.name || exam.title) : 'Examination';
+
+  // Ensure Allocation ID is generated if not yet present
+  if (!assignment.allocationId) {
+    const { generateAllocationId } = require('../utils/allocationId');
+    assignment.allocationId = await generateAllocationId();
+  }
+
+  assignment.reportingTime = reportingTime.trim();
+  assignment.meetingPoint = meetingPoint.trim();
+  assignment.reportingInstructions = reportingInstructions ? reportingInstructions.trim() : null;
+  assignment.reportingDetailsUpdatedAt = new Date();
+  await assignment.save();
+
+  // Record history
+  await RequestStatusHistory.create({
+    requestId: request._id,
+    fromStatus: request.status,
+    toStatus: request.status,
+    actorType: 'ADMIN',
+    actorAdminId: adminId,
+    reason: `Examination reporting details updated. Allocation ID: ${assignment.allocationId}. Reporting Time: ${assignment.reportingTime}, Meeting Point: ${assignment.meetingPoint}`,
+  });
+
+  // Notify Candidate
+  await notify({
+    userId: assignment.candidateId,
+    type: 'REPORTING_DETAILS_UPDATED',
+    title: 'Examination Reporting Details Updated',
+    body: `Reporting details for ${examName} (Allocation ID: ${assignment.allocationId}) have been updated. Reporting Time: ${assignment.reportingTime}, Meeting Point: ${assignment.meetingPoint}. Please check your confirmation card.`,
+    linkPath: `/candidate/request-details.html?id=${request._id}`,
+    requestId: request._id,
+  });
+
+  // Notify Volunteer
+  await notify({
+    userId: assignment.volunteerId,
+    type: 'REPORTING_DETAILS_UPDATED',
+    title: 'Examination Reporting Details Updated',
+    body: `Reporting details for ${examName} (Allocation ID: ${assignment.allocationId}) have been updated. Reporting Time: ${assignment.reportingTime}, Meeting Point: ${assignment.meetingPoint}. Please check your confirmed commitments.`,
+    linkPath: '/volunteer/commitments.html',
+    requestId: request._id,
+  });
+
+  await writeAudit({
+    adminId,
+    action: 'assignment.reporting_details_update',
+    entityType: 'ConfirmedAssignment',
+    entityId: assignment._id,
+    details: {
+      allocationId: assignment.allocationId,
+      reportingTime: assignment.reportingTime,
+      meetingPoint: assignment.meetingPoint,
+      reportingInstructions: assignment.reportingInstructions,
+    },
+    ip,
+  });
+
+  return getRequest(request._id.toString());
+}
+
 module.exports = {
   listRequests,
   getRequest,
   updateRequestStatus,
   updateRequestVenue,
   confirmRequestVenue,
+  updateReportingDetails,
 };

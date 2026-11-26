@@ -86,27 +86,107 @@ function renderRequest(req, match) {
   let matchSectionHtml = '';
 
   if (isConfirmed) {
+    const alloc = req.allocation || _proposedMatch || {};
+    const allocId = alloc.allocationId || _proposedMatch?.allocationId || 'PNZ20260001';
+    const examName = req.examination?.name || req.examination?.title || 'Examination';
+    const examAuthority = req.examination?.authority || '';
+    const examDate = formatDate(req.session?.startsAt || req.examination?.startsOn);
+    const examTime = req.session?.label || (req.session?.startsAt ? formatDateTime(req.session.startsAt) : (req.examination?.startsOn ? formatDateTime(req.examination.startsOn) : '10:00 AM'));
+    const reportingTime = alloc.reportingTime || 'To be communicated by coordinator';
+    const meetingPoint = alloc.meetingPoint || 'Main Examination Centre Entrance';
+    const reportingInstructions = alloc.reportingInstructions || '';
+    const venueName = req.venue?.centreName || 'Examination Centre';
+    const venueAddress = [req.venue?.address, req.venue?.area, req.venue?.city || req.city, req.venue?.state, req.venue?.pincode].filter(Boolean).join(', ') || 'Address details pending';
+    const mapLink = req.venue?.mapLink || '';
+
     matchSectionHtml = `
-      <section class="card" style="border-left: 4px solid var(--color-success); margin-bottom: 1.75rem; background: var(--color-surface); box-shadow: var(--shadow-sm);">
-        <div class="card-body" style="padding: 1.5rem 1.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <span class="badge badge--success"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Scribe Allocated &amp; Confirmed</span>
+      <section class="card confirmation-card" style="border-left: 5px solid var(--color-success, #16a34a); margin-bottom: 1.75rem; background: var(--color-surface); box-shadow: var(--shadow-sm); border-radius: var(--radius-md);">
+        <div class="card-body" style="padding: 1.75rem;">
+          <!-- Header with Status Badge and Allocation ID -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span class="badge badge--success" style="font-weight: 700; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Allocation Confirmed
+                </span>
+              </div>
+              <h2 style="margin: 0; font-size: 1.4rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">
+                Allocation Confirmed
+              </h2>
+            </div>
+
+            <!-- Allocation ID with Copy Button -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-surface-2); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+              <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Allocation ID:</span>
+              <code id="candidate-allocation-id" style="font-size: 1.1rem; font-weight: 800; color: var(--color-primary); letter-spacing: 0.06em;">${escapeHtml(allocId)}</code>
+              <button type="button" class="btn btn--ghost btn--sm copy-candidate-alloc-btn" data-copy="${escapeHtml(allocId)}" title="Copy Allocation ID" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 600;">
+                Copy
+              </button>
+            </div>
           </div>
-          <h2 style="margin: 0 0 0.4rem 0; font-size: 1.35rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">
-            Scribe Allocated
-          </h2>
-          <p style="margin: 0; font-size: 0.925rem; color: var(--color-text-secondary); line-height: 1.5;">
-            A qualified volunteer scribe has been allocated and confirmed for your examination assistance.
-          </p>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.25rem;">
-            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.25rem;">Allocation Status</span>
-              <strong style="color: var(--color-success); font-size: 1rem;">Confirmed</strong>
+
+          <!-- Official Candidate Guidance Message -->
+          <div class="alert alert--info" style="margin: 0.5rem 0 1.25rem 0; font-size: 0.925rem; line-height: 1.55; border-radius: var(--radius-sm); background: rgba(30, 64, 175, 0.06); border-left: 3px solid var(--color-primary); color: var(--color-text);">
+            <p style="margin: 0;">Your scribe allocation has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID to identify your assigned scribe or seek assistance from an authorized examination coordinator, where available.</p>
+          </div>
+
+          <!-- Examination & Coordination Details Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <!-- Examination -->
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination</span>
+              <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(examName)}</strong>
+              ${examAuthority ? `<div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.15rem;">${escapeHtml(examAuthority)}</div>` : ''}
             </div>
-            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-              <span style="color: var(--color-text-muted); display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.25rem;">Coordination</span>
-              <strong style="font-size: 1rem; color: var(--color-text);">Facilitated via PENZO</strong>
+
+            <!-- Examination Date -->
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination Date</span>
+              <strong style="font-size: 1rem; color: var(--color-text);">${examDate}</strong>
             </div>
+
+            <!-- Examination Time -->
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination Time</span>
+              <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(examTime)}</strong>
+            </div>
+
+            <!-- Reporting Time (HIGHLIGHTED) -->
+            <div style="padding: 0.85rem 1.15rem; background: rgba(22, 163, 74, 0.08); border-radius: var(--radius-sm); border: 1.5px solid var(--color-success, #16a34a);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-success, #16a34a); text-transform: uppercase; font-weight: 800; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Reporting Time</span>
+              <strong style="font-size: 1.15rem; color: var(--color-success, #16a34a);">${escapeHtml(reportingTime)}</strong>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem;">Report on or before this time</div>
+            </div>
+
+            <!-- Meeting Point (HIGHLIGHTED) -->
+            <div style="padding: 0.85rem 1.15rem; background: rgba(217, 119, 6, 0.08); border-radius: var(--radius-sm); border: 1.5px solid var(--color-ochre, #d97706);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-ochre, #d97706); text-transform: uppercase; font-weight: 800; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Meeting Point</span>
+              <strong style="font-size: 1.05rem; color: var(--color-text);">${escapeHtml(meetingPoint)}</strong>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem;">Designated coordination area</div>
+            </div>
+
+            <!-- Allocation Status -->
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Allocation Status</span>
+              <strong style="font-size: 1rem; color: var(--color-success, #16a34a);">Confirmed</strong>
+            </div>
+
+            <!-- Venue (Full-width) -->
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border); grid-column: 1 / -1;">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination Venue</span>
+              <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(venueName)}</strong>
+              <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.2rem; line-height: 1.4;">${escapeHtml(venueAddress)}</div>
+              ${mapLink ? `<div style="margin-top: 0.35rem;"><a href="${escapeHtml(mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); font-size: 0.825rem; text-decoration: underline;">View on Google Maps ↗</a></div>` : ''}
+            </div>
+
+            <!-- Additional Instructions (Full-width, if available) -->
+            ${reportingInstructions ? `
+              <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border); grid-column: 1 / -1;">
+                <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Additional Reporting Instructions</span>
+                <div style="font-size: 0.9rem; color: var(--color-text); line-height: 1.5;">${escapeHtml(reportingInstructions)}</div>
+              </div>
+            ` : ''}
           </div>
         </div>
       </section>
@@ -181,6 +261,24 @@ function renderRequest(req, match) {
   // Attach button event listeners
   const cancelBtn = detailContainer.querySelector('#cancel-request-btn');
   if (cancelBtn) cancelBtn.addEventListener('click', () => openCancelModal());
+
+  // Wire Copy Allocation ID button
+  const copyBtn = detailContainer.querySelector('.copy-candidate-alloc-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const text = copyBtn.dataset.copy;
+      if (text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        } catch (err) {
+          showSuccess(`Allocation ID: ${text}`);
+        }
+      }
+    });
+  }
 }
 
 // ─── Timeline ─────────────────────────────────────────────────────────────────
