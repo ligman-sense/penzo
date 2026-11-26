@@ -44,6 +44,9 @@ interestsRouter.get(
         status: p.status,
         score: p.score,
         adminNote: p.adminNote,
+        reportingTime: p.reportingTime || null,
+        meetingPoint: p.meetingPoint || null,
+        reportingInstructions: p.reportingInstructions || null,
         invitedAt: p.invitedAt,
         request: r ? {
           id: r._id.toString(),

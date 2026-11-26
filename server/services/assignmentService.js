@@ -7,6 +7,7 @@ const VolunteerProfile = require('../models/VolunteerProfile');
 const RequestStatusHistory = require('../models/RequestStatusHistory');
 const { notify } = require('./notificationService');
 const { HttpError } = require('../utils/httpError');
+const { generateAllocationId } = require('../utils/allocationId');
 
 const EMERGENCY_REASONS = [
   'Medical Emergency',
@@ -16,8 +17,11 @@ const EMERGENCY_REASONS = [
   'Other Critical Emergency',
 ];
 
-async function listAssignments(userId, role) {
+async function listAssignments(userId, role, { status } = {}) {
   const filter = role === 'CANDIDATE' ? { candidateId: userId } : { volunteerId: userId };
+  if (status) {
+    filter.status = status;
+  }
 
   const items = await ConfirmedAssignment.find(filter)
     .populate({
@@ -33,6 +37,12 @@ async function listAssignments(userId, role) {
       const req = a.requestId;
       const exam = req?.examinationId;
 
+      // Lazy-generate Allocation ID for older records if confirmed
+      if (a.status === 'CONFIRMED' && !a.allocationId) {
+        a.allocationId = await generateAllocationId();
+        await a.save();
+      }
+
       // 5-day lock calculation
       const startsAtTime = a.startsAt ? new Date(a.startsAt).getTime() : (exam?.startsOn ? new Date(exam.startsOn).getTime() : null);
       const lockDeadlineTime = a.lockDeadline ? new Date(a.lockDeadline).getTime() : (startsAtTime ? startsAtTime - 5 * 24 * 60 * 60 * 1000 : null);
@@ -46,6 +56,11 @@ async function listAssignments(userId, role) {
 
       const resObj = {
         id: a._id.toString(),
+        allocationId: a.allocationId || null,
+        reportingTime: a.reportingTime || null,
+        meetingPoint: a.meetingPoint || null,
+        reportingInstructions: a.reportingInstructions || null,
+        reportingDetailsUpdatedAt: a.reportingDetailsUpdatedAt || null,
         requestId: req ? req._id.toString() : null,
         status: a.status,
         startsAt: session?.startsAt || a.startsAt || exam?.startsOn,
@@ -233,10 +248,40 @@ async function cancelAssignment(assignmentId, userId, role, data = {}) {
   } else {
     // Candidate or Admin cancellation
     assignment.status = 'CANCELLED';
-    assignment.cancelReason = data.reason || 'Cancelled by candidate/admin';
+    assignment.cancelReason = data.reason || 'Cancelled';
     assignment.cancelledAt = new Date();
     assignment.cancelledBy = userId;
     await assignment.save();
+
+    if (isCandidate) {
+      // Notify volunteer
+      await notify({
+        userId: assignment.volunteerId,
+        type: 'ASSIGNMENT_CANCELLED',
+        title: 'Scribe Assignment Cancelled',
+        body: `The scribe allocation for ${examName} has been cancelled by the candidate. Your commitment is released.`,
+        linkPath: '/volunteer/commitments.html',
+        requestId: req?._id,
+      });
+    } else if (isAdmin) {
+      // Notify both candidate and volunteer
+      await notify({
+        userId: assignment.candidateId,
+        type: 'ASSIGNMENT_CANCELLED',
+        title: 'Scribe Assignment Cancelled',
+        body: `Your scribe allocation for ${examName} has been cancelled by an administrator.`,
+        linkPath: `/candidate/request-details.html?id=${req?._id}`,
+        requestId: req?._id,
+      });
+      await notify({
+        userId: assignment.volunteerId,
+        type: 'ASSIGNMENT_CANCELLED',
+        title: 'Scribe Assignment Cancelled',
+        body: `The scribe allocation for ${examName} has been cancelled by an administrator.`,
+        linkPath: '/volunteer/commitments.html',
+        requestId: req?._id,
+      });
+    }
   }
 
   return {

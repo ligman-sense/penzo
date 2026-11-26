@@ -27,6 +27,11 @@ const confirmedAssignmentSchema = new Schema({
   termsAccepted: { type: Boolean, default: false },
   termsVersion: { type: String, default: null },
   termsAcceptedAt: { type: Date, default: null },
+  allocationId: { type: String, unique: true, sparse: true, trim: true },
+  reportingTime: { type: String, default: null, trim: true },
+  meetingPoint: { type: String, default: null, trim: true },
+  reportingInstructions: { type: String, default: null, trim: true },
+  reportingDetailsUpdatedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 confirmedAssignmentSchema.index({ candidateId: 1, status: 1 });

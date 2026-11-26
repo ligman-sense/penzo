@@ -448,6 +448,23 @@ async function loadCommitments() {
           openCancelModal(btn.dataset.id, btn.dataset.locked === 'true');
         });
       });
+
+      // Wire copy allocation ID buttons
+      listEl.querySelectorAll('.copy-volunteer-alloc-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const text = btn.dataset.copy;
+          if (text) {
+            try {
+              await navigator.clipboard.writeText(text);
+              btn.textContent = 'Copied!';
+              setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            } catch (err) {
+              showSuccess(`Allocation ID: ${text}`);
+            }
+          }
+        });
+      });
     }
 
     if (paginEl) renderPagination(paginEl, { page: _page, totalPages: _totalPages }, goToPage);
@@ -469,6 +486,111 @@ function renderCommitmentItem(assignment) {
   const venue = assignment.venue || {};
   const isConfirmed = assignment.status === 'CONFIRMED';
   const examDate = formatDate(assignment.startsAt || assignment.examination?.startsOn);
+
+  if (isConfirmed) {
+    const allocId = assignment.allocationId || 'PNZ20260001';
+    const examName = assignment.examination?.name || assignment.examination?.title || 'Examination Session';
+    const examAuthority = assignment.examination?.authority || '';
+    const examTime = assignment.examination?.session?.label || (assignment.startsAt ? formatDateTime(assignment.startsAt) : '10:00 AM');
+    const reportingTime = assignment.reportingTime || 'To be communicated by coordinator';
+    const meetingPoint = assignment.meetingPoint || 'Main Examination Centre Entrance';
+    const reportingInstructions = assignment.reportingInstructions || '';
+    const venueName = venue.centreName || 'Examination Centre';
+    const venueAddress = [venue.address, venue.area, venue.city, venue.state, venue.pincode].filter(Boolean).join(', ') || 'Address details pending';
+    const mapLink = venue.mapLink || '';
+
+    return `
+      <li class="commitment-item confirmation-card" style="border-left: 5px solid var(--color-success, #16a34a); border-radius: var(--radius-md); padding: 1.5rem 1.75rem; background: var(--color-surface); box-shadow: var(--shadow-sm); margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+              <span class="badge badge--success" style="font-weight: 700; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Allocation Confirmed
+              </span>
+              ${assignment.isLocked ? '<span class="badge badge--red" style="font-size: 0.75rem;"><svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Locked (5-Day Rule)</span>' : ''}
+            </div>
+            <h3 style="margin: 0; font-size: 1.35rem; font-family: var(--font-display); font-weight: 800; color: var(--color-espresso);">
+              Allocation Confirmed
+            </h3>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-surface-2); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+            <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Allocation ID:</span>
+            <code style="font-size: 1.1rem; font-weight: 800; color: var(--color-primary); letter-spacing: 0.06em;">${escapeHtml(allocId)}</code>
+            <button type="button" class="btn btn--ghost btn--sm copy-volunteer-alloc-btn" data-copy="${escapeHtml(allocId)}" title="Copy Allocation ID" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 600;">
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Official Volunteer Guidance Message -->
+        <div class="alert alert--info" style="margin: 0.5rem 0 1.25rem 0; font-size: 0.925rem; line-height: 1.55; border-radius: var(--radius-sm); background: rgba(30, 64, 175, 0.06); border-left: 3px solid var(--color-primary); color: var(--color-text);">
+          <p style="margin: 0;">Your scribe commitment has been confirmed. Please report to the designated meeting point at the specified reporting time. Use your Allocation ID to identify your assigned candidate or seek assistance from an authorized examination coordinator, where available.</p>
+        </div>
+
+        <!-- Coordination Details Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination</span>
+            <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(examName)}</strong>
+            ${examAuthority ? `<div style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.15rem;">${escapeHtml(examAuthority)}</div>` : ''}
+          </div>
+
+          <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination Date</span>
+            <strong style="font-size: 1rem; color: var(--color-text);">${examDate}</strong>
+          </div>
+
+          <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Examination Time</span>
+            <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(examTime)}</strong>
+          </div>
+
+          <!-- Reporting Time (HIGHLIGHTED) -->
+          <div style="padding: 0.85rem 1.15rem; background: rgba(22, 163, 74, 0.08); border-radius: var(--radius-sm); border: 1.5px solid var(--color-success, #16a34a);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-success, #16a34a); text-transform: uppercase; font-weight: 800; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Reporting Time</span>
+            <strong style="font-size: 1.15rem; color: var(--color-success, #16a34a);">${escapeHtml(reportingTime)}</strong>
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem;">Please report on or before this time</div>
+          </div>
+
+          <!-- Meeting Point (HIGHLIGHTED) -->
+          <div style="padding: 0.85rem 1.15rem; background: rgba(217, 119, 6, 0.08); border-radius: var(--radius-sm); border: 1.5px solid var(--color-ochre, #d97706);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-ochre, #d97706); text-transform: uppercase; font-weight: 800; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Meeting Point</span>
+            <strong style="font-size: 1.05rem; color: var(--color-text);">${escapeHtml(meetingPoint)}</strong>
+            <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.15rem;">Designated coordination area</div>
+          </div>
+
+          <!-- Allocation Status -->
+          <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Allocation Status</span>
+            <strong style="font-size: 1rem; color: var(--color-success, #16a34a);">Confirmed</strong>
+          </div>
+
+          <!-- Venue -->
+          <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border); grid-column: 1 / -1;">
+            <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Venue</span>
+            <strong style="font-size: 1rem; color: var(--color-text);">${escapeHtml(venueName)}</strong>
+            <div style="font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.2rem;">${escapeHtml(venueAddress)}</div>
+            ${mapLink ? `<div style="margin-top: 0.35rem;"><a href="${escapeHtml(mapLink)}" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); font-size: 0.825rem; text-decoration: underline;">View on Google Maps ↗</a></div>` : ''}
+          </div>
+
+          ${reportingInstructions ? `
+            <div style="padding: 0.85rem 1.15rem; background: var(--color-surface-2); border-radius: var(--radius-sm); border: 1px solid var(--color-border); grid-column: 1 / -1;">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: 0.04em;">Additional Reporting Instructions</span>
+              <div style="font-size: 0.9rem; color: var(--color-text); line-height: 1.5;">${escapeHtml(reportingInstructions)}</div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; align-items: center; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+          <button class="btn btn--sm ${assignment.isLocked ? 'btn--danger' : 'btn--outline'} btn-cancel-commitment" data-id="${assignment.id}" data-locked="${assignment.isLocked ? 'true' : 'false'}">
+            ${assignment.isLocked ? 'Emergency Cancellation' : 'Cancel Commitment'}
+          </button>
+        </div>
+      </li>
+    `;
+  }
 
   return `<li class="commitment-item" style="border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; background: var(--color-surface); flex-wrap: wrap;">
     <div class="commitment-item__info" style="flex: 1; min-width: 280px;">

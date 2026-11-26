@@ -307,7 +307,10 @@ async function loadMatches() {
 
         return `
           <tr>
-            <td><code>${escapeHtml(m.reference || '—')}</code></td>
+            <td>
+              <code>${escapeHtml(m.allocationId || m.reference || '—')}</code>
+              ${m.allocationId ? `<div style="font-size: 0.75rem; color: var(--color-text-muted);">${escapeHtml(m.reference)}</div>` : ''}
+            </td>
             <td>
               <strong>${escapeHtml(m.candidate?.name || 'Candidate')}</strong>
               <div style="font-size: 0.8rem; color: var(--color-text-muted);">${escapeHtml(m.candidate?.mobile || '')}</div>
@@ -403,6 +406,12 @@ function setupModals() {
       if (overrideInput) overrideInput.value = '';
       const overrideGroup = document.getElementById('propose-override-group');
       if (overrideGroup) overrideGroup.style.display = 'none';
+      const repTime = document.getElementById('propose-reporting-time');
+      if (repTime) repTime.value = '';
+      const repMeet = document.getElementById('propose-meeting-point');
+      if (repMeet) repMeet.value = '';
+      const repInst = document.getElementById('propose-reporting-instructions');
+      if (repInst) repInst.value = '';
     },
   });
 
@@ -684,8 +693,10 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
       <div class="grid grid-cols-2" style="gap: 0.5rem; font-size: 0.85rem;">
         <div><strong>Candidate Request:</strong> ${escapeHtml(r.reference)}</div>
         <div><strong>Exam Date:</strong> ${r.examination.startsOn ? formatDate(r.examination.startsOn) : 'TBD'}</div>
-        <div><strong>Location:</strong> ${escapeHtml(r.city || 'Any')}</div>
-        <div><strong>Language:</strong> ${escapeHtml(r.language || 'Any')}</div>
+        <div><strong>Session / Time:</strong> ${escapeHtml(r.session?.label || (r.examination.startsOn ? formatDateTime(r.examination.startsOn) : 'General Session'))}</div>
+        <div><strong>Exam Centre Venue:</strong> ${escapeHtml(r.venue?.centreName ? (r.venue.centreName + (r.venue.city ? ', ' + r.venue.city : '')) : (r.city || 'Exam Centre'))}</div>
+        <div><strong>Preferred Language:</strong> ${escapeHtml(r.language || 'Any')}</div>
+        <div><strong>City / Location:</strong> ${escapeHtml(r.city || '—')}</div>
       </div>
     </div>
 
@@ -704,7 +715,7 @@ function confirmPropose(volunteerId, isOverride = false, triggerBtn = null) {
     </div>
 
     <p style="font-size: 0.85rem; color: var(--color-text-muted);">
-      Upon confirmation, an invitation will be immediately delivered to the volunteer's portal. The candidate will be notified once the volunteer accepts.
+      Upon confirmation, an invitation will be immediately delivered to the volunteer's portal with reporting details. The candidate will receive matching coordination details upon confirmation.
     </p>
   `;
 
@@ -743,6 +754,26 @@ async function submitProposeMatch() {
     return;
   }
 
+  const reportingTimeEl = document.getElementById('propose-reporting-time');
+  const meetingPointEl = document.getElementById('propose-meeting-point');
+  const reportingInstructionsEl = document.getElementById('propose-reporting-instructions');
+
+  const reportingTime = reportingTimeEl?.value.trim() || '';
+  const meetingPoint = meetingPointEl?.value.trim() || '';
+  const reportingInstructions = reportingInstructionsEl?.value.trim() || '';
+
+  if (!reportingTime) {
+    showError('Reporting time is mandatory before finalizing allocation.');
+    reportingTimeEl?.focus();
+    return;
+  }
+
+  if (!meetingPoint) {
+    showError('Meeting point is mandatory before finalizing allocation.');
+    meetingPointEl?.focus();
+    return;
+  }
+
   [submitBtn, cancelBtn].forEach((b) => { if (b) b.disabled = true; });
   setLoading(submitBtn, true, 'Proposing Match…');
 
@@ -752,6 +783,9 @@ async function submitProposeMatch() {
       note,
       isOverride,
       overrideJustification,
+      reportingTime,
+      meetingPoint,
+      reportingInstructions,
     });
 
     const volName = selectedVolunteer?.volunteerName || 'Volunteer';
@@ -792,6 +826,82 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
       const exam = req.examination || {};
       const cand = req.candidate || {};
       const history = req.history || [];
+      const activeAssignment = req.activeAssignment || (req.assignments || []).find((a) => a.status === 'CONFIRMED');
+
+      const coordinationCardHtml = activeAssignment ? `
+        <!-- Examination-Day Allocation & Coordination Card -->
+        <div class="card" style="border-left: 4px solid var(--color-success, #16a34a); padding: 1.25rem; margin-bottom: 1.25rem; background: var(--color-surface); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <div>
+              <span class="badge badge--success" style="font-weight: 700; font-size: 0.8rem; margin-bottom: 0.25rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Allocation Confirmed
+              </span>
+              <h4 style="margin: 0.2rem 0; font-size: 1.15rem; color: var(--color-espresso);">
+                Examination-Day Coordination Details
+              </h4>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-surface-2); padding: 0.4rem 0.75rem; border-radius: 4px; border: 1px solid var(--color-border);">
+              <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 700; text-transform: uppercase;">Allocation ID:</span>
+              <code style="font-size: 1.05rem; font-weight: 800; color: var(--color-primary); letter-spacing: 0.05em;">${escapeHtml(activeAssignment.allocationId || 'PNZ—')}</code>
+              ${activeAssignment.allocationId ? `
+                <button type="button" class="btn btn--ghost btn--sm copy-admin-alloc-btn" data-copy="${escapeHtml(activeAssignment.allocationId)}" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;">
+                  Copy
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2" style="gap: 0.75rem; font-size: 0.875rem; margin-bottom: 0.75rem;">
+            <div style="background: rgba(22, 163, 74, 0.07); padding: 0.75rem 1rem; border-radius: 6px; border: 1.5px solid var(--color-success, #16a34a);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-success, #16a34a); text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em;">Reporting Time</span>
+              <strong style="font-size: 1.1rem; color: var(--color-success, #16a34a);">${escapeHtml(activeAssignment.reportingTime || 'Pending')}</strong>
+            </div>
+            <div style="background: rgba(217, 119, 6, 0.07); padding: 0.75rem 1rem; border-radius: 6px; border: 1.5px solid var(--color-ochre, #d97706);">
+              <span style="display: block; font-size: 0.72rem; color: var(--color-ochre, #d97706); text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em;">Meeting Point</span>
+              <strong style="font-size: 1.05rem; color: var(--color-text);">${escapeHtml(activeAssignment.meetingPoint || 'Pending')}</strong>
+            </div>
+          </div>
+
+          ${activeAssignment.reportingInstructions ? `
+            <div style="background: var(--color-surface-2); padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 0.75rem; border: 1px solid var(--color-border);">
+              <strong style="display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 0.25rem;">Additional Reporting Instructions</strong>
+              <div style="color: var(--color-text);">${escapeHtml(activeAssignment.reportingInstructions)}</div>
+            </div>
+          ` : ''}
+
+          <!-- Inline Edit Form (Hidden by default) -->
+          <form id="reporting-edit-form" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-border);">
+            <h5 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Update Reporting &amp; Coordination Details</h5>
+            <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: var(--color-text-muted);">
+              Updates will immediately synchronize to both candidate and volunteer dashboards, and send an automated in-app notification to both parties.
+            </p>
+            <div class="grid grid-cols-2" style="gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Reporting Time *</label>
+                <input type="text" id="edit-reporting-time" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(activeAssignment.reportingTime || '')}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Meeting Point *</label>
+                <input type="text" id="edit-meeting-point" class="form-input" style="font-size: 0.85rem;" value="${escapeHtml(activeAssignment.meetingPoint || '')}" required>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label class="form-label" style="font-size: 0.8rem;">Additional Reporting Instructions</label>
+              <textarea id="edit-reporting-instructions" class="form-textarea" rows="2" style="font-size: 0.85rem;">${escapeHtml(activeAssignment.reportingInstructions || '')}</textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem;">
+              <button type="button" id="btn-cancel-reporting-edit" class="btn btn--sm btn--ghost">Cancel</button>
+              <button type="submit" id="btn-save-reporting" class="btn btn--sm btn--primary">Save &amp; Notify Both Parties</button>
+            </div>
+          </form>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
+            <button type="button" id="btn-toggle-reporting-edit" class="btn btn--sm btn--outline">
+              Edit Reporting Details
+            </button>
+          </div>
+        </div>
+      ` : '';
 
       body.innerHTML = `
         <div style="margin-bottom: 1.25rem;">
@@ -803,6 +913,8 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
             ${renderStatusBadge(req.status)}
           </div>
         </div>
+
+        ${coordinationCardHtml}
 
         <div class="card" style="background: var(--color-surface-2); padding: 1rem; margin-bottom: 1.25rem;">
           <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem;">Request Specification</h4>
@@ -966,6 +1078,72 @@ async function openRequestDetailModal(requestId, triggerBtn = null) {
             openRequestDetailModal(requestId);
           } catch (err) {
             showError(err.message || 'Failed to confirm venue.');
+          }
+        });
+      }
+
+      // Wire Reporting Details Confirmation & Edit events
+      const toggleReportingBtn = body.querySelector('#btn-toggle-reporting-edit');
+      const reportingForm = body.querySelector('#reporting-edit-form');
+      const cancelReportingBtn = body.querySelector('#btn-cancel-reporting-edit');
+      const copyAllocBtn = body.querySelector('.copy-admin-alloc-btn');
+
+      if (copyAllocBtn) {
+        copyAllocBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const toCopy = copyAllocBtn.dataset.copy;
+          if (toCopy) {
+            try {
+              await navigator.clipboard.writeText(toCopy);
+              copyAllocBtn.textContent = 'Copied!';
+              setTimeout(() => { copyAllocBtn.textContent = 'Copy'; }, 2000);
+            } catch (err) {
+              showSuccess(`Allocation ID: ${toCopy}`);
+            }
+          }
+        });
+      }
+
+      if (toggleReportingBtn && reportingForm) {
+        toggleReportingBtn.addEventListener('click', () => {
+          reportingForm.style.display = reportingForm.style.display === 'none' ? 'block' : 'none';
+        });
+      }
+      if (cancelReportingBtn && reportingForm) {
+        cancelReportingBtn.addEventListener('click', () => {
+          reportingForm.style.display = 'none';
+        });
+      }
+      if (reportingForm) {
+        reportingForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const reportingTime = body.querySelector('#edit-reporting-time')?.value.trim();
+          const meetingPoint = body.querySelector('#edit-meeting-point')?.value.trim();
+          const reportingInstructions = body.querySelector('#edit-reporting-instructions')?.value.trim();
+
+          if (!reportingTime) {
+            showError('Reporting time is required.');
+            return;
+          }
+          if (!meetingPoint) {
+            showError('Meeting point is required.');
+            return;
+          }
+
+          const saveBtn = body.querySelector('#btn-save-reporting');
+          setLoading(saveBtn, true, 'Updating…');
+          try {
+            await api.patch(`/admin/requests/${requestId}/reporting-details`, {
+              reportingTime,
+              meetingPoint,
+              reportingInstructions,
+            });
+            showSuccess('Reporting details updated! Notifications delivered to both candidate and volunteer.');
+            openRequestDetailModal(requestId);
+          } catch (err) {
+            showError(err.message || 'Failed to update reporting details.');
+          } finally {
+            setLoading(saveBtn, false);
           }
         });
       }

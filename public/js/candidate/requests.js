@@ -90,10 +90,14 @@ async function loadRequests() {
             <a href="/candidate/request-details.html?id=${r.id}" class="link">
               ${escapeHtml(r.examination?.name || 'Unknown Exam')}
             </a>
+            ${r.allocationId ? `<div style="font-size: 0.75rem; color: var(--color-primary); font-family: monospace; font-weight: 700; margin-top: 0.15rem;">ID: ${escapeHtml(r.allocationId)}</div>` : ''}
           </td>
           <td data-label="Applied On">${formatDate(r.createdAt)}</td>
           <td data-label="Exam Date">${formatDate(r.session?.startsAt || r.examination?.startsOn)}</td>
-          <td data-label="Status">${renderStatusBadge(r.status)}</td>
+          <td data-label="Status">
+            ${renderStatusBadge(r.status)}
+            ${r.allocationId ? `<div style="font-size: 0.72rem; color: var(--color-success); font-weight: 700; margin-top: 0.15rem;">Confirmed</div>` : ''}
+          </td>
           <td data-label="Action">
             <a href="/candidate/request-details.html?id=${r.id}" class="btn btn--ghost btn--sm">View</a>
           </td>

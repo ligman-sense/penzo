@@ -37,7 +37,8 @@ assignmentsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const { _id, role } = req.auth.user;
-    ok(res, await listAssignments(_id, role));
+    const { status } = req.query;
+    ok(res, await listAssignments(_id, role, { status }));
   })
 );
 

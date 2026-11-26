@@ -551,3 +551,38 @@
     font-size: 1.05rem;
   }
 }
+
+/* ─── Allocation Confirmation Card ─────────────────────────────────────────── */
+.confirmation-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.confirmation-card code {
+  font-family: var(--font-mono, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace);
+}
+
+.confirmation-card button.copy-alloc-btn,
+.confirmation-card button.copy-candidate-alloc-btn,
+.confirmation-card button.copy-volunteer-alloc-btn,
+.confirmation-card button.copy-admin-alloc-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirmation-card button.copy-alloc-btn:hover,
+.confirmation-card button.copy-candidate-alloc-btn:hover,
+.confirmation-card button.copy-volunteer-alloc-btn:hover,
+.confirmation-card button.copy-admin-alloc-btn:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+@media (max-width: 640px) {
+  .confirmation-card {
+    padding: var(--spacing-4) var(--spacing-4) !important;
+  }
+}
+

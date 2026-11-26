@@ -243,6 +243,37 @@
         </label>
         <textarea id="propose-override-justification" class="form-textarea" rows="2" placeholder="Explain the administrative justification for proposing this candidate/volunteer..."></textarea>
       </div>
+      <!-- Examination-Day Coordination Details (Mandatory) -->
+      <div style="background: var(--color-surface-2); padding: 1rem; border-radius: 6px; border: 1px solid var(--color-border); margin-bottom: 1rem;">
+        <h4 style="margin: 0 0 0.5rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem; color: var(--color-primary);">
+          <svg class="icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Examination-Day Coordination Details
+        </h4>
+        <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: var(--color-text-muted);">
+          Reporting time and meeting point are mandatory for coordinating candidate and scribe arrival without sharing personal contact information.
+        </p>
+        <div class="grid grid-cols-2" style="gap: 0.75rem;">
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="propose-reporting-time" class="form-label" style="font-weight: 600; font-size: 0.825rem;">
+              Reporting Time *
+            </label>
+            <input type="text" id="propose-reporting-time" class="form-input" placeholder="e.g. 08:30 AM" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="propose-meeting-point" class="form-label" style="font-weight: 600; font-size: 0.825rem;">
+              Meeting Point *
+            </label>
+            <input type="text" id="propose-meeting-point" class="form-input" placeholder="e.g. Main Entrance – Help Desk" required>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 0.5rem; margin-bottom: 0;">
+          <label for="propose-reporting-instructions" class="form-label" style="font-size: 0.825rem;">
+            Additional Reporting Instructions <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-text-muted);">(Optional)</span>
+          </label>
+          <textarea id="propose-reporting-instructions" class="form-textarea" rows="2" placeholder="e.g. Bring valid admit card, official ID proof, and report to center coordinator..."></textarea>
+        </div>
+      </div>
+
       <div class="form-group" style="margin-bottom: 1rem;">
         <label for="propose-note" class="form-label">Optional Administrator Note for Volunteer</label>
         <textarea id="propose-note" class="form-textarea" rows="2" placeholder="e.g. Please bring official ID proof and report 30 minutes early at centre entrance..."></textarea>
