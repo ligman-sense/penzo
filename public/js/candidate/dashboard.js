@@ -124,24 +124,59 @@ async function loadRecentRequests() {
 
     if (!requests.length) {
       container.innerHTML = `
-        <p class="empty-state">No active requests. 
-          <a href="/candidate/examinations.html" class="link">Browse exams</a> to get started.
-        </p>`;
+        <div class="empty-state text-center" style="padding: 2.25rem 1rem;">
+          <p style="font-weight: 700; color: var(--color-text); margin-bottom: 0.35rem; font-size: 1rem;">No Active Requests</p>
+          <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 1.25rem;">You don't have any active scribe requests at the moment.</p>
+          <a href="/candidate/examinations.html" class="btn btn--primary btn--sm">Browse Examinations</a>
+        </div>`;
       return;
     }
 
     container.innerHTML = `
-      <ul class="request-list" aria-label="Recent requests">
-        ${requests.slice(0, 5).map(r => `
-          <li class="request-list__item">
-            <a href="/candidate/request-details.html?id=${r.id}" class="request-list__link">
-              <span class="request-list__exam">${escapeHtml(r.examination?.name || 'Unknown Exam')}</span>
-              <span class="request-list__date">${formatDate(r.createdAt)}</span>
-            </a>
-            ${renderStatusBadge(r.status)}
-          </li>`).join('')}
+      <ul class="dashboard-activity-list request-list" aria-label="Active scribe requests">
+        ${requests.slice(0, 4).map(r => {
+          const examName = r.examination?.name || r.examination?.title || 'Unknown Exam';
+          const authority = r.examination?.authority || '';
+          const examDate = formatDate(r.session?.startsAt || r.examination?.startsOn);
+          const submittedDate = formatDate(r.createdAt);
+          const allocId = r.allocationId || r.allocation?.allocationId;
+
+          return `
+            <li class="dashboard-activity-item request-list__item">
+              <div class="dashboard-activity-item__main">
+                <div class="dashboard-activity-item__header">
+                  <a href="/candidate/request-details.html?id=${r.id}" class="dashboard-activity-item__title">
+                    ${escapeHtml(examName)}
+                  </a>
+                  ${authority ? `<span class="dashboard-activity-item__authority">${escapeHtml(authority)}</span>` : ''}
+                </div>
+                <div class="dashboard-activity-item__meta-row">
+                  <span class="dashboard-activity-item__meta" title="Examination Date">
+                    <svg class="icon" aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Exam: ${examDate}
+                  </span>
+                  <span class="dashboard-activity-item__meta" title="Applied On">
+                    Applied ${submittedDate}
+                  </span>
+                  ${allocId ? `<span class="badge badge--success badge--sm" style="font-family: var(--font-mono, monospace); font-size: 0.72rem; padding: 2px 7px;">ID: ${escapeHtml(allocId)}</span>` : ''}
+                </div>
+              </div>
+              <div class="dashboard-activity-item__aside">
+                ${renderStatusBadge(r.status)}
+                <a href="/candidate/request-details.html?id=${r.id}" class="btn btn--outline btn--sm dashboard-activity-item__action">
+                  View Details
+                </a>
+              </div>
+            </li>
+          `;
+        }).join('')}
       </ul>
-      ${requests.length > 5 ? '<a href="/candidate/requests.html" class="btn btn--ghost btn--sm">View All Requests</a>' : ''}`;
+      ${requests.length > 4 ? `
+        <div style="margin-top: 1rem; text-align: center;">
+          <a href="/candidate/requests.html" class="btn btn--ghost btn--sm">View All ${requests.length} Requests →</a>
+        </div>
+      ` : ''}
+    `;
   } catch (err) {
     container.innerHTML = '<p class="text-error">Failed to load recent requests.</p>';
   }
