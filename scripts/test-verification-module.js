@@ -88,8 +88,9 @@ async function checkAsync(desc, fn) {
     assert(typeof metrics.requiresCorrection === 'number');
   });
 
-  check('Verified candidates count is 10 (matching the 10 seeded candidates)', () => {
-    assert.strictEqual(metrics.verifiedCandidates, 10);
+  check('Verified candidates count matches verified candidate users in DB', async () => {
+    const candCount = await User.countDocuments({ role: 'CANDIDATE', verificationStatus: 'VERIFIED', status: { $ne: 'DELETED' } });
+    assert.strictEqual(metrics.verifiedCandidates, candCount);
   });
 
   check('Verified volunteers count matches verified volunteer users in DB', async () => {

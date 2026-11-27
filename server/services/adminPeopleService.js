@@ -391,7 +391,7 @@ async function getVerification(id, { adminId, ip } = {}) {
       status: record.userId.status,
       profileComplete: record.userId.profileComplete,
       verificationStatus: record.userId.verificationStatus || 'UNVERIFIED',
-      profile,
+      profile: profile ? (profile.toObject ? profile.toObject() : profile) : {},
     },
     documents: documents.map((d) => ({
       id: d._id.toString(),
