@@ -11,18 +11,17 @@
     "seed": "node scripts/seed.js",
     "admin:create": "node server/scripts/createAdmin.js",
     "test": "node scripts/test-endpoints.js",
-    "test:login": "node scripts/test-login-flow.js"
+    "test:login": "node scripts/test-login-flow.js",
+    "test:deploy": "node scripts/test-deployment-readiness.js",
+    "test:all": "node scripts/test-deployment-readiness.js && node scripts/test-verification-module.js && node scripts/test-replacement-workflow.js && node scripts/test-allocation-coordination.js && npm test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csurf": "^1.11.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
-    "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "mongoose": "^8.8.0",
     "morgan": "^1.10.0",

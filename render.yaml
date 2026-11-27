@@ -1,0 +1,41 @@
+# Render Blueprint Specification for PENZO
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: penzo
+    env: node
+    plan: free
+    region: oregon # or frankfurt, singapore, etc.
+    branch: depUpdate
+    buildCommand: npm install
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TRUST_PROXY
+        value: "1"
+      - key: ENABLE_BACKGROUND_SCHEDULER
+        value: "true"
+      - key: MONGODB_URI
+        sync: false # Set in Render Dashboard with your MongoDB Atlas URI
+      - key: SESSION_SECRET
+        generateValue: true # Render automatically generates a secure random 32-character secret!
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false # e.g., admin@penzo.edu
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false # e.g., YourSecureAdminPassword123!
+      - key: ADMIN_BOOTSTRAP_NAME
+        value: "Super Administrator"
+      - key: RESEND_API_KEY
+        sync: false # Optional: Resend API key for password reset emails
+      - key: EMAIL_FROM
+        value: "PENZO <onboarding@resend.dev>"
+      - key: APP_URL
+        sync: false # Optional: https://<your-service-name>.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: "" # Empty defaults to same-origin

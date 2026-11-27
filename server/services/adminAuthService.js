@@ -66,8 +66,40 @@ async function adminLogin(email, password, { ip, userAgent } = {}) {
   return { admin, session, token };
 }
 
+/**
+ * Idempotently provision the Super-Administrator account if bootstrap credentials
+ * are configured in environment variables and the user does not yet exist.
+ * Preserves existing credentials without modification or duplicate creation.
+ */
+async function bootstrapAdminIfNeeded() {
+  const email = (process.env.ADMIN_BOOTSTRAP_EMAIL || env.ADMIN_BOOTSTRAP_EMAIL || '').toLowerCase().trim();
+  const password = process.env.ADMIN_BOOTSTRAP_PASSWORD || env.ADMIN_BOOTSTRAP_PASSWORD;
+  const name = process.env.ADMIN_BOOTSTRAP_NAME || env.ADMIN_BOOTSTRAP_NAME || 'Super Administrator';
+
+  if (!email || !password) {
+    return;
+  }
+
+  const existing = await AdminUser.findOne({ email });
+  if (existing) {
+    console.log(`[BOOTSTRAP] Super-Admin verified (${email}).`);
+    return;
+  }
+
+  const { hashPassword } = require('../utils/password');
+  const passwordHash = await hashPassword(password);
+  await AdminUser.create({
+    email,
+    name,
+    passwordHash,
+    isActive: true,
+  });
+  console.log(`[BOOTSTRAP] Super-Admin account initialized successfully for: ${email}`);
+}
+
 module.exports = {
   adminLogin,
+  bootstrapAdminIfNeeded,
   MAX_FAILED_LOGINS,
   LOCK_MINUTES,
 };

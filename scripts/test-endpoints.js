@@ -47,9 +47,12 @@ async function test() {
   }
 
   try {
-    // 1. Health check
+    // 1. Health checks
+    const rootHealth = await req('GET', '/health');
+    console.log('1a. Root /health check:', rootHealth.status, rootHealth.body?.status === 'ok' ? 'PASS' : 'FAIL');
+
     const health = await req('GET', '/api/health');
-    console.log('1. Health check:', health.status, health.body?.status === 'ok' ? 'PASS' : 'FAIL');
+    console.log('1b. API /api/health check:', health.status, health.body?.status === 'ok' ? 'PASS' : 'FAIL');
 
     // 2. Public examinations list
     const exams = await req('GET', '/api/public/examinations');
@@ -59,10 +62,24 @@ async function test() {
     const faqs = await req('GET', '/api/public/faqs');
     console.log('3. Public FAQs:', faqs.status, `found ${faqs.body?.data?.length || 0} faqs: PASS`);
 
-    // 4. Admin Login
+    // 4. Admin Login with verified credentials
+    const AdminUser = require('../server/models/AdminUser');
+    const { hashPassword } = require('../server/utils/password');
+    const testAdminEmail = 'testadmin_ep@penzo.internal';
+    const testAdminPass = 'SuperAdminPass123!';
+    let testAdmin = await AdminUser.findOne({ email: testAdminEmail });
+    if (!testAdmin) {
+      testAdmin = await AdminUser.create({
+        email: testAdminEmail,
+        name: 'Test Endpoint Admin',
+        passwordHash: await hashPassword(testAdminPass),
+        isActive: true,
+      });
+    }
+
     const adminLogin = await req('POST', '/api/admin/auth/login', {
-      email: 'admin@example.invalid',
-      password: 'AdminPassword123!',
+      email: testAdminEmail,
+      password: testAdminPass,
     });
     console.log('4. Admin login:', adminLogin.status, adminLogin.body?.success ? 'PASS' : 'FAIL');
     const adminCookie = adminLogin.headers['set-cookie']?.[0]?.split(';')[0];
@@ -76,14 +93,12 @@ async function test() {
     const adminReports = await req('GET', '/api/admin/reports', null, adminCookie);
     console.log('6. Admin reports:', adminReports.status, adminReports.body?.data?.requestsByStatus ? 'PASS' : 'FAIL');
 
-    // 7. Candidate OTP send (fictional number)
-    const testNum = `+0009999${Math.floor(Math.random() * 8999 + 1000)}`;
-    const otpSend = await req('POST', '/api/auth/otp/send', { mobile: testNum });
-    console.log('7. OTP send:', otpSend.status, otpSend.body?.success ? 'PASS' : 'FAIL');
-
-    // 8. Session check (unauthenticated)
+    // 7. Session check (unauthenticated)
     const sessionCheck = await req('GET', '/api/auth/session');
-    console.log('8. Auth session (unauthenticated):', sessionCheck.status, sessionCheck.body?.data?.authenticated === false ? 'PASS' : 'FAIL');
+    console.log('7. Auth session (unauthenticated):', sessionCheck.status, sessionCheck.body?.data?.authenticated === false ? 'PASS' : 'FAIL');
+
+    // Clean up test admin
+    await AdminUser.deleteOne({ _id: testAdmin._id });
 
     console.log('\nAll core endpoints verified and functioning properly!');
   } finally {

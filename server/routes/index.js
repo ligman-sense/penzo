@@ -16,13 +16,18 @@ const {
 const { publicExaminationsRouter } = require('./publicExaminations');
 const { publicFaqsRouter } = require('./publicFaqs');
 
+const { isDBConnected } = require('../config/database');
+
 const apiRouter = Router();
 
 apiRouter.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
+  const isDbUp = isDBConnected();
+  const statusCode = isDbUp ? 200 : 503;
+  res.status(statusCode).json({
+    status: isDbUp ? 'ok' : 'degraded',
+    database: isDbUp ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    uptime: Math.round(process.uptime()),
   });
 });
 
