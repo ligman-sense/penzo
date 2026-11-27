@@ -216,6 +216,201 @@
   gap: var(--spacing-3);
 }
 
+/* ─── Dashboard Activity Lists (Active Requests, Expressed Interests, Commitments) ─ */
+.dashboard-activity-list,
+.request-list,
+.interest-list,
+.commitment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.dashboard-activity-item,
+.request-list__item,
+.interest-list__item,
+.commitment-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: 0.95rem 1.15rem;
+  background-color: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.dashboard-activity-item:hover,
+.request-list__item:hover,
+.interest-list__item:hover,
+.commitment-list__item:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .dashboard-activity-item:hover,
+[data-theme="dark"] .request-list__item:hover,
+[data-theme="dark"] .interest-list__item:hover,
+[data-theme="dark"] .commitment-list__item:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.dashboard-activity-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dashboard-activity-item__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+}
+
+.dashboard-activity-item__title,
+.request-list__exam,
+.interest-list__exam {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-espresso);
+  text-decoration: none;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+a.dashboard-activity-item__title:hover,
+a.request-list__exam:hover {
+  color: var(--color-terracotta);
+  text-decoration: underline;
+}
+
+[data-theme="dark"] .dashboard-activity-item__title,
+[data-theme="dark"] .request-list__exam,
+[data-theme="dark"] .interest-list__exam {
+  color: var(--color-ivory);
+}
+
+[data-theme="dark"] a.dashboard-activity-item__title:hover,
+[data-theme="dark"] a.request-list__exam:hover {
+  color: var(--color-ochre);
+}
+
+.dashboard-activity-item__authority,
+.interest-list__authority {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-activity-item__meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+.dashboard-activity-item__meta,
+.request-list__date,
+.interest-list__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.825rem;
+}
+
+.dashboard-activity-item__meta .icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dashboard-activity-item__aside {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-shrink: 0;
+}
+
+.dashboard-activity-item__action {
+  white-space: nowrap;
+}
+
+/* Legacy layout support */
+.request-list__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.commitment-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.commitment-list__info strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-espresso);
+}
+
+[data-theme="dark"] .commitment-list__info strong {
+  color: var(--color-ivory);
+}
+
+.commitment-list__info span {
+  font-size: 0.825rem;
+  color: var(--color-text-secondary);
+}
+
+/* Responsive adjustments for activity lists on mobile */
+@media (max-width: 640px) {
+  .dashboard-activity-item,
+  .request-list__item,
+  .interest-list__item,
+  .commitment-list__item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+    padding: 0.9rem 1rem;
+  }
+
+  .dashboard-activity-item__aside {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed var(--color-border);
+    padding-top: 0.65rem;
+    margin-top: 0.25rem;
+  }
+}
+
 /* ─── Stat Metric Cards ─────────────────────────────────────────────────── */
 .stat-card {
   background-color: var(--color-surface);
